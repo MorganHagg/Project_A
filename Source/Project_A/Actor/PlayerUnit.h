@@ -17,6 +17,8 @@ class PROJECT_A_API APlayerUnit : public ACharacter
 public:
 	APlayerUnit();
 
+	void AdjustCamera();
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	USpringArmComponent* SpringArm;
 

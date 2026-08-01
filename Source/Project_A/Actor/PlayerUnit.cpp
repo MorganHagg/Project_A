@@ -4,22 +4,38 @@
 #include "../Component/AbilitySystem.h"
 #include "../Misc/AttributeSet.h"
 #include "../GameplayEffect/GameplayEffect.h"
+#include "Chaos/SoftsSpring.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 APlayerUnit::APlayerUnit()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystem>(TEXT("AbilitySystemComponent"));
 	Attributes = CreateDefaultSubobject<UAttributeSet>(TEXT("Attributes"));
-
-	//Spring Arm and Camera
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
+
+	AdjustCamera();
+}
+
+void APlayerUnit::AdjustCamera()
+{
 	SpringArm->SetupAttachment(RootComponent);
+	SpringArm->SocketOffset = FVector(0.f, 0.f, 0.f);	//TDOO: Change this to take screen size and put it in the middle
+	SpringArm->SetUsingAbsoluteRotation(true);
+	SpringArm->SetRelativeRotation(FRotator(-70.f, 0.f, 0.f));
 	SpringArm->TargetArmLength = 700.f;
-	SpringArm->bUsePawnControlRotation = true;
+	SpringArm->bUsePawnControlRotation = false;
+	SpringArm->bInheritPitch = false;
+	SpringArm->bInheritYaw = false;
+	SpringArm->bInheritRoll = false;
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
+
+	bUseControllerRotationYaw = false;
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->RotationRate = FRotator(0.f, 640.f, 0.f);
 }
 
 void APlayerUnit::BeginPlay()
