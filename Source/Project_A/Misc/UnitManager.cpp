@@ -1,0 +1,79 @@
+﻿#include "UnitManager.h"
+#include "Engine/World.h" 
+#include "BehaviorTree/BehaviorTree.h"
+#include "../AI/AIUnit.h"
+#include "../Misc/FUnitSpawnDataRow.h"
+#include "../Misc/FPlayerUnitParams.h"
+#include "../Actor/UnitBase.h"
+#include "../Actor/PlayerUnit.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+
+void UUnitManager::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Super::Initialize(Collection);
+
+	UnitDataTable = LoadObject<UDataTable>(nullptr,
+		TEXT("/Game/Framework/DataTable/DT_UnitSpawnData.DT_UnitSpawnData"));
+}
+
+AUnitBase* UUnitManager::SpawnUnit(FName RowName, const FTransform& SpawnTransform)
+{
+	if (!UnitDataTable) return nullptr;
+
+	FFUnitSpawnDataRow* Row = UnitDataTable->FindRow<FFUnitSpawnDataRow>(RowName, TEXT("SpawnUnit"));
+	if (!Row) return nullptr;
+
+	AUnitBase* NewUnit = Cast<AUnitBase>(
+		GetWorld()->SpawnActorDeferred<AUnitBase>(
+			AUnitBase::StaticClass(),
+			SpawnTransform,
+			nullptr,
+			nullptr,
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn));
+
+	if (!NewUnit) return nullptr;
+	NewUnit->FinishSpawning(SpawnTransform);
+	//NewUnit->FixLocAndRot();
+
+	NewUnit->GetMesh()->SetSkeletalMesh(Row->Mesh);
+	/*if (Row->AnimationBlueprint)
+	{
+		NewUnit->GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+		NewUnit->GetMesh()->SetAnimInstanceClass(Row->AnimationBlueprint);
+	}*/
+	
+	/*NewUnit->BehaviorTree = Row->BehaviorTree;
+	if (NewUnit->AIController && NewUnit->BehaviorTree)
+		NewUnit->AIController->RunBehaviorTree(NewUnit->BehaviorTree);*/
+		
+	//NewUnit->GrantedAbilities = Row->DefaultAbilities;
+	return NewUnit;
+}
+
+APlayerUnit* UUnitManager::SpawnPlayerUnit(FPlayerUnitParams SpawnParams, FVector Location)
+{
+	FTransform SpawnTransform(FRotator::ZeroRotator, Location);
+
+	APlayerUnit* NewUnit = Cast<APlayerUnit>(
+		GetWorld()->SpawnActorDeferred<APlayerUnit>(
+			APlayerUnit::StaticClass(),
+			SpawnTransform,
+			nullptr,
+			nullptr,
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn));
+	if (!NewUnit) return nullptr;
+	
+	NewUnit->GetCapsuleComponent()->SetCapsuleHalfHeight(10.f, true);
+	NewUnit->FinishSpawning(SpawnTransform);
+	//NewUnit->FixLocAndRot();
+
+	NewUnit->GetMesh()->SetSkeletalMesh(SpawnParams.Mesh);
+	if (SpawnParams.AnimationBlueprint)
+	{
+		NewUnit->GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+		NewUnit->GetMesh()->SetAnimInstanceClass(SpawnParams.AnimationBlueprint);
+	}
+	
+	return NewUnit;
+}
