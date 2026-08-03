@@ -9,7 +9,8 @@ UENUM(BlueprintType)
 enum class EAbilityInputID : uint8
 {
 	Ability0 = 0, 
-	Ability1 = 1
+	Ability1 = 1,
+	Ability2 = 2
 };
 
 // Forward declaration
@@ -46,22 +47,25 @@ protected:
 	UInputAction* IA_Move;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	UInputAction* IA_Ability;
+	UInputAction* IA_Dodge;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* IA_Ability1;
+	 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* IA_Ability2;
+
+	
 
 private:
 	// Used for auto assigning abilities to right and left clicks
-	TMap<FName, EAbilityInputID> AbilityInputMap;
+	TMap<TObjectPtr<UInputAction>, EAbilityInputID> AbilityInputMap;
 
 	// Input handling functions
 	void Move(const FInputActionValue& Value);
 	void FaceMouseCursor();
 
-	UFUNCTION()
 	void OnAbilityInputPressed(const FInputActionInstance& Instance);
-
-	UFUNCTION()
 	void OnAbilityInputReleased(const FInputActionInstance& Instance);
-
-	
 	
 };

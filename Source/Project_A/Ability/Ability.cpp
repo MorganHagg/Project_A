@@ -1,4 +1,6 @@
 ﻿#include "Ability.h"
+#include "Gameframework/Character.h"
+#include "Gameframework/CharacterMovementComponent.h"
 
 UAbility::UAbility()
 {
@@ -13,6 +15,7 @@ FString UAbility::GetAbilityUUID()
 
 void UAbility::ActivateAbility(ACharacter* NewCaster)
 {
+	UE_LOG(LogTemp, Log, TEXT("UAbility::ActivateAbility()"));
 	MyCaster = NewCaster;
 	
 	switch (GetAbilityType())

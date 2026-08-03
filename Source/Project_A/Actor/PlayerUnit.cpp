@@ -20,7 +20,6 @@ APlayerUnit::APlayerUnit()
 void APlayerUnit::AdjustCamera()
 {
 	SpringArm->SetupAttachment(RootComponent);
-	SpringArm->SocketOffset = FVector(0.f, 0.f, 0.f);	//TDOO: Change this to take screen size and put it in the middle
 	SpringArm->SetUsingAbsoluteRotation(true);
 	SpringArm->SetRelativeRotation(FRotator(-70.f, 0.f, 0.f));
 	SpringArm->TargetArmLength = 700.f;

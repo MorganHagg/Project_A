@@ -22,6 +22,8 @@ enum class EAbilityActivationType : uint8
 	Passive            // Always active, no input needed
 };
 
+class ACharacter;
+
 UCLASS()
 class PROJECT_A_API UAbility : public UObject
 {
@@ -60,7 +62,7 @@ protected:
 	float ClickDelay = 0.3f;
 
 	// Child functions
-	virtual void OnTap() {};
+	virtual void OnTap() {UE_LOG(LogTemp, Warning, TEXT("Click tap"));};
 	virtual void OnHold() {};
 	virtual void OnHoldEnd() {};
 	virtual void OnModify() {};
