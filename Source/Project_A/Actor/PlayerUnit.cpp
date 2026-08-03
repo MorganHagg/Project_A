@@ -1,19 +1,20 @@
 ﻿#include "PlayerUnit.h"
+#include "../Component/AbilitySystem.h"
+#include "../Component/EffectHandler.h"
+#include "../Component/Stats.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
-#include "../Component/AbilitySystem.h"
-#include "../Misc/AttributeSet.h"
-#include "../GameplayEffect/GameplayEffect.h"
-#include "Chaos/SoftsSpring.h"
 #include "GameFramework/CharacterMovementComponent.h"
+
 
 APlayerUnit::APlayerUnit()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystem>(TEXT("AbilitySystemComponent"));
-	Attributes = CreateDefaultSubobject<UAttributeSet>(TEXT("Attributes"));
-	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
+	EffectHandlerComponent = CreateDefaultSubobject<UEffectHandler>(TEXT("EffectHandlerComponent"));
+	StatsComponent = CreateDefaultSubobject<UStats>(TEXT("StatsComponent"));
 
+	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	AdjustCamera();
 }
 

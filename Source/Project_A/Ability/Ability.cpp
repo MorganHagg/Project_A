@@ -1,18 +1,17 @@
 ﻿#include "Ability.h"
-
-// Engine classes
 #include "Gameframework/Character.h"
 #include "Gameframework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/OverlapResult.h"
-
-// Custom classes
 #include "Projectile.h"
+#include "../GameplayEffect/GameplayEffect.h"
+#include "Project_A/Component/EffectHandler.h"
 
 UAbility::UAbility()
 {
 	CurrentState = EAbilityState::None;
 	AbilityUUID = FGuid::NewGuid().ToString();
+	World = GetWorld();
 }
 
 FString UAbility::GetAbilityUUID()
@@ -23,17 +22,10 @@ FString UAbility::GetAbilityUUID()
 void UAbility::Initiate(ACharacter* NewCaster)
 {
 	MyCaster = NewCaster;
-	if (!MyCaster)
-	{
-		EndAbility();
-		return;
-	}
-
 	World = MyCaster->GetWorld();
-	if (World)
-	{
-		MyController = UGameplayStatics::GetPlayerController(World, 0);
-	}
+
+	check(MyCaster);
+	check(World);
 
 	ActivateAbility(MyCaster);
 }
@@ -47,20 +39,12 @@ void UAbility::ActivateAbility(ACharacter* NewCaster)
 	{
 	case EAbilityActivationType::Interactive:
 		{
-			UWorld* MyWorld = GetWorld();
-			if (!MyWorld)
-			{
-				UE_LOG(LogTemp, Error, TEXT("GetWorld() returned null in ActivateAbility"));
-				return;
-			}
-
-			World = MyWorld;
-			PressStartTime = MyWorld->GetTimeSeconds();
+			PressStartTime = World->GetTimeSeconds();
 			CurrentState = EAbilityState::Pressed;
 
 			if (MyCaster)
 			{
-				MyWorld->GetTimerManager().SetTimer(
+				World->GetTimerManager().SetTimer(
 					ThresholdTimerHandle,
 					this,
 					&UAbility::ThresholdMet,
@@ -68,12 +52,6 @@ void UAbility::ActivateAbility(ACharacter* NewCaster)
 					false
 				);
 			}
-			break;
-		}
-
-	case EAbilityActivationType::Instant:
-		{
-			OnInstant();
 			break;
 		}
 
@@ -133,60 +111,26 @@ void UAbility::ThresholdMet()
 // ============================================================================
 // Effect library
 // ============================================================================
-
-void UAbility::RunEffect_Projectile(FLatentActionInfo LatentInfo, UStaticMesh* Mesh, FVector Target, float Speed)
+void UAbility::RunEffect_Target(UGameplayEffect* Effect, ACharacter* Target)
 {
-	if (!MyCaster || !World)
+	UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>();
+	if (EffectHandler)
 	{
-		return;
-	}
-
-	FLatentActionManager& LAM = World->GetLatentActionManager();
-	FEffect_ProjectileAction* ProjectileAction = new FEffect_ProjectileAction(LatentInfo);
-	LAM.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, ProjectileAction);
-
-	AProjectile* Projectile = World->SpawnActor<AProjectile>(
-		AProjectile::StaticClass(),
-		MyCaster->GetActorLocation(),
-		MyCaster->GetActorRotation()
-	);
-	Projectile->SetMyAbility(this);
-	Projectile->Destination = Target;
-	Projectile->Speed = Speed;
-
-	if (Mesh)
-	{
-		Projectile->MeshComponent->SetStaticMesh(Mesh);
-	}
-
-	TWeakObjectPtr<UAbility> WeakThis = this;
-	Projectile->OnHit.BindLambda([WeakThis, ProjectileAction](FVector HitLocation)
-	{
-		if (WeakThis.IsValid())
-		{
-			ProjectileAction->bComplete = true;
-		}
-	});
-}
-
-void UAbility::RunEffect_Damage(ACharacter* Target, int32 RawDamage, EAbilityType DamageType)
-{
-	if (Target && Target->Implements<UAbilityDamageable>())
-	{
-		IAbilityDamageable::Execute_ReceiveDamage(Target, RawDamage, DamageType);
+		EffectHandler->AddEffect(Effect);
 	}
 }
 
-void UAbility::RunEffect_Heal(ACharacter* Target, int32 RawHealing)
+TArray<ACharacter*> UAbility::RunEffect_AOE(UGameplayEffect* Effect, FVector Location, float Radius, ETargetSelection TargetSelection)
 {
-	if (Target && Target->Implements<UAbilityDamageable>())
-	{
-		IAbilityDamageable::Execute_ReceiveHeal(Target, RawHealing);
-	}
-}
+	//TODO: Change this so that all found actors gets the effect given on them
+	//Use this:
+	/*UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>();
 
-TArray<ACharacter*> UAbility::RunEffect_AOE(FVector Location, float Radius, ETargetSelection TargetSelection)
-{
+	if (EffectHandler)
+	{
+		EffectHandler->YourFunction();
+	}*/
+	
 	TArray<ACharacter*> Targets;
 	TArray<FOverlapResult> Overlaps;
 	FCollisionShape Sphere = FCollisionShape::MakeSphere(Radius);
@@ -208,25 +152,58 @@ TArray<ACharacter*> UAbility::RunEffect_AOE(FVector Location, float Radius, ETar
 			{
 				Targets.AddUnique(TargetCharacter);
 			}
-			// else: plug in your friendly/hostile check, e.g.:
-			// bool bIsFriendly = ...;
-			// if ((TargetSelection == ETargetSelection::Friendly && bIsFriendly) ||
-			//     (TargetSelection == ETargetSelection::Hostile && !bIsFriendly))
-			// {
-			//     Targets.AddUnique(TargetCharacter);
-			// }
 		}
 	}
 
 	return Targets;
 }
 
-void UAbility::RunEffect_ApplyStasis()
+void UAbility::RunEffect_Projectile(FLatentActionInfo LatentInfo, UGameplayEffect* Effect, UStaticMesh* Mesh, FVector Target, float Speed, int32 PenetrationCount, FVector& OutLocation)
 {
-	// TODO: implement stasis effect
+	if (Speed == 0.f)
+		UE_LOG(LogTemp, Warning, TEXT("Projectile has 0 speed"));
+	check(Mesh)
+	
+	if (!MyCaster || !World)
+	{
+		return;
+	}
+
+	FLatentActionManager& LAM = World->GetLatentActionManager();
+	FEffect_ProjectileAction* ProjectileAction = new FEffect_ProjectileAction(LatentInfo, OutLocation);
+	LAM.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, ProjectileAction);
+
+	AProjectile* Projectile = World->SpawnActor<AProjectile>(
+		AProjectile::StaticClass(),
+		MyCaster->GetActorLocation(),
+		MyCaster->GetActorRotation()
+	);
+	Projectile->SetMyAbility(this);
+	Projectile->SetMyCaster(MyCaster);
+	Projectile->Destination = Target;
+	Projectile->Speed = Speed;
+	Projectile->PenetrationCount = PenetrationCount;
+	Projectile->MeshComponent->IgnoreActorWhenMoving(MyCaster, true);
+
+	if (Mesh)
+	{
+		Projectile->MeshComponent->SetStaticMesh(Mesh);
+	}
+
+	TWeakObjectPtr<UAbility> WeakThis = this;
+	Projectile->OnHit.BindLambda([WeakThis, ProjectileAction](FVector HitLocation)
+	{
+		if (WeakThis.IsValid())
+		{
+			ProjectileAction->Finish(HitLocation);
+		}
+	});
 }
 
-AActor* UAbility::RunEffect_SpawnObject(AActor* SpawnActor, FVector SpawnLocation)
+
+
+// Uncertain if I need
+/*AActor* UAbility::RunEffect_SpawnObject(AActor* SpawnActor, FVector SpawnLocation)
 {
 	if (!World)
 	{
@@ -243,4 +220,4 @@ AActor* UAbility::RunEffect_SpawnObject(AActor* SpawnActor, FVector SpawnLocatio
 	);
 
 	return SpawnedActor;
-}
+}*/

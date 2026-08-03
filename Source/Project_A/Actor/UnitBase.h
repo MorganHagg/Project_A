@@ -3,6 +3,10 @@
 #include "Gameframework/Character.h"
 #include "UnitBase.generated.h"
 
+class UAbilitySystem;
+class UEffectHandler;
+class UStats;
+
 UCLASS()
 class PROJECT_A_API AUnitBase : public ACharacter
 {
@@ -17,5 +21,13 @@ protected:
 public:
 	virtual void Tick(float DeltaTime) override;
 
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	// System Components
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
+	UAbilitySystem* AbilitySystemComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
+	UEffectHandler* EffectHandlerComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
+	UStats* StatsComponent;
 };
