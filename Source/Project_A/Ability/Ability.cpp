@@ -5,7 +5,7 @@
 #include "Engine/OverlapResult.h"
 #include "Projectile.h"
 #include "../GameplayEffect/GameplayEffect.h"
-#include "Project_A/Component/EffectHandler.h"
+#include "../Component/EffectHandler.h"
 
 UAbility::UAbility()
 {

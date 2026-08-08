@@ -6,14 +6,13 @@
 UEffectHandler::UEffectHandler()
 {
 	PrimaryComponentTick.bCanEverTick = true;
-	MyTarget = CastChecked<ACharacter>(GetOwner());
 }
 
 
 void UEffectHandler::BeginPlay()
 {
 	Super::BeginPlay();
-
+	MyTarget = CastChecked<ACharacter>(GetOwner());
 }
 
 void UEffectHandler::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
