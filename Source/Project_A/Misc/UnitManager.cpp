@@ -9,6 +9,17 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 
+void UUnitManager::FixLocAndRot(ACharacter* NewUnit)
+{
+	NewUnit->GetMesh()->SetRelativeLocationAndRotation(
+	FVector(											// offset down to feet
+		0.f,
+		0.f,
+		-NewUnit->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()),
+	FRotator(0.f, -90.f, 0.f)			// rotate to face forward
+	);
+}
+
 void UUnitManager::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
@@ -34,7 +45,7 @@ AUnitBase* UUnitManager::SpawnUnit(FName RowName, const FTransform& SpawnTransfo
 
 	if (!NewUnit) return nullptr;
 	NewUnit->FinishSpawning(SpawnTransform);
-	//NewUnit->FixLocAndRot();
+	FixLocAndRot(NewUnit);
 
 	NewUnit->GetMesh()->SetSkeletalMesh(Row->Mesh);
 	/*if (Row->AnimationBlueprint)
@@ -66,7 +77,7 @@ APlayerUnit* UUnitManager::SpawnPlayerUnit(FPlayerUnitParams SpawnParams, FVecto
 	
 	NewUnit->GetCapsuleComponent()->SetCapsuleHalfHeight(10.f, true);
 	NewUnit->FinishSpawning(SpawnTransform);
-	//NewUnit->FixLocAndRot();
+	FixLocAndRot(NewUnit);
 
 	NewUnit->GetMesh()->SetSkeletalMesh(SpawnParams.Mesh);
 	if (SpawnParams.AnimationBlueprint)

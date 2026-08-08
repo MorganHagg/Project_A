@@ -42,7 +42,9 @@ void AControllerBase::SetupInputComponent()
 
 	check(MappingContext_Control);
 	check(IA_Move);
-	check(IA_Ability);
+	check(IA_Dodge);
+	check(IA_Ability1);
+	check(IA_Ability2);
 
 	Input->BindAction(
 		IA_Move,
@@ -50,17 +52,22 @@ void AControllerBase::SetupInputComponent()
 		this,
 		&AControllerBase::Move);
 
-	Input->BindAction(
-		IA_Ability,
-		ETriggerEvent::Started,
-		this,
-		&AControllerBase::OnAbilityInputPressed);
+	// Bind ability inputs
+	TArray<TPair<UInputAction*, EAbilityInputID>> Bindings = {
+		{ IA_Dodge, EAbilityInputID::Ability0 },
+		{ IA_Ability1, EAbilityInputID::Ability1 },
+		{ IA_Ability2, EAbilityInputID::Ability2 }
+	};
 
-	Input->BindAction(
-		IA_Ability,
-		ETriggerEvent::Completed,
-		this,
-		&AControllerBase::OnAbilityInputReleased);
+	for (const auto& Pair : Bindings)
+	{
+		if (Pair.Key)
+		{
+			AbilityInputMap.Add(Pair.Key, Pair.Value);
+			Input->BindAction(Pair.Key, ETriggerEvent::Started, this, &AControllerBase::OnAbilityInputPressed);
+			Input->BindAction(Pair.Key, ETriggerEvent::Completed, this, &AControllerBase::OnAbilityInputReleased);
+		}  
+	}
 }
 
 void AControllerBase::Move(const FInputActionValue& Value)
@@ -101,6 +108,37 @@ void AControllerBase::FaceMouseCursor()
 
 void AControllerBase::OnAbilityInputPressed(const FInputActionInstance& Instance)
 {
+	if (!PlayerUnit->AbilitySystemComponent) return;
+
+	if (const UInputAction* Action = Instance.GetSourceAction())
+	{
+		if (const EAbilityInputID* InputID = AbilityInputMap.Find(Action))
+		{
+			if (PlayerUnit->AbilitySystemComponent->ActiveAbility)
+				PlayerUnit->AbilitySystemComponent->ActiveAbility->DoModify();
+			else
+				PlayerUnit->AbilitySystemComponent->InitializeAbility(static_cast<int32>(*InputID));
+		}
+	}
+}
+
+void AControllerBase::OnAbilityInputReleased(const FInputActionInstance& Instance)
+{
+	if (!PlayerUnit->AbilitySystemComponent)
+		return;
+
+	if (const UInputAction* Action = Instance.GetSourceAction())
+	{
+		if (AbilityInputMap.Contains(Action))
+		{
+			PlayerUnit->AbilitySystemComponent->OnAbilityInputReleased();
+		}
+	}
+}
+
+/*
+void AControllerBase::OnAbilityInputPressed(const FInputActionInstance& Instance)
+{
 	if (!PlayerUnit)
 		return;
 	
@@ -118,3 +156,4 @@ void AControllerBase::OnAbilityInputReleased(const FInputActionInstance& Instanc
 
 	PlayerUnit->AbilitySystemComponent->OnAbilityInputReleased();
 }
+*/

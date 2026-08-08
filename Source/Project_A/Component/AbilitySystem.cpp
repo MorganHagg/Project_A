@@ -77,7 +77,7 @@ void UAbilitySystem::RemoveAbilityAtIndex(int Index)
 {
 	if (GrantedAbilities.IsValidIndex(Index))
 	{
-		GrantedAbilities.RemoveAt(Index);
+		GrantedAbilities[Index] = nullptr;
 	}
 }
 
@@ -91,7 +91,8 @@ void UAbilitySystem::InitializeAbility(int AbilityIndex)
 	}
 	else
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, TEXT("Activate ability failed"));
+		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red,
+			TEXT("Activate ability failed."));
 	}
 }
 

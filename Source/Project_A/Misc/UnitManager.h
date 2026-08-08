@@ -12,6 +12,8 @@ class PROJECT_A_API UUnitManager : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 public:
+	void FixLocAndRot(ACharacter* NewUnit);
+	
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	UFUNCTION(BlueprintCallable)
 	AUnitBase* SpawnUnit(FName RowName, const FTransform& SpawnTransform);

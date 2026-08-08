@@ -4,8 +4,8 @@
 #include "PlayerUnit.generated.h"
 
 class UAbilitySystem;
-class UAttributeSet;
-class UGameplayEffect;
+class UEffectHandler;
+class UStats;
 class UCameraComponent;
 class USpringArmComponent;
 
@@ -17,21 +17,23 @@ class PROJECT_A_API APlayerUnit : public ACharacter
 public:
 	APlayerUnit();
 
+	void AdjustCamera();
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	USpringArmComponent* SpringArm;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	UCameraComponent* Camera;
 	
-	// Custom Ability System Component
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities")
+	// System Components
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
 	UAbilitySystem* AbilitySystemComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TMap<FString, UGameplayEffect*> GameplayEffects;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
+	UEffectHandler* EffectHandlerComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UAttributeSet *Attributes;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
+	UStats* StatsComponent;
 	
 protected:
 	virtual void BeginPlay() override;
