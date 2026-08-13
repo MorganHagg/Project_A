@@ -2,11 +2,10 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "EnhancedInputSubsystems.h"
-#include "../Misc/AbilityInputID.h"
 #include "ControllerBase.generated.h"
 
-// Forward declaration
 class APlayerUnit;
+class UInputAction;
 
 UCLASS()
 class PROJECT_A_API AControllerBase : public APlayerController
@@ -21,17 +20,14 @@ protected:
 public:
 	UFUNCTION(BlueprintCallable)
 	void PossessPlayerUnit(APlayerUnit* NewPlayerUnit);
-	
+
 	virtual void Tick(float DeltaTime) override;
-	
 	virtual void SetupInputComponent() override;
 
 protected:
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	APlayerUnit* PlayerUnit;
-	
-	// Input Actions
+
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputMappingContext* MappingContext_Control;
 
@@ -39,25 +35,26 @@ protected:
 	UInputAction* IA_Move;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	UInputAction* IA_Dodge;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	UInputAction* IA_Ability1;
-	 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	UInputAction* IA_Ability2;
+	UInputAction* IA_Primary;
 
-	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* IA_Secondary;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	float HoldThreshold = 0.3f;
 
 private:
-	// Used for auto assigning abilities to right and left clicks
-	TMap<TObjectPtr<UInputAction>, EAbilityInputID> AbilityInputMap;
+	// Maps each bound InputAction to its base slot (Tap slot; Hold = base+1, Modify = base+2)
+	TMap<TObjectPtr<UInputAction>, int32> AbilityInputMap;
 
-	// Input handling functions
+	FTimerHandle HoldTimerHandle;
+	int32 PressedBaseSlot = -1;
+	bool bHoldThresholdMet = false;
+
 	void Move(const FInputActionValue& Value);
 	void FaceMouseCursor();
 
 	void OnAbilityInputPressed(const FInputActionInstance& Instance);
 	void OnAbilityInputReleased(const FInputActionInstance& Instance);
-	
+	void OnHoldThresholdMet();
 };

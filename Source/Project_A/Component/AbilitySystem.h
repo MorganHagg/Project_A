@@ -1,49 +1,37 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "../Misc/AbilityInputID.h"
 #include "AbilitySystem.generated.h"
 
-//Forward declaration
 class UAbility;
-class ACharacter;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJECT_A_API UAbilitySystem : public UActorComponent
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	UAbilitySystem();
+    UPROPERTY(BlueprintReadOnly)
+    UAbility* ActiveAbility = nullptr;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TMap<int32, TSubclassOf<UAbility>> GrantedAbilities;
+
+    UFUNCTION(BlueprintCallable)
+    void AddAbility(int32 Slot, TSubclassOf<UAbility> AbilityClass);
+
+    UFUNCTION(BlueprintCallable)
+    void RemoveAbility(int32 Slot);
+
+    UFUNCTION(BlueprintCallable)
+    UAbility* ActivateAbility(int32 Slot);
+
+    UFUNCTION(BlueprintCallable)
+    void EndActiveAbility();
 
 protected:
-	virtual void BeginPlay() override;
+    virtual void BeginPlay() override;
 
-public:
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
-
-	EAbilityInputID ActiveAbilityInputID = EAbilityInputID::None;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TMap<EAbilityInputID, TSubclassOf<UAbility>> GrantedAbilities;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UAbility* ActiveAbility;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	ACharacter *MyOwner = nullptr;
-
-	UFUNCTION(BlueprintCallable)
-	void AddAbility(TSubclassOf<UAbility> AbilityClass, EAbilityInputID InputID);
-
-	UFUNCTION(BlueprintCallable)  
-	void RemoveAbility(TSubclassOf<UAbility> AbilityClass);
-
-	UFUNCTION(BlueprintCallable)
-	void RemoveAbilityAtSlot(EAbilityInputID InputID);
-	
-	void InitializeAbility(EAbilityInputID InputID);
-	void OnAbilityInputReleased(EAbilityInputID ReleasedInputID);
-	void HandleModifyInput();
+    UPROPERTY()
+    AActor* MyOwner;
 };

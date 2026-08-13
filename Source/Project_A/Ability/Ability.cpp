@@ -9,7 +9,6 @@
 
 UAbility::UAbility()
 {
-	CurrentState = EAbilityState::None;
 	AbilityUUID = FGuid::NewGuid().ToString();
 	World = GetWorld();
 }
@@ -34,79 +33,19 @@ void UAbility::ActivateAbility(ACharacter* NewCaster)
 {
 	UE_LOG(LogTemp, Log, TEXT("UAbility::ActivateAbility()"));
 	MyCaster = NewCaster;
+	World = MyCaster ? MyCaster->GetWorld() : World;
 
-	switch (AbilityType)
-	{
-	case EAbilityActivationType::Interactive:
-		{
-			PressStartTime = World->GetTimeSeconds();
-			CurrentState = EAbilityState::Pressed;
-
-			if (MyCaster)
-			{
-				World->GetTimerManager().SetTimer(
-					ThresholdTimerHandle,
-					this,
-					&UAbility::ThresholdMet,
-					ClickDelay,
-					false
-				);
-			}
-			break;
-		}
-
-	case EAbilityActivationType::Passive:
-		{
-			OnPassive();
-			break;
-		}
-
-	case EAbilityActivationType::None:
-	default:
-		{
-			UE_LOG(LogTemp, Error, TEXT("%s has no activation type set"), *AbilityName.ToString());
-			break;
-		}
-	}
+	OnActivate();
 }
 
 void UAbility::EndAbility()
 {
 	UE_LOG(LogTemp, Warning, TEXT("End ability"))
-	UWorld* MyWorld = GetWorld();
-	if (MyWorld)
-	{
-		MyWorld->GetTimerManager().ClearTimer(ThresholdTimerHandle);
-	}
 
-	if (CurrentState == EAbilityState::Effect3_Modified)
-	{
-		OnModify();
-	}
+	OnEnd();
 
-	if (CurrentState == EAbilityState::Effect2_Charging)
-	{
-		OnHoldEnd();
-	}
-	else if (CurrentState == EAbilityState::Pressed)
-	{
-		OnTap();
-	}
-
-	CurrentState = EAbilityState::None;
 	MyCaster = nullptr;
 	MyTarget = nullptr;
-}
-
-EAbilityState UAbility::GetCurrentState()
-{
-	return CurrentState;
-}
-
-void UAbility::ThresholdMet()
-{
-	CurrentState = EAbilityState::Effect2_Charging;
-	OnHold();
 }
 
 // ============================================================================
@@ -123,15 +62,6 @@ void UAbility::RunEffect_Target(UGameplayEffect* Effect, ACharacter* Target)
 
 TArray<ACharacter*> UAbility::RunEffect_AOE(UGameplayEffect* Effect, FVector Location, float Radius, ETargetSelection TargetSelection)
 {
-	//TODO: Change this so that all found actors gets the effect given on them
-	//Use this:
-	/*UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>();
-
-	if (EffectHandler)
-	{
-		EffectHandler->YourFunction();
-	}*/
-	
 	TArray<ACharacter*> Targets;
 	TArray<FOverlapResult> Overlaps;
 	FCollisionShape Sphere = FCollisionShape::MakeSphere(Radius);
@@ -147,8 +77,6 @@ TArray<ACharacter*> UAbility::RunEffect_AOE(UGameplayEffect* Effect, FVector Loc
 				continue;
 			}
 
-			// TargetSelection needs a Friendly/Hostile check specific to your
-			// gameplay framework (team component, faction, etc). Filter here.
 			if (TargetSelection == ETargetSelection::All)
 			{
 				Targets.AddUnique(TargetCharacter);
@@ -164,7 +92,7 @@ void UAbility::RunEffect_Projectile(FLatentActionInfo LatentInfo, UGameplayEffec
 	if (Speed == 0.f)
 		UE_LOG(LogTemp, Warning, TEXT("Projectile has 0 speed"));
 	check(Mesh)
-	
+
 	if (!MyCaster || !World)
 	{
 		return;
@@ -200,25 +128,3 @@ void UAbility::RunEffect_Projectile(FLatentActionInfo LatentInfo, UGameplayEffec
 		}
 	});
 }
-
-
-
-// Uncertain if I need
-/*AActor* UAbility::RunEffect_SpawnObject(AActor* SpawnActor, FVector SpawnLocation)
-{
-	if (!World)
-	{
-		return nullptr;
-	}
-
-	FRotator SpawnRotation = SpawnParams.Owner ? SpawnParams.Owner->GetActorRotation() : FRotator::ZeroRotator;
-
-	AActor* SpawnedActor = World->SpawnActor<AActor>(
-		SpawnActor ? SpawnActor->GetClass() : AActor::StaticClass(),
-		SpawnLocation,
-		SpawnRotation,
-		SpawnParams
-	);
-
-	return SpawnedActor;
-}*/

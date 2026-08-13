@@ -1,26 +1,29 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿#include "UnitSpawner.h"
+#include "../Misc/UnitManager.h"
+#include "Kismet/GameplayStatics.h"
 
-
-#include "UnitSpawner.h"
-
-
-// Sets default values
 AUnitSpawner::AUnitSpawner()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 }
 
-// Called when the game starts or when spawned
 void AUnitSpawner::BeginPlay()
 {
+	UnitManager = GetGameInstance()->GetSubsystem<UUnitManager>();
 	Super::BeginPlay();
-	
+	SpawnUnit();
 }
 
-// Called every frame
-void AUnitSpawner::Tick(float DeltaTime)
+void AUnitSpawner::SpawnUnit()
 {
-	Super::Tick(DeltaTime);
-}
+	if (UnitToSpawn.RowName.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UnitSpawner: no row selected"));
+		return;
+	}
 
+	UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	if (!GameInstance) return;
+
+	UnitManager->SpawnUnit(UnitToSpawn.RowName, GetActorTransform());
+}

@@ -2,26 +2,13 @@
 #include "../Ability/Ability.h"
 #include "GameFramework/Character.h"
 
-UAbilitySystem::UAbilitySystem()
-{
-	PrimaryComponentTick.bCanEverTick = true;
-	GrantedAbilities.Empty();
-	ActiveAbility = nullptr;
-}
-
 void UAbilitySystem::BeginPlay()
 {
 	Super::BeginPlay();
-	MyOwner = CastChecked<ACharacter>(GetOwner());
+	MyOwner = GetOwner();
 }
 
-void UAbilitySystem::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-}
-
-void UAbilitySystem::AddAbility(TSubclassOf<UAbility> AbilityClass, EAbilityInputID InputID)
+void UAbilitySystem::AddAbility(int32 Slot, TSubclassOf<UAbility> AbilityClass)
 {
 	if (!AbilityClass)
 	{
@@ -29,94 +16,41 @@ void UAbilitySystem::AddAbility(TSubclassOf<UAbility> AbilityClass, EAbilityInpu
 		return;
 	}
 
-	if (InputID == EAbilityInputID::None)
+	if (Slot < 0)
 	{
-		UE_LOG(LogTemp, Error, TEXT("InputID is None, cannot assign a slot"));
+		UE_LOG(LogTemp, Error, TEXT("Slot is negative: %d"), Slot);
 		return;
 	}
 
-	// Check if this ability class is already granted anywhere
-	for (const TPair<EAbilityInputID, TSubclassOf<UAbility>>& Pair : GrantedAbilities)
-	{
-		if (Pair.Value == AbilityClass)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Ability already exists at slot %d"), static_cast<int32>(Pair.Key));
-			return; // Don't add duplicate
-		}
-	}
-
-	// Slot doesn't exist yet, safe to add
-	GrantedAbilities.Add(InputID, AbilityClass);
+	GrantedAbilities.Add(Slot, AbilityClass);
 }
 
-void UAbilitySystem::RemoveAbility(TSubclassOf<UAbility> AbilityClass)
+void UAbilitySystem::RemoveAbility(int32 Slot)
 {
-	if (!AbilityClass)
-	{
-		UE_LOG(LogTemp, Error, TEXT("AbilityClass is null!"));
-		return;
-	}
-
-	for (auto It = GrantedAbilities.CreateIterator(); It; ++It)
-	{
-		if (It->Value == AbilityClass)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Found and removed ability from slot %d"), static_cast<int32>(It->Key));
-			It.RemoveCurrent();
-			return;
-		}
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("Ability not found in granted abilities"));
+	GrantedAbilities.Remove(Slot);
 }
 
-void UAbilitySystem::RemoveAbilityAtSlot(EAbilityInputID InputID)
+UAbility* UAbilitySystem::ActivateAbility(int32 Slot)
 {
-	GrantedAbilities.Remove(InputID);
-}
-
-void UAbilitySystem::InitializeAbility(EAbilityInputID InputID)
-{
-	if (ActiveAbility)
-		return;		// already active, ignore duplicate init
-	
-	TSubclassOf<UAbility>* AbilityClass = GrantedAbilities.Find(InputID);
+	TSubclassOf<UAbility>* AbilityClass = GrantedAbilities.Find(Slot);
 
 	if (AbilityClass && *AbilityClass && MyOwner)
 	{
 		UAbility* NewAbility = NewObject<UAbility>(this, *AbilityClass);
-		NewAbility->ActivateAbility(MyOwner);
+		NewAbility->ActivateAbility(Cast<ACharacter>(MyOwner));
 		ActiveAbility = NewAbility;
-		ActiveAbilityInputID = InputID;
+		return ActiveAbility;
 	}
-	else
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red,
-			TEXT("Activate ability failed."));
-	}
+
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, TEXT("Activate ability failed."));
+	return nullptr;
 }
 
-void UAbilitySystem::OnAbilityInputReleased(EAbilityInputID ReleasedInputID)
+void UAbilitySystem::EndActiveAbility()
 {
-	if (ActiveAbility != nullptr && ReleasedInputID == ActiveAbilityInputID)
+	if (ActiveAbility)
 	{
 		ActiveAbility->EndAbility();
 		ActiveAbility = nullptr;
-		ActiveAbilityInputID = EAbilityInputID::None;
-	}
-}
-
-void UAbilitySystem::HandleModifyInput()
-{
-	if (!ActiveAbility)
-		return;
-
-	ActiveAbility->DoModify();
-
-	if (ActiveAbility->bModifyEnd)
-	{
-		ActiveAbility->EndAbility();
-		ActiveAbility = nullptr;
-		ActiveAbilityInputID = EAbilityInputID::None;
 	}
 }

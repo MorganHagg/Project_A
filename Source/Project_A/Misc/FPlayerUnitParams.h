@@ -13,4 +13,7 @@ struct FPlayerUnitParams
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UAnimInstance> AnimationBlueprint = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<TSubclassOf<UAbility>> DefaultAbilities;
 };
