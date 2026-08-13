@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "../Misc/AbilityInputID.h"
 #include "AbilitySystem.generated.h"
 
 //Forward declaration
@@ -22,8 +23,10 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TArray<TSubclassOf<UAbility>> GrantedAbilities; 
+	EAbilityInputID ActiveAbilityInputID = EAbilityInputID::None;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TMap<EAbilityInputID, TSubclassOf<UAbility>> GrantedAbilities;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UAbility* ActiveAbility;
@@ -32,14 +35,15 @@ public:
 	ACharacter *MyOwner = nullptr;
 
 	UFUNCTION(BlueprintCallable)
-	void AddAbility(TSubclassOf<UAbility> AbilityClass, int Index);
+	void AddAbility(TSubclassOf<UAbility> AbilityClass, EAbilityInputID InputID);
 
 	UFUNCTION(BlueprintCallable)  
 	void RemoveAbility(TSubclassOf<UAbility> AbilityClass);
 
 	UFUNCTION(BlueprintCallable)
-	void RemoveAbilityAtIndex(int Index);
+	void RemoveAbilityAtSlot(EAbilityInputID InputID);
 	
-	void InitializeAbility(int AbilityIndex);
-	void OnAbilityInputReleased();
+	void InitializeAbility(EAbilityInputID InputID);
+	void OnAbilityInputReleased(EAbilityInputID ReleasedInputID);
+	void HandleModifyInput();
 };

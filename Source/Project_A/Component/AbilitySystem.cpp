@@ -21,34 +21,32 @@ void UAbilitySystem::TickComponent(float DeltaTime, ELevelTick TickType, FActorC
 
 }
 
-void UAbilitySystem::AddAbility(TSubclassOf<UAbility> AbilityClass, int Index)
+void UAbilitySystem::AddAbility(TSubclassOf<UAbility> AbilityClass, EAbilityInputID InputID)
 {
 	if (!AbilityClass)
 	{
 		UE_LOG(LogTemp, Error, TEXT("AbilityClass is null!"));
 		return;
 	}
-	if (Index < 0)
+
+	if (InputID == EAbilityInputID::None)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Index is negative: %d"), Index);
+		UE_LOG(LogTemp, Error, TEXT("InputID is None, cannot assign a slot"));
 		return;
 	}
-	// Make sure array is big enough for this slot
-	if (Index >= GrantedAbilities.Num())
+
+	// Check if this ability class is already granted anywhere
+	for (const TPair<EAbilityInputID, TSubclassOf<UAbility>>& Pair : GrantedAbilities)
 	{
-		// Resize array to fit the slot, fill with nulls
-		GrantedAbilities.SetNum(Index + 1);
-	}
-	
-	int32 ExistingIndex = GrantedAbilities.Find(AbilityClass);
-	if (ExistingIndex != INDEX_NONE)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Ability already exists at slot %d"), ExistingIndex);
-		return;  // Don't add duplicate
+		if (Pair.Value == AbilityClass)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Ability already exists at slot %d"), static_cast<int32>(Pair.Key));
+			return; // Don't add duplicate
+		}
 	}
 
-	// Ability doesn't exist, safe to add at desired Index
-	GrantedAbilities[Index] = AbilityClass;
+	// Slot doesn't exist yet, safe to add
+	GrantedAbilities.Add(InputID, AbilityClass);
 }
 
 void UAbilitySystem::RemoveAbility(TSubclassOf<UAbility> AbilityClass)
@@ -58,36 +56,38 @@ void UAbilitySystem::RemoveAbility(TSubclassOf<UAbility> AbilityClass)
 		UE_LOG(LogTemp, Error, TEXT("AbilityClass is null!"));
 		return;
 	}
-    
-	// Find the ability in the array
-	int32 FoundIndex = GrantedAbilities.Find(AbilityClass);
-    
-	if (FoundIndex != INDEX_NONE)
+
+	for (auto It = GrantedAbilities.CreateIterator(); It; ++It)
 	{
-		GrantedAbilities[FoundIndex] = nullptr;  // Clear the slot
-		UE_LOG(LogTemp, Warning, TEXT("Found and removed ability from slot %d"), FoundIndex);
+		if (It->Value == AbilityClass)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Found and removed ability from slot %d"), static_cast<int32>(It->Key));
+			It.RemoveCurrent();
+			return;
+		}
 	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Ability not found in granted abilities"));
-	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Ability not found in granted abilities"));
 }
 
-void UAbilitySystem::RemoveAbilityAtIndex(int Index)
+void UAbilitySystem::RemoveAbilityAtSlot(EAbilityInputID InputID)
 {
-	if (GrantedAbilities.IsValidIndex(Index))
-	{
-		GrantedAbilities[Index] = nullptr;
-	}
+	GrantedAbilities.Remove(InputID);
 }
 
-void UAbilitySystem::InitializeAbility(int AbilityIndex)
+void UAbilitySystem::InitializeAbility(EAbilityInputID InputID)
 {
-	if (GrantedAbilities.IsValidIndex(AbilityIndex) && GrantedAbilities[AbilityIndex] && MyOwner)
+	if (ActiveAbility)
+		return;		// already active, ignore duplicate init
+	
+	TSubclassOf<UAbility>* AbilityClass = GrantedAbilities.Find(InputID);
+
+	if (AbilityClass && *AbilityClass && MyOwner)
 	{
-		UAbility* NewAbility = NewObject<UAbility>(this, GrantedAbilities[AbilityIndex]);
+		UAbility* NewAbility = NewObject<UAbility>(this, *AbilityClass);
 		NewAbility->ActivateAbility(MyOwner);
 		ActiveAbility = NewAbility;
+		ActiveAbilityInputID = InputID;
 	}
 	else
 	{
@@ -96,11 +96,27 @@ void UAbilitySystem::InitializeAbility(int AbilityIndex)
 	}
 }
 
-void UAbilitySystem::OnAbilityInputReleased()
+void UAbilitySystem::OnAbilityInputReleased(EAbilityInputID ReleasedInputID)
 {
-	if (ActiveAbility != nullptr)
+	if (ActiveAbility != nullptr && ReleasedInputID == ActiveAbilityInputID)
 	{
 		ActiveAbility->EndAbility();
 		ActiveAbility = nullptr;
+		ActiveAbilityInputID = EAbilityInputID::None;
+	}
+}
+
+void UAbilitySystem::HandleModifyInput()
+{
+	if (!ActiveAbility)
+		return;
+
+	ActiveAbility->DoModify();
+
+	if (ActiveAbility->bModifyEnd)
+	{
+		ActiveAbility->EndAbility();
+		ActiveAbility = nullptr;
+		ActiveAbilityInputID = EAbilityInputID::None;
 	}
 }

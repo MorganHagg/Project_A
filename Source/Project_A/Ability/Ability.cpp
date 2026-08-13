@@ -72,6 +72,7 @@ void UAbility::ActivateAbility(ACharacter* NewCaster)
 
 void UAbility::EndAbility()
 {
+	UE_LOG(LogTemp, Warning, TEXT("End ability"))
 	UWorld* MyWorld = GetWorld();
 	if (MyWorld)
 	{

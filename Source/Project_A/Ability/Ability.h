@@ -121,6 +121,9 @@ public:
  
 	UPROPERTY(BlueprintReadOnly)
 	APlayerController* MyController;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	bool bModifyEnd = true;
  
 	UWorld* World;
 	FActorSpawnParameters SpawnParams;
@@ -142,7 +145,7 @@ public:
 	void ActivateAbility(ACharacter* NewCaster);
  
 	// On right-click while holding.
-	void DoModify() { CurrentState = EAbilityState::Effect3_Modified; };
+	void DoModify() { OnModify(); };
  
 	// Ending all abilities.
 	UFUNCTION(BlueprintCallable, Category = "Ability")

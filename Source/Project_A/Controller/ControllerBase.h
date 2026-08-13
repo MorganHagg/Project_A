@@ -2,16 +2,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "EnhancedInputSubsystems.h"
+#include "../Misc/AbilityInputID.h"
 #include "ControllerBase.generated.h"
-
-// Ability input enum
-UENUM(BlueprintType)
-enum class EAbilityInputID : uint8
-{
-	Ability0 = 0, 
-	Ability1 = 1,
-	Ability2 = 2
-};
 
 // Forward declaration
 class APlayerUnit;

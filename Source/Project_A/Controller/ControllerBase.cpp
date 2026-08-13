@@ -115,9 +115,10 @@ void AControllerBase::OnAbilityInputPressed(const FInputActionInstance& Instance
 		if (const EAbilityInputID* InputID = AbilityInputMap.Find(Action))
 		{
 			if (PlayerUnit->AbilitySystemComponent->ActiveAbility)
-				PlayerUnit->AbilitySystemComponent->ActiveAbility->DoModify();
+				PlayerUnit->AbilitySystemComponent->HandleModifyInput();
+				
 			else
-				PlayerUnit->AbilitySystemComponent->InitializeAbility(static_cast<int32>(*InputID));
+				PlayerUnit->AbilitySystemComponent->InitializeAbility(*InputID);;
 		}
 	}
 }
@@ -129,9 +130,9 @@ void AControllerBase::OnAbilityInputReleased(const FInputActionInstance& Instanc
 
 	if (const UInputAction* Action = Instance.GetSourceAction())
 	{
-		if (AbilityInputMap.Contains(Action))
+		if (const EAbilityInputID* InputID = AbilityInputMap.Find(Action))
 		{
-			PlayerUnit->AbilitySystemComponent->OnAbilityInputReleased();
+			PlayerUnit->AbilitySystemComponent->OnAbilityInputReleased(*InputID);
 		}
 	}
 }
