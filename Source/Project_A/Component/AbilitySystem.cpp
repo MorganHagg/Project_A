@@ -22,27 +22,40 @@ void UAbilitySystem::AddAbility(int32 Slot, TSubclassOf<UAbility> AbilityClass)
 		return;
 	}
 
-	GrantedAbilities.Add(Slot, AbilityClass);
+	GrantedAbilities.SetNum(FMath::Max(GrantedAbilities.Num(), Slot + 1));
+	GrantedAbilities[Slot] = AbilityClass;
 }
 
 void UAbilitySystem::RemoveAbility(int32 Slot)
 {
-	GrantedAbilities.Remove(Slot);
+	if (GrantedAbilities.IsValidIndex(Slot))
+	{
+		GrantedAbilities[Slot] = nullptr;
+	}
 }
 
 UAbility* UAbilitySystem::ActivateAbility(int32 Slot)
 {
-	TSubclassOf<UAbility>* AbilityClass = GrantedAbilities.Find(Slot);
-
-	if (AbilityClass && *AbilityClass && MyOwner)
+	if (GrantedAbilities.IsValidIndex(Slot) &&
+		GrantedAbilities[Slot] &&
+		MyOwner)
 	{
-		UAbility* NewAbility = NewObject<UAbility>(this, *AbilityClass);
+		UAbility* NewAbility = NewObject<UAbility>(
+			this,
+			GrantedAbilities[Slot]);
+
 		NewAbility->ActivateAbility(Cast<ACharacter>(MyOwner));
+
 		ActiveAbility = NewAbility;
 		return ActiveAbility;
 	}
 
-	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, TEXT("Activate ability failed."));
+	GEngine->AddOnScreenDebugMessage(
+		-1,
+		1,
+		FColor::Red,
+		TEXT("Activate ability failed."));
+
 	return nullptr;
 }
 

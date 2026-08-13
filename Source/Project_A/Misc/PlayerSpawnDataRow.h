@@ -1,19 +1,19 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
-#include "FPlayerUnitParams.generated.h"
+#include "PlayerSpawnDataRow.generated.h"
 
 USTRUCT(BlueprintType)
-struct FPlayerUnitParams
+struct PROJECT_A_API FPlayerSpawnDataRow : public FTableRowBase
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<USkeletalMesh> Mesh = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UAnimInstance> AnimationBlueprint = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TArray<TSubclassOf<UAbility>> DefaultAbilities;
 };

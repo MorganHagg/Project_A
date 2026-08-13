@@ -15,7 +15,7 @@ public:
     UAbility* ActiveAbility = nullptr;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    TMap<int32, TSubclassOf<UAbility>> GrantedAbilities;
+    TArray<TSubclassOf<UAbility>> GrantedAbilities;
 
     UFUNCTION(BlueprintCallable)
     void AddAbility(int32 Slot, TSubclassOf<UAbility> AbilityClass);

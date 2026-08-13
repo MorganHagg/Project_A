@@ -71,6 +71,9 @@ class PROJECT_A_API UAbility : public UObject
 public:
 	UAbility();
 
+	UPROPERTY(BlueprintReadWrite)
+	bool bModifyEndsAbility = true;
+	
 	UPROPERTY(BlueprintReadOnly)
 	ACharacter* MyCaster;
 
