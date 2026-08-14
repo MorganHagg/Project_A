@@ -6,6 +6,8 @@
 
 class APlayerUnit;
 class UInputAction;
+class UCameraComponent;
+class USpringArmComponent;
 
 UCLASS()
 class PROJECT_A_API AControllerBase : public APlayerController
@@ -14,13 +16,14 @@ class PROJECT_A_API AControllerBase : public APlayerController
 
 	AControllerBase();
 
+
 protected:
 	virtual void BeginPlay() override;
 
 public:
 	UFUNCTION(BlueprintCallable)
 	void PossessPlayerUnit(APlayerUnit* NewPlayerUnit);
-
+	
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupInputComponent() override;
 

@@ -1,11 +1,11 @@
 ﻿#include "AbilitySystem.h"
 #include "../Ability/Ability.h"
-#include "GameFramework/Character.h"
+#include "../Actor/UnitBase.h"
 
 void UAbilitySystem::BeginPlay()
 {
 	Super::BeginPlay();
-	MyOwner = GetOwner();
+	MyOwner = CastChecked<AUnitBase>(GetOwner());
 }
 
 void UAbilitySystem::AddAbility(int32 Slot, TSubclassOf<UAbility> AbilityClass)

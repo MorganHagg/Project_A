@@ -6,15 +6,10 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-
 APlayerUnit::APlayerUnit()
 {
-	PrimaryActorTick.bCanEverTick = true;
-	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystem>(TEXT("AbilitySystemComponent"));
-	EffectHandlerComponent = CreateDefaultSubobject<UEffectHandler>(TEXT("EffectHandlerComponent"));
-	StatsComponent = CreateDefaultSubobject<UStats>(TEXT("StatsComponent"));
-
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
+	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	AdjustCamera();
 }
 
@@ -29,22 +24,10 @@ void APlayerUnit::AdjustCamera()
 	SpringArm->bInheritYaw = false;
 	SpringArm->bInheritRoll = false;
 
-	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
 
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 640.f, 0.f);
-}
-
-void APlayerUnit::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
-
-void APlayerUnit::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
 }

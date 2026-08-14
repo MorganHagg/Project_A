@@ -5,6 +5,7 @@
 
 class UAbilitySystem;
 class UEffectHandler;
+class UBehaviorTree;
 class UStats;
 
 UCLASS()
@@ -20,7 +21,8 @@ protected:
 
 public:
 	virtual void Tick(float DeltaTime) override;
-
+	
+	
 	// System Components
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
 	UAbilitySystem* AbilitySystemComponent;

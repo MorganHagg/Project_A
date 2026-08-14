@@ -2,6 +2,9 @@
 #include "../Component/AbilitySystem.h"
 #include "../Component/EffectHandler.h"
 #include "../Component/Stats.h"
+#include "AIController.h"
+#include "BehaviorTree/BehaviorTree.h"
+
 
 AUnitBase::AUnitBase()
 {

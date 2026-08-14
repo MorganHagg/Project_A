@@ -3,6 +3,8 @@
 #include "../Ability/Ability.h"
 #include "../Actor/PlayerUnit.h"
 #include "../Component/AbilitySystem.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "Camera/CameraComponent.h"
 
 AControllerBase::AControllerBase()
 {

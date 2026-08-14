@@ -8,9 +8,9 @@ class UBehaviorTree;
 class ACharacter;
 class AUnitBase;
 class APlayerUnit;
+class AEnemyUnit;
 class UDataTable;
-
-struct PlayerSpawnDataRow;
+class USkeletalMesh;
 
 UCLASS()
 class PROJECT_A_API UUnitManager : public UGameInstanceSubsystem
@@ -18,15 +18,7 @@ class PROJECT_A_API UUnitManager : public UGameInstanceSubsystem
 	GENERATED_BODY()
 
 public:
-	void FixLocAndRot(ACharacter* NewUnit);
-
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
-
-	UFUNCTION(BlueprintCallable)
-	AUnitBase* SpawnUnit(FName RowName, const FTransform& SpawnTransform);
-
-	UFUNCTION(BlueprintCallable)
-	APlayerUnit* SpawnPlayerUnit(FName RowName, FVector Location);
 
 	UPROPERTY(BlueprintReadOnly)
 	UDataTable* UnitDataTable;
@@ -40,4 +32,17 @@ public:
 		if (!UnitDataTable) return {};
 		return UnitDataTable->GetRowNames();
 	}
+	UFUNCTION(BlueprintCallable)
+	AEnemyUnit* SpawnUnit(FName RowName, const FTransform& SpawnTransform);
+
+	UFUNCTION(BlueprintCallable)
+	APlayerUnit* SpawnPlayerUnit(FName RowName, FVector Location);
+
+private:
+	void FixLocAndRot(ACharacter* NewUnit);
+
+	void ApplyCommonSpawnData(
+		AUnitBase* NewUnit,
+		USkeletalMesh* Mesh,
+		const TArray<TSubclassOf<UAbility>>& DefaultAbilities);
 };

@@ -1,45 +1,24 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
-#include "GameFramework/Character.h"
+#include "UnitBase.h"
 #include "PlayerUnit.generated.h"
 
-class UAbilitySystem;
-class UEffectHandler;
-class UStats;
-class UCameraComponent;
 class USpringArmComponent;
+class UCameraComponent;
 
 UCLASS()
-class PROJECT_A_API APlayerUnit : public ACharacter
+class PROJECT_A_API APlayerUnit : public AUnitBase
 {
 	GENERATED_BODY()
 
 public:
 	APlayerUnit();
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<USpringArmComponent> SpringArm;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UCameraComponent> Camera;
+
 	void AdjustCamera();
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-	USpringArmComponent* SpringArm;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-	UCameraComponent* Camera;
-	
-	// System Components
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
-	UAbilitySystem* AbilitySystemComponent;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
-	UEffectHandler* EffectHandlerComponent;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
-	UStats* StatsComponent;
-	
-protected:
-	virtual void BeginPlay() override;
-
-public:
-	virtual void Tick(float DeltaTime) override;
-	
-
 };

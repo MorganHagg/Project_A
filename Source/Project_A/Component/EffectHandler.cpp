@@ -1,5 +1,5 @@
 ﻿#include "EffectHandler.h"
-#include "Gameframework/Character.h"
+#include "../Actor/UnitBase.h"
 #include "../GameplayEffect/GameplayEffect.h"
 #include "Stats.h"
 
@@ -12,7 +12,7 @@ UEffectHandler::UEffectHandler()
 void UEffectHandler::BeginPlay()
 {
 	Super::BeginPlay();
-	MyTarget = CastChecked<ACharacter>(GetOwner());
+	MyTarget = CastChecked<AUnitBase>(GetOwner());
 }
 
 void UEffectHandler::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
