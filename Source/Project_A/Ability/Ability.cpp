@@ -18,23 +18,15 @@ FString UAbility::GetAbilityUUID()
 	return AbilityUUID;
 }
 
-void UAbility::Initiate(ACharacter* NewCaster)
+void UAbility::InitiateAbility(ACharacter* NewCaster)
 {
 	MyCaster = NewCaster;
 	World = MyCaster->GetWorld();
 
+	IntervalTimer = Interval;
+	
 	check(MyCaster);
 	check(World);
-
-	ActivateAbility(MyCaster);
-}
-
-void UAbility::ActivateAbility(ACharacter* NewCaster)
-{
-	UE_LOG(LogTemp, Log, TEXT("UAbility::ActivateAbility()"));
-	MyCaster = NewCaster;
-	World = MyCaster ? MyCaster->GetWorld() : World;
-
 	OnActivate();
 }
 
@@ -127,4 +119,15 @@ void UAbility::RunEffect_Projectile(FLatentActionInfo LatentInfo, UGameplayEffec
 			ProjectileAction->Finish(HitLocation);
 		}
 	});
+}
+
+void UAbility::TickAbility(float DeltaTime)
+{
+	if (IntervalTimer >0)
+		IntervalTimer -= DeltaTime;
+	if (IntervalTimer <= 0)
+	{
+		OnTick(DeltaTime);
+		IntervalTimer = Interval;
+	}
 }

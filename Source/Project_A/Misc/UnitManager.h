@@ -39,10 +39,17 @@ public:
 	APlayerUnit* SpawnPlayerUnit(FName RowName, FVector Location);
 
 private:
-	void FixLocAndRot(ACharacter* NewUnit);
+	void FixLocAndRot(AUnitBase* NewUnit);
 
 	void ApplyCommonSpawnData(
 		AUnitBase* NewUnit,
 		USkeletalMesh* Mesh,
 		const TArray<TSubclassOf<UAbility>>& DefaultAbilities);
+	
+	template<typename UnitType, typename RowType>
+	UnitType* SpawnUnitInternal(
+		UDataTable* DataTable,
+		FName RowName,
+		const FTransform& SpawnTransform,
+		TFunctionRef<void(UnitType*, RowType*)> ExtraSetup);
 };

@@ -12,6 +12,8 @@ class PROJECT_A_API UAbilitySystem : public UActorComponent
     GENERATED_BODY()
 
 public:
+    UAbilitySystem();
+    
     UPROPERTY(BlueprintReadOnly)
     UAbility* ActiveAbility = nullptr;
 
@@ -24,8 +26,16 @@ public:
     UFUNCTION(BlueprintCallable)
     void RemoveAbility(int32 Slot);
 
+    UAbility* InitiateAbility(int32 Slot);
+    
     UFUNCTION(BlueprintCallable)
-    UAbility* ActivateAbility(int32 Slot);
+    void SetActiveAbility(UAbility* NewActiveAbility);
+
+    virtual void TickComponent(
+    float DeltaTime,
+    ELevelTick TickType,
+    FActorComponentTickFunction* ThisTickFunction
+) override;
 
     UFUNCTION(BlueprintCallable)
     void EndActiveAbility();

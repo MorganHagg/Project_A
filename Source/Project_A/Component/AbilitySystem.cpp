@@ -2,6 +2,12 @@
 #include "../Ability/Ability.h"
 #include "../Actor/UnitBase.h"
 
+UAbilitySystem::UAbilitySystem()
+{
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
+}
+
 void UAbilitySystem::BeginPlay()
 {
 	Super::BeginPlay();
@@ -34,7 +40,7 @@ void UAbilitySystem::RemoveAbility(int32 Slot)
 	}
 }
 
-UAbility* UAbilitySystem::ActivateAbility(int32 Slot)
+UAbility* UAbilitySystem::InitiateAbility(int32 Slot)
 {
 	if (GrantedAbilities.IsValidIndex(Slot) &&
 		GrantedAbilities[Slot] &&
@@ -44,10 +50,8 @@ UAbility* UAbilitySystem::ActivateAbility(int32 Slot)
 			this,
 			GrantedAbilities[Slot]);
 
-		NewAbility->ActivateAbility(Cast<ACharacter>(MyOwner));
-
-		ActiveAbility = NewAbility;
-		return ActiveAbility;
+		NewAbility->InitiateAbility(Cast<ACharacter>(MyOwner));
+		return NewAbility;
 	}
 
 	GEngine->AddOnScreenDebugMessage(
@@ -59,11 +63,32 @@ UAbility* UAbilitySystem::ActivateAbility(int32 Slot)
 	return nullptr;
 }
 
+void UAbilitySystem::SetActiveAbility(UAbility* NewActiveAbility)
+{
+	if (NewActiveAbility)
+	{
+		ActiveAbility = NewActiveAbility;
+		SetComponentTickEnabled(true);
+	}
+	else
+		UE_LOG(LogTemp, Error, TEXT(
+			"AbilitySystem::ActivateAbility doesn't have valid *NewActiveAbility."));
+}
+
+void UAbilitySystem::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if (ActiveAbility)
+		ActiveAbility->TickAbility(DeltaTime);
+}
+
+
 void UAbilitySystem::EndActiveAbility()
 {
 	if (ActiveAbility)
 	{
 		ActiveAbility->EndAbility();
 		ActiveAbility = nullptr;
+		SetComponentTickEnabled(false);
 	}
 }

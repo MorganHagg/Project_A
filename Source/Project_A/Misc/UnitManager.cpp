@@ -24,7 +24,7 @@ void UUnitManager::Initialize(FSubsystemCollectionBase& Collection)
 }
 
 
-void UUnitManager::FixLocAndRot(ACharacter* NewUnit)
+void UUnitManager::FixLocAndRot(AUnitBase* NewUnit)
 {
     NewUnit->GetMesh()->SetRelativeLocationAndRotation(
         FVector(0.f, 0.f, -NewUnit->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()),
@@ -43,49 +43,54 @@ void UUnitManager::ApplyCommonSpawnData(
 
 AEnemyUnit* UUnitManager::SpawnUnit(FName RowName, const FTransform& SpawnTransform)
 {
-    if (!UnitDataTable) return nullptr;
-
-    FUnitSpawnDataRow* Row = UnitDataTable->FindRow<FUnitSpawnDataRow>(RowName, TEXT("SpawnUnit"));
-    if (!Row) return nullptr;
-
-    AEnemyUnit* NewUnit = Cast<AEnemyUnit>(
-        GetWorld()->SpawnActorDeferred<AEnemyUnit>(
-            AEnemyUnit::StaticClass(), SpawnTransform, nullptr, nullptr,
-            ESpawnActorCollisionHandlingMethod::AlwaysSpawn));
-    if (!NewUnit) return nullptr;
-
-    NewUnit->FinishSpawning(SpawnTransform);
-    ApplyCommonSpawnData(NewUnit, Row->Mesh, Row->DefaultAbilities);
-
-    if (Row->BehaviorTree)
-        NewUnit->SetBehaviorTree(Row->BehaviorTree);
-
-    return NewUnit;
+    return SpawnUnitInternal<AEnemyUnit, FUnitSpawnDataRow>(
+        UnitDataTable, RowName, SpawnTransform,
+        [](AEnemyUnit* Unit, FUnitSpawnDataRow* Row)
+        {   
+            if (Row->BehaviorTree)
+                Unit->SetBehaviorTree(Row->BehaviorTree);
+        });
 }
 
 APlayerUnit* UUnitManager::SpawnPlayerUnit(FName RowName, FVector Location)
 {
-    if (!PlayerDataTable) return nullptr;
-
-    FPlayerSpawnDataRow* Row = PlayerDataTable->FindRow<FPlayerSpawnDataRow>(RowName, TEXT("SpawnPlayerUnit"));
-    if (!Row) return nullptr;
-
     FTransform SpawnTransform(FRotator::ZeroRotator, Location);
-    APlayerUnit* NewUnit = Cast<APlayerUnit>(
-        GetWorld()->SpawnActorDeferred<APlayerUnit>(
-            APlayerUnit::StaticClass(), SpawnTransform, nullptr, nullptr,
-            ESpawnActorCollisionHandlingMethod::AlwaysSpawn));
-    if (!NewUnit) return nullptr;
+    return SpawnUnitInternal<APlayerUnit, FPlayerSpawnDataRow>(
+        PlayerDataTable, RowName, SpawnTransform,
+        [](APlayerUnit* Unit, FPlayerSpawnDataRow* Row)
+        {
+            Unit->GetCapsuleComponent()->SetCapsuleHalfHeight(10.f, true);
 
-    NewUnit->GetCapsuleComponent()->SetCapsuleHalfHeight(10.f, true);
-    NewUnit->FinishSpawning(SpawnTransform);
-    ApplyCommonSpawnData(NewUnit, Row->Mesh, Row->DefaultAbilities);
+            if (Row->AnimationBlueprint)
+            {
+                Unit->GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+                Unit->GetMesh()->SetAnimInstanceClass(Row->AnimationBlueprint);
+            }
+        });
+}
 
-    if (Row->AnimationBlueprint)
-    {
-        NewUnit->GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
-        NewUnit->GetMesh()->SetAnimInstanceClass(Row->AnimationBlueprint);
-    }
-
-    return NewUnit;
+template<typename UnitType, typename RowType>
+UnitType* UUnitManager::SpawnUnitInternal(
+    UDataTable* DataTable,
+    FName RowName,
+    const FTransform& SpawnTransform,
+    TFunctionRef<void(UnitType*, RowType*)> ExtraSetup)
+{
+    if (!DataTable) return nullptr;
+    
+        RowType* Row = DataTable->FindRow<RowType>(RowName, TEXT("SpawnUnit"));
+        if (!Row) return nullptr;
+    
+        UnitType* NewUnit = Cast<UnitType>(
+            GetWorld()->SpawnActorDeferred<UnitType>(
+                UnitType::StaticClass(), SpawnTransform, nullptr, nullptr,
+                ESpawnActorCollisionHandlingMethod::AlwaysSpawn));
+        if (!NewUnit) return nullptr;
+    
+        ExtraSetup(NewUnit, Row);
+    
+        NewUnit->FinishSpawning(SpawnTransform);
+        ApplyCommonSpawnData(NewUnit, Row->Mesh, Row->DefaultAbilities);
+    
+        return NewUnit;
 }

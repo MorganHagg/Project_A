@@ -65,6 +65,23 @@ void AControllerBase::SetupInputComponent()
     }
 }
 
+bool AControllerBase::ResolveAbilitySlot(const FInputActionInstance& Instance, int32& OutBaseSlot)
+{
+    if (!PlayerUnit || !PlayerUnit->AbilitySystemComponent)
+        return false;
+
+    const UInputAction* Action = Instance.GetSourceAction();
+    if (!Action)
+        return false;
+
+    const int32* BaseSlot = AbilityInputMap.Find(Action);
+    if (!BaseSlot)
+        return false;
+
+    OutBaseSlot = *BaseSlot;
+    return true;
+}
+
 void AControllerBase::Move(const FInputActionValue& Value)
 {
     if (!PlayerUnit)
@@ -103,95 +120,69 @@ void AControllerBase::FaceMouseCursor()
 
 void AControllerBase::OnAbilityInputPressed(const FInputActionInstance& Instance)
 {
-    if (!PlayerUnit || !PlayerUnit->AbilitySystemComponent)
-        return;
-
-    const UInputAction* Action = Instance.GetSourceAction();
-    if (!Action)
-        return;
-
-    const int32* BaseSlot = AbilityInputMap.Find(Action);
-    if (!BaseSlot)
+    int32 BaseSlot;
+    if (!ResolveAbilitySlot(Instance, BaseSlot))
         return;
 
     UAbilitySystem* AbilitySystem = PlayerUnit->AbilitySystemComponent;
 
-    // Another ability is currently active.
-    // This press is a Modify.
     if (AbilitySystem->ActiveAbility)
     {
-        UAbility* ActiveAbility = AbilitySystem->ActiveAbility;
-
-        AbilitySystem->ActivateAbility(*BaseSlot + 2);
-
-        if (ActiveAbility->bModifyEndsAbility)
+        UAbility* ModifyAbility = AbilitySystem->InitiateAbility(PressedBaseSlot + 2);
+        check(ModifyAbility);
+        
+        if (ModifyAbility->bModifyEndsAbility)
         {
+            UE_LOG(LogTemp, Warning, TEXT("ModifyEnable is true"))
             AbilitySystem->EndActiveAbility();
         }
+            
 
         return;
     }
 
-    // Starting a new tap/hold interaction.
-    PressedBaseSlot = *BaseSlot;
+    PressedBaseSlot = BaseSlot;
     bHoldThresholdMet = false;
 
     GetWorldTimerManager().SetTimer(
-        HoldTimerHandle,
-        this,
-        &AControllerBase::OnHoldThresholdMet,
-        HoldThreshold,
-        false
-    );
+        HoldTimerHandle, this, &AControllerBase::OnHoldThresholdMet, HoldThreshold, false);
 }
 
 void AControllerBase::OnHoldThresholdMet()
 {
-    UE_LOG(LogTemp, Warning, TEXT("I am held"))
     bHoldThresholdMet = true;
 
     if (!PlayerUnit || !PlayerUnit->AbilitySystemComponent)
         return;
 
-    PlayerUnit->AbilitySystemComponent->ActivateAbility(PressedBaseSlot + 1);
+    UAbilitySystem* AbilitySystem = PlayerUnit->AbilitySystemComponent;
+
+    if (AbilitySystem)
+    {
+        UAbility* HoldAbility = AbilitySystem->InitiateAbility(PressedBaseSlot + 1);
+        AbilitySystem->SetActiveAbility(HoldAbility);
+    }
 }
 
 void AControllerBase::OnAbilityInputReleased(const FInputActionInstance& Instance)
 {
-    if (!PlayerUnit || !PlayerUnit->AbilitySystemComponent)
+    int32 BaseSlot;
+    if (!ResolveAbilitySlot(Instance, BaseSlot) || BaseSlot != PressedBaseSlot)
         return;
-
-    const UInputAction* Action = Instance.GetSourceAction();
-    if (!Action)
-        return;
-
-    const int32* BaseSlot = AbilityInputMap.Find(Action);
-    if (!BaseSlot || *BaseSlot != PressedBaseSlot)
-        return;
-
+    else
+        UE_LOG(LogTemp, Warning, TEXT("Released"))
+    
     GetWorldTimerManager().ClearTimer(HoldTimerHandle);
 
     UAbilitySystem* AbilitySystem = PlayerUnit->AbilitySystemComponent;
 
     if (bHoldThresholdMet)
     {
-        // Hold was active -> end it on release.
         AbilitySystem->EndActiveAbility();
     }
     else
     {
-        // Threshold wasn't reached -> this was a tap.
-        UAbility* TapAbility = AbilitySystem->ActivateAbility(PressedBaseSlot);
-
-        if (TapAbility)
-        {
-            TapAbility->EndAbility();
-
-            if (AbilitySystem->ActiveAbility == TapAbility)
-            {
-                AbilitySystem->ActiveAbility = nullptr;
-            }
-        }
+        AbilitySystem->InitiateAbility(PressedBaseSlot);
     }
 
     PressedBaseSlot = -1;

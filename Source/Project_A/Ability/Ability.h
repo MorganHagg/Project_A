@@ -71,7 +71,7 @@ class PROJECT_A_API UAbility : public UObject
 public:
 	UAbility();
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	bool bModifyEndsAbility = true;
 	
 	UPROPERTY(BlueprintReadOnly)
@@ -89,18 +89,22 @@ public:
 	FString AbilityUUID;
 	FString GetAbilityUUID();
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float CoolDown = 0.f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float Interval = 0.f;
+	
+	float IntervalTimer = 0.f;
 
 	// --------------------------------------------------------------
 	// Lifecycle
 	// --------------------------------------------------------------
 
-	// Sets up caster/world/controller and kicks off ActivateAbility.
-	void Initiate(ACharacter* NewCaster);
-
 	// Activates this ability. Calls into OnActivate (Blueprint-implementable).
-	virtual void ActivateAbility(ACharacter* NewCaster);
+	virtual void InitiateAbility(ACharacter* NewCaster);
+
+	
 
 	// Ends this ability. Calls into OnEnd (Blueprint-implementable).
 	UFUNCTION(BlueprintCallable, Category = "Ability")
@@ -119,6 +123,8 @@ public:
 	void RunEffect_Projectile(FLatentActionInfo LatentInfo, UGameplayEffect* Effect, UStaticMesh* Mesh, FVector Target, float Speed,
 		int32 PenetrationCount, FVector& OutLocation);
 
+	void TickAbility(float DeltaTime);
+
 protected:
 	virtual FName GetAbilityName() const { return AbilityName; }
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability")
@@ -135,6 +141,10 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
 	void OnActivate();
 	virtual void OnActivate_Implementation() {}
+
+	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
+	void OnTick(float DeltaTime);
+	virtual void OnTick_Implementation(float DeltaTime) {}
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
 	void OnEnd();

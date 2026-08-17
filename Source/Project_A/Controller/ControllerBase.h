@@ -50,6 +50,8 @@ private:
 	// Maps each bound InputAction to its base slot (Tap slot; Hold = base+1, Modify = base+2)
 	TMap<TObjectPtr<UInputAction>, int32> AbilityInputMap;
 
+	bool ResolveAbilitySlot(const FInputActionInstance& Instance, int32& OutBaseSlot);
+	
 	FTimerHandle HoldTimerHandle;
 	int32 PressedBaseSlot = -1;
 	bool bHoldThresholdMet = false;
