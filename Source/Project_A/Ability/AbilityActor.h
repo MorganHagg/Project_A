@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "../Misc/IntervalTicker.h"
+#include "../Interfaces/AbilityLifecycle.h"
 #include "AbilityActor.generated.h"
 
 class UAbility;
@@ -9,7 +10,7 @@ class ACharacter;
 class UEffectHandler;
 
 UCLASS()
-class PROJECT_A_API AAbilityActor : public AActor
+class PROJECT_A_API AAbilityActor : public AActor, public IAbilityLifecycle
 {
 	GENERATED_BODY()
 
@@ -46,6 +47,14 @@ public:
 	UPROPERTY(VisibleAnywhere)
 	ACharacter* MyCaster;
 
+	UPROPERTY()
+	bool bHasEnded = false;	// Small guard against double end
+	
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	void EndAbility();
+
+
+	/*
 	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
 	void OnActivate();
 	virtual void OnActivate_Implementation() {}
@@ -56,13 +65,7 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
 	void OnEnd();
-	virtual void OnEnd_Implementation() {}
-
-	UPROPERTY()
-	bool bHasEnded = false;	// Small guard against double end
-	
-	UFUNCTION(BlueprintCallable, Category = "Ability")
-	void EndAbility();
+	virtual void OnEnd_Implementation() {}*/
 };
 
 // TODO: Make a similar helper function as IntervalTicker, but for Magnitude and Duration

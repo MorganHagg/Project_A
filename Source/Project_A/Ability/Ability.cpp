@@ -26,7 +26,14 @@ void UAbility::InitiateAbility(ACharacter* NewCaster)
 	
 	check(MyCaster);
 	check(World);
-	OnActivate();
+	IAbilityLifecycle::Execute_OnActivate(this);
+	//OnActivate();
+}
+
+void UAbility::TickAbility(float DeltaTime)
+{
+	if (Ticker.ShouldTick(DeltaTime))
+		IAbilityLifecycle::Execute_OnTick(this);
 }
 
 void UAbility::EndAbility()
@@ -34,7 +41,7 @@ void UAbility::EndAbility()
 	if (bHasEnded) return;
 	bHasEnded = true;
 	
-	OnEnd();
+	IAbilityLifecycle::Execute_OnEnd(this);
 
 	MyCaster = nullptr;
 	MyTarget = nullptr;
@@ -139,10 +146,4 @@ AAbilityActor* UAbility::RunEffect_SpawnActor(TSubclassOf<AAbilityActor> NewActo
 		AbilityActor->SetMyCaster(MyCaster);
 	}
 	return AbilityActor;
-}
-
-void UAbility::TickAbility(float DeltaTime)
-{
-	if (Ticker.ShouldTick(DeltaTime))
-		OnTick();
 }

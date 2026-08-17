@@ -3,6 +3,7 @@
 #include "UObject/Object.h"
 #include "Engine/LatentActionManager.h"
 #include "../Misc/IntervalTicker.h"
+#include "../Interfaces/AbilityLifecycle.h"
 #include "Ability.generated.h"
 
 // Forward declarations
@@ -66,7 +67,7 @@ public:
 // ============================================================================
 
 UCLASS(Blueprintable)
-class PROJECT_A_API UAbility : public UObject
+class PROJECT_A_API UAbility : public UObject, public IAbilityLifecycle
 {
 	GENERATED_BODY()
 
@@ -132,18 +133,6 @@ protected:
 	virtual FName GetAbilityName() const { return AbilityName; }
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability")
 	FName AbilityName = FName("NO_NAME_ABILITY");
-
-	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
-	void OnActivate();
-	virtual void OnActivate_Implementation() {}
-
-	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
-	void OnTick();
-	virtual void OnTick_Implementation() {}
-
-	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
-	void OnEnd();
-	virtual void OnEnd_Implementation() {}
 
 	UPROPERTY()
 	bool bHasEnded = false;	// Small guard against double end
