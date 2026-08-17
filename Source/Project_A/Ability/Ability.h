@@ -2,11 +2,13 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "Engine/LatentActionManager.h"
+#include "../Misc/IntervalTicker.h"
 #include "Ability.generated.h"
 
 // Forward declarations
 class ACharacter;
 class AProjectile;
+class AAbilityActor;
 class UStaticMesh;
 class UGameplayEffect;
 
@@ -92,10 +94,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float CoolDown = 0.f;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float Interval = 0.f;
-	
-	float IntervalTimer = 0.f;
+	UPROPERTY(EditAnywhere)
+	FIntervalTicker Ticker;
 
 	// --------------------------------------------------------------
 	// Lifecycle
@@ -113,15 +113,18 @@ public:
 	// --------------------------------------------------------------
 	// Blueprint-buildable effect library (project E)
 	// --------------------------------------------------------------
-	UFUNCTION(BlueprintCallable, Category = "Ability")
-	void RunEffect_Target(UGameplayEffect* Effect, ACharacter* Target);
+	UFUNCTION(BlueprintCallable)
+	void RunEffect_Target(TSubclassOf<UGameplayEffect> Effect, ACharacter* Target);
 
 	UFUNCTION(BlueprintCallable, Category = "Ability")
-	TArray<ACharacter*> RunEffect_AOE(UGameplayEffect* Effect, FVector Location, float Radius, ETargetSelection TargetSelection);
+	TArray<ACharacter*> RunEffect_AOE(TSubclassOf<UGameplayEffect> Effect, FVector Location, float Radius, ETargetSelection TargetSelection);
 
 	UFUNCTION(BlueprintCallable, meta = (Latent, LatentInfo = "LatentInfo"), Category = "Ability")
-	void RunEffect_Projectile(FLatentActionInfo LatentInfo, UGameplayEffect* Effect, UStaticMesh* Mesh, FVector Target, float Speed,
+	void RunEffect_Projectile(FLatentActionInfo LatentInfo, TSubclassOf<UGameplayEffect> Effect, UStaticMesh* Mesh, FVector Target, float Speed,
 		int32 PenetrationCount, FVector& OutLocation);
+
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	AAbilityActor* RunEffect_SpawnActor(TSubclassOf<AAbilityActor> NewActor, FTransform Transform);
 
 	void TickAbility(float DeltaTime);
 
@@ -130,23 +133,20 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability")
 	FName AbilityName = FName("NO_NAME_ABILITY");
 
-	// --------------------------------------------------------------
-	// This ability's own activate/end logic. Each concrete ability
-	// (a tap class, a hold class, a modify class, whatever) implements
-	// what happens when it activates and when it ends - it has no
-	// concept of being "the tap version" or "the hold version" of
-	// anything else.
-	// --------------------------------------------------------------
-
 	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
 	void OnActivate();
 	virtual void OnActivate_Implementation() {}
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
-	void OnTick(float DeltaTime);
-	virtual void OnTick_Implementation(float DeltaTime) {}
+	void OnTick();
+	virtual void OnTick_Implementation() {}
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
 	void OnEnd();
 	virtual void OnEnd_Implementation() {}
+
+	UPROPERTY()
+	bool bHasEnded = false;	// Small guard against double end
+
+	// TODO: Implement an interface that takes all the OnEnd(), OnTick() etc
 };

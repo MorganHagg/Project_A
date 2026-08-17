@@ -26,8 +26,8 @@ public:
 	AUnitBase* MyTarget;
 	
 	void UpdateEffect();
-	void AddEffect(UGameplayEffect* Effect);
-	void RemoveEffect(UGameplayEffect* Effect);
+	void AddEffect(TSubclassOf<UGameplayEffect> Effect);
+	void RemoveEffect(TSubclassOf<UGameplayEffect> Effect);
 	
 	UPROPERTY()
 	TArray<TObjectPtr<UGameplayEffect>> GameplayEffects;

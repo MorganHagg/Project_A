@@ -4,6 +4,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Engine/OverlapResult.h"
 #include "Projectile.h"
+#include "AbilityActor.h"
 #include "../GameplayEffect/GameplayEffect.h"
 #include "../Component/EffectHandler.h"
 
@@ -22,8 +23,6 @@ void UAbility::InitiateAbility(ACharacter* NewCaster)
 {
 	MyCaster = NewCaster;
 	World = MyCaster->GetWorld();
-
-	IntervalTimer = Interval;
 	
 	check(MyCaster);
 	check(World);
@@ -32,8 +31,9 @@ void UAbility::InitiateAbility(ACharacter* NewCaster)
 
 void UAbility::EndAbility()
 {
-	UE_LOG(LogTemp, Warning, TEXT("End ability"))
-
+	if (bHasEnded) return;
+	bHasEnded = true;
+	
 	OnEnd();
 
 	MyCaster = nullptr;
@@ -43,7 +43,7 @@ void UAbility::EndAbility()
 // ============================================================================
 // Effect library
 // ============================================================================
-void UAbility::RunEffect_Target(UGameplayEffect* Effect, ACharacter* Target)
+void UAbility::RunEffect_Target(TSubclassOf<UGameplayEffect> Effect, ACharacter* Target)
 {
 	UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>();
 	if (EffectHandler)
@@ -52,7 +52,7 @@ void UAbility::RunEffect_Target(UGameplayEffect* Effect, ACharacter* Target)
 	}
 }
 
-TArray<ACharacter*> UAbility::RunEffect_AOE(UGameplayEffect* Effect, FVector Location, float Radius, ETargetSelection TargetSelection)
+TArray<ACharacter*> UAbility::RunEffect_AOE(TSubclassOf<UGameplayEffect> Effect, FVector Location, float Radius, ETargetSelection TargetSelection)
 {
 	TArray<ACharacter*> Targets;
 	TArray<FOverlapResult> Overlaps;
@@ -79,7 +79,7 @@ TArray<ACharacter*> UAbility::RunEffect_AOE(UGameplayEffect* Effect, FVector Loc
 	return Targets;
 }
 
-void UAbility::RunEffect_Projectile(FLatentActionInfo LatentInfo, UGameplayEffect* Effect, UStaticMesh* Mesh, FVector Target, float Speed, int32 PenetrationCount, FVector& OutLocation)
+void UAbility::RunEffect_Projectile(FLatentActionInfo LatentInfo, TSubclassOf<UGameplayEffect> Effect, UStaticMesh* Mesh, FVector Target, float Speed, int32 PenetrationCount, FVector& OutLocation)
 {
 	if (Speed == 0.f)
 		UE_LOG(LogTemp, Warning, TEXT("Projectile has 0 speed"));
@@ -121,13 +121,28 @@ void UAbility::RunEffect_Projectile(FLatentActionInfo LatentInfo, UGameplayEffec
 	});
 }
 
+AAbilityActor* UAbility::RunEffect_SpawnActor(TSubclassOf<AAbilityActor> NewActor, FTransform Transform)
+{
+	if (!NewActor || !World)
+	{
+		return nullptr;
+	}
+
+	AAbilityActor* AbilityActor = World->SpawnActor<AAbilityActor>(
+		NewActor,
+		Transform
+	);
+
+	if (AbilityActor)
+	{
+		AbilityActor->SetMyAbility(this);
+		AbilityActor->SetMyCaster(MyCaster);
+	}
+	return AbilityActor;
+}
+
 void UAbility::TickAbility(float DeltaTime)
 {
-	if (IntervalTimer >0)
-		IntervalTimer -= DeltaTime;
-	if (IntervalTimer <= 0)
-	{
-		OnTick(DeltaTime);
-		IntervalTimer = Interval;
-	}
+	if (Ticker.ShouldTick(DeltaTime))
+		OnTick();
 }
