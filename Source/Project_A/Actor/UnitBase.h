@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
 #include "Gameframework/Character.h"
+#include "../DataAsset/UnitDataBase.h"
 #include "UnitBase.generated.h"
 
 class UAbilitySystem;
@@ -32,4 +33,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
 	UStats* StatsComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UUnitDataBase* UnitData;
+
+	virtual void Initiate(UUnitDataBase* SpawnData);
 };

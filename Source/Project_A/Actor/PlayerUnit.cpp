@@ -5,6 +5,7 @@
 #include "../Component/TalentComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
+#include "../DataAsset/PlayerUnitData.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 APlayerUnit::APlayerUnit()
@@ -13,6 +14,15 @@ APlayerUnit::APlayerUnit()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	TalentComponent = CreateDefaultSubobject<UTalentComponent>(TEXT("Talent"));
 	AdjustCamera();
+}
+
+void APlayerUnit::Initiate(UUnitDataBase* SpawnData)
+{
+	Super::Initiate(SpawnData);
+	if (UPlayerUnitData* PlayerData = Cast<UPlayerUnitData>(SpawnData))
+	{
+		TalentComponent->AcquiredTalents = PlayerData->Talents;
+	}
 }
 
 void APlayerUnit::AdjustCamera()

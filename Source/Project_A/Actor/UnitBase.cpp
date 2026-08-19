@@ -4,6 +4,9 @@
 #include "../Component/Stats.h"
 #include "AIController.h"
 #include "BehaviorTree/BehaviorTree.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 
 
 AUnitBase::AUnitBase()
@@ -23,4 +26,24 @@ void AUnitBase::BeginPlay()
 void AUnitBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+}
+
+void AUnitBase::Initiate(UUnitDataBase* SpawnData)
+{
+	UnitData = SpawnData;
+	
+	AbilitySystemComponent->GrantedAbilities = SpawnData->DefaultAbilities;
+
+	GetMesh()->SetSkeletalMesh(SpawnData->Mesh);
+	if (SpawnData->AnimationBlueprint)
+	{
+		GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+		GetMesh()->SetAnimInstanceClass(SpawnData->AnimationBlueprint);
+	}
+
+	// Fixes z-location and rotation
+	GetCapsuleComponent()->SetCapsuleHalfHeight(10.f, true);
+	GetMesh()->SetRelativeLocationAndRotation(
+		FVector(0.f, 0.f, -GetCapsuleComponent()->GetScaledCapsuleHalfHeight()),
+		FRotator(0.f, -90.f, 0.f));
 }

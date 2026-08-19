@@ -19,8 +19,6 @@ class PROJECT_A_API UUnitSpawner : public UGameInstanceSubsystem
 	GENERATED_BODY()
 
 public:
-	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
-
 	UFUNCTION(BlueprintCallable)
 	AEnemyUnit* SpawnUnit(UEnemyUnitData* SpawnData, const FTransform& SpawnTransform);
 
@@ -28,14 +26,10 @@ public:
 	APlayerUnit* SpawnPlayerUnit(UPlayerUnitData* SpawnData, FVector Location);
 
 private:
-	void FixLocAndRot(AUnitBase* NewUnit);
 
 	AUnitBase* SpawnUnitInternal(
 	   UClass* UnitClass,
 	   UUnitDataBase* SpawnData,
 	   const FTransform& SpawnTransform);
-
-	void ApplyCommonSpawnData(
-	   AUnitBase* NewUnit,
-	   UUnitDataBase* SpawnData);
+	
 };
