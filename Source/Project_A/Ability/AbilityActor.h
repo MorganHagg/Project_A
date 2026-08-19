@@ -52,20 +52,6 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	void EndAbility();
-
-
-	/*
-	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
-	void OnActivate();
-	virtual void OnActivate_Implementation() {}
-
-	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
-	void OnTick();
-	virtual void OnTick_Implementation() {}
-
-	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
-	void OnEnd();
-	virtual void OnEnd_Implementation() {}*/
 };
 
 // TODO: Make a similar helper function as IntervalTicker, but for Magnitude and Duration

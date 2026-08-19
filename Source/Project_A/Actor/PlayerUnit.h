@@ -5,6 +5,7 @@
 
 class USpringArmComponent;
 class UCameraComponent;
+class UTalentComponent;
 
 UCLASS()
 class PROJECT_A_API APlayerUnit : public AUnitBase
@@ -19,6 +20,10 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UCameraComponent> Camera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UTalentComponent* TalentComponent;
+	
 
 	void AdjustCamera();
 };

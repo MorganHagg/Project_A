@@ -1,22 +1,22 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Engine/DataTable.h"
-#include "UnitSpawner.generated.h"
+#include "EnemySpawner.generated.h"
 
 class AUnitBase;
-class UUnitManager;
+class UUnitSpawner;
+class UEnemyUnitData;
 
 UCLASS()
-class PROJECT_A_API AUnitSpawner : public AActor
+class PROJECT_A_API AEnemySpawner : public AActor
 {
 	GENERATED_BODY()
 
 public:
-	AUnitSpawner();
+	AEnemySpawner();
 
 	UPROPERTY(EditAnywhere, Category = "Spawning")
-	FDataTableRowHandle UnitToSpawn;
+	UEnemyUnitData* UnitData;
 
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Spawning")
 	void SpawnUnit();
@@ -24,5 +24,5 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	UUnitManager* UnitManager;
+	UUnitSpawner* UnitSpawner;
 };

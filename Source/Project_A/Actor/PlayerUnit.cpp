@@ -2,6 +2,7 @@
 #include "../Component/AbilitySystem.h"
 #include "../Component/EffectHandler.h"
 #include "../Component/Stats.h"
+#include "../Component/TalentComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -10,6 +11,7 @@ APlayerUnit::APlayerUnit()
 {
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	TalentComponent = CreateDefaultSubobject<UTalentComponent>(TEXT("Talent"));
 	AdjustCamera();
 }
 
