@@ -106,7 +106,11 @@ void UAbility::RunEffect_Projectile(FLatentActionInfo LatentInfo, TSubclassOf<UG
 	MyCaster->GetActorLocation(),
 	MyCaster->GetActorRotation()
 );
-
+	if (!Projectile)
+	{
+		return;
+	}
+	
 	Projectile->SetMyAbility(this);
 	Projectile->SetMyCaster(MyCaster);
 	Projectile->Destination = Target;
@@ -114,24 +118,22 @@ void UAbility::RunEffect_Projectile(FLatentActionInfo LatentInfo, TSubclassOf<UG
 	Projectile->PenetrationCount = PenetrationCount;
 	Projectile->MeshComponent->SetStaticMesh(Mesh);
 	Projectile->MeshComponent->IgnoreActorWhenMoving(MyCaster, true);
-
-	if (!Projectile)
-	{
-		return;
-	}
-
+	
 	FLatentActionManager& LAM = World->GetLatentActionManager();
 	FEffect_ProjectileAction* ProjectileAction = new FEffect_ProjectileAction(LatentInfo, OutLocation);
-	LAM.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, ProjectileAction);
+	static int32 ProjectileActionUUIDCounter = LatentInfo.UUID;
+	int32 UniqueUUID = ProjectileActionUUIDCounter++;
+
+	LAM.AddNewAction(LatentInfo.CallbackTarget, UniqueUUID, ProjectileAction);
 
 	TWeakObjectPtr<UAbility> WeakThis = this;
-	Projectile->OnHit.BindLambda([WeakThis, ProjectileAction](FVector HitLocation)
-	{
-		if (WeakThis.IsValid())
-		{
-			ProjectileAction->Finish(HitLocation);
-		}
-	});
+    Projectile->OnFinished.BindLambda([WeakThis, ProjectileAction](FVector HitLocation)
+    {
+        if (WeakThis.IsValid())
+        {
+            ProjectileAction->Finish(HitLocation);
+        }
+    });
 }
 
 AAbilityActor* UAbility::RunEffect_SpawnActor(TSubclassOf<AAbilityActor> NewActor, FTransform Transform)
