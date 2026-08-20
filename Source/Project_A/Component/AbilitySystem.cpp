@@ -1,106 +1,101 @@
 ﻿#include "AbilitySystem.h"
 #include "../Ability/Ability.h"
-#include "GameFramework/Character.h"
+#include "../Unit/UnitBase.h"
 
 UAbilitySystem::UAbilitySystem()
 {
 	PrimaryComponentTick.bCanEverTick = true;
-	GrantedAbilities.Empty();
-	ActiveAbility = nullptr;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 }
 
 void UAbilitySystem::BeginPlay()
 {
 	Super::BeginPlay();
-	MyOwner = CastChecked<ACharacter>(GetOwner());
+	MyOwner = CastChecked<AUnitBase>(GetOwner());
+}
+
+void UAbilitySystem::InstantiateAbilities(TArray<TSubclassOf<UAbility>> AbilityArray)
+{
+	for (TSubclassOf<UAbility> AbilityClass : AbilityArray)
+	{
+		if (!AbilityClass)
+		{
+			continue;
+		}
+
+		UAbility* NewAbility = NewObject<UAbility>(this, AbilityClass);
+		NewAbility->SetupAbility(MyOwner);
+		GrantedAbilities.Add(NewAbility);
+	}
+}
+
+bool UAbilitySystem::SwapAbility(TSubclassOf<UAbility> OldAbilityClass, TSubclassOf<UAbility> NewAbilityClass)
+{
+	if (!NewAbilityClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("NewAbilityClass is null!"));
+		return false;
+	}
+
+	for (UAbility*& Ability : GrantedAbilities)
+	{
+		if (Ability && Ability->GetClass() == OldAbilityClass)
+		{
+			Ability = NewObject<UAbility>(this, NewAbilityClass);
+			Ability->SetupAbility(MyOwner);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+UAbility* UAbilitySystem::InitiateAbility(int32 Slot)
+{
+	UE_LOG(LogTemp, Warning, TEXT("The slot was %i"), Slot)
+	if (GrantedAbilities.IsValidIndex(Slot) &&
+		GrantedAbilities[Slot] &&
+		MyOwner)
+	{
+		GrantedAbilities[Slot]->ActivateAbility();
+		return GrantedAbilities[Slot];	
+	}
+
+	GEngine->AddOnScreenDebugMessage(
+		-1,
+		1,
+		FColor::Red,
+		TEXT("Activate ability failed."));
+
+	return nullptr;
+}
+
+void UAbilitySystem::SetActiveAbility(UAbility* NewActiveAbility)
+{
+	if (NewActiveAbility)
+	{
+		ActiveAbility = NewActiveAbility;
+		SetComponentTickEnabled(true);
+	}
+	else
+		UE_LOG(LogTemp, Error, TEXT(
+			"AbilitySystem::ActivateAbility doesn't have valid *NewActiveAbility."));
 }
 
 void UAbilitySystem::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
+	if (ActiveAbility)
+		ActiveAbility->TickAbility(DeltaTime);
 }
 
-void UAbilitySystem::AddAbility(TSubclassOf<UAbility> AbilityClass, int Index)
-{
-	if (!AbilityClass)
-	{
-		UE_LOG(LogTemp, Error, TEXT("AbilityClass is null!"));
-		return;
-	}
-	if (Index < 0)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Index is negative: %d"), Index);
-		return;
-	}
-	// Make sure array is big enough for this slot
-	if (Index >= GrantedAbilities.Num())
-	{
-		// Resize array to fit the slot, fill with nulls
-		GrantedAbilities.SetNum(Index + 1);
-	}
-	
-	int32 ExistingIndex = GrantedAbilities.Find(AbilityClass);
-	if (ExistingIndex != INDEX_NONE)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Ability already exists at slot %d"), ExistingIndex);
-		return;  // Don't add duplicate
-	}
 
-	// Ability doesn't exist, safe to add at desired Index
-	GrantedAbilities[Index] = AbilityClass;
-}
-
-void UAbilitySystem::RemoveAbility(TSubclassOf<UAbility> AbilityClass)
+void UAbilitySystem::EndActiveAbility()
 {
-	if (!AbilityClass)
-	{
-		UE_LOG(LogTemp, Error, TEXT("AbilityClass is null!"));
-		return;
-	}
-    
-	// Find the ability in the array
-	int32 FoundIndex = GrantedAbilities.Find(AbilityClass);
-    
-	if (FoundIndex != INDEX_NONE)
-	{
-		GrantedAbilities[FoundIndex] = nullptr;  // Clear the slot
-		UE_LOG(LogTemp, Warning, TEXT("Found and removed ability from slot %d"), FoundIndex);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Ability not found in granted abilities"));
-	}
-}
-
-void UAbilitySystem::RemoveAbilityAtIndex(int Index)
-{
-	if (GrantedAbilities.IsValidIndex(Index))
-	{
-		GrantedAbilities[Index] = nullptr;
-	}
-}
-
-void UAbilitySystem::InitializeAbility(int AbilityIndex)
-{
-	if (GrantedAbilities.IsValidIndex(AbilityIndex) && GrantedAbilities[AbilityIndex] && MyOwner)
-	{
-		UAbility* NewAbility = NewObject<UAbility>(this, GrantedAbilities[AbilityIndex]);
-		NewAbility->ActivateAbility(MyOwner);
-		ActiveAbility = NewAbility;
-	}
-	else
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red,
-			TEXT("Activate ability failed."));
-	}
-}
-
-void UAbilitySystem::OnAbilityInputReleased()
-{
-	if (ActiveAbility != nullptr)
+	if (ActiveAbility)
 	{
 		ActiveAbility->EndAbility();
 		ActiveAbility = nullptr;
+		SetComponentTickEnabled(false);
 	}
 }

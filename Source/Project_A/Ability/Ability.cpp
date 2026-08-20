@@ -4,114 +4,62 @@
 #include "Kismet/GameplayStatics.h"
 #include "Engine/OverlapResult.h"
 #include "Projectile.h"
+#include "AbilityActor.h"
 #include "../GameplayEffect/GameplayEffect.h"
 #include "../Component/EffectHandler.h"
 
+
+// TODO:w
+// so talents can listen to that ability instance.
+// Make OnHit, OnBeginOverlap etc for generic delegates, and specific (if needed) lives on blueprint child
+// EndAbility resets the ability, doesn't destroy it.
+// Talents lives as UObjects
+// Talents are read into an "Available Talents" array during game-start, and read from this when rolling talents
+// (Can easily remove talents from the array as they get picked, or if some conflict with each other)
 UAbility::UAbility()
 {
-	CurrentState = EAbilityState::None;
-	AbilityUUID = FGuid::NewGuid().ToString();
-	World = GetWorld();
+	
 }
 
-FString UAbility::GetAbilityUUID()
-{
-	return AbilityUUID;
-}
-
-void UAbility::Initiate(ACharacter* NewCaster)
+void UAbility::SetupAbility(ACharacter* NewCaster)
 {
 	MyCaster = NewCaster;
 	World = MyCaster->GetWorld();
 
+	// Checks
 	check(MyCaster);
 	check(World);
-
-	ActivateAbility(MyCaster);
 }
 
-void UAbility::ActivateAbility(ACharacter* NewCaster)
+void UAbility::ActivateAbility()
 {
-	UE_LOG(LogTemp, Log, TEXT("UAbility::ActivateAbility()"));
-	MyCaster = NewCaster;
+	IAbilityLifecycle::Execute_OnActivate(this);
+}
 
-	switch (AbilityType)
-	{
-	case EAbilityActivationType::Interactive:
-		{
-			PressStartTime = World->GetTimeSeconds();
-			CurrentState = EAbilityState::Pressed;
-
-			if (MyCaster)
-			{
-				World->GetTimerManager().SetTimer(
-					ThresholdTimerHandle,
-					this,
-					&UAbility::ThresholdMet,
-					ClickDelay,
-					false
-				);
-			}
-			break;
-		}
-
-	case EAbilityActivationType::Passive:
-		{
-			OnPassive();
-			break;
-		}
-
-	case EAbilityActivationType::None:
-	default:
-		{
-			UE_LOG(LogTemp, Error, TEXT("%s has no activation type set"), *AbilityName.ToString());
-			break;
-		}
-	}
+void UAbility::TickAbility(float DeltaTime)
+{
+	if (Ticker.ShouldTick(DeltaTime))
+		IAbilityLifecycle::Execute_OnTick(this);
 }
 
 void UAbility::EndAbility()
 {
-	UWorld* MyWorld = GetWorld();
-	if (MyWorld)
-	{
-		MyWorld->GetTimerManager().ClearTimer(ThresholdTimerHandle);
-	}
+	if (bHasEnded) return;
+	bHasEnded = true;
+	
+	IAbilityLifecycle::Execute_OnEnd(this);
+}
 
-	if (CurrentState == EAbilityState::Effect3_Modified)
-	{
-		OnModify();
-	}
-
-	if (CurrentState == EAbilityState::Effect2_Charging)
-	{
-		OnHoldEnd();
-	}
-	else if (CurrentState == EAbilityState::Pressed)
-	{
-		OnTap();
-	}
-
-	CurrentState = EAbilityState::None;
+void UAbility::KillAbility()
+{
 	MyCaster = nullptr;
 	MyTarget = nullptr;
-}
-
-EAbilityState UAbility::GetCurrentState()
-{
-	return CurrentState;
-}
-
-void UAbility::ThresholdMet()
-{
-	CurrentState = EAbilityState::Effect2_Charging;
-	OnHold();
 }
 
 // ============================================================================
 // Effect library
 // ============================================================================
-void UAbility::RunEffect_Target(UGameplayEffect* Effect, ACharacter* Target)
+void UAbility::RunEffect_Target(TSubclassOf<UGameplayEffect> Effect, ACharacter* Target)
 {
 	UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>();
 	if (EffectHandler)
@@ -120,17 +68,8 @@ void UAbility::RunEffect_Target(UGameplayEffect* Effect, ACharacter* Target)
 	}
 }
 
-TArray<ACharacter*> UAbility::RunEffect_AOE(UGameplayEffect* Effect, FVector Location, float Radius, ETargetSelection TargetSelection)
+TArray<ACharacter*> UAbility::RunEffect_AOE(TSubclassOf<UGameplayEffect> Effect, FVector Location, float Radius, ETargetSelection TargetSelection)
 {
-	//TODO: Change this so that all found actors gets the effect given on them
-	//Use this:
-	/*UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>();
-
-	if (EffectHandler)
-	{
-		EffectHandler->YourFunction();
-	}*/
-	
 	TArray<ACharacter*> Targets;
 	TArray<FOverlapResult> Overlaps;
 	FCollisionShape Sphere = FCollisionShape::MakeSphere(Radius);
@@ -145,9 +84,7 @@ TArray<ACharacter*> UAbility::RunEffect_AOE(UGameplayEffect* Effect, FVector Loc
 			{
 				continue;
 			}
-
-			// TargetSelection needs a Friendly/Hostile check specific to your
-			// gameplay framework (team component, faction, etc). Filter here.
+			//TODO: Update this so it checks whether the AOE should target friendly, hostile or all (From the perspective of the caster)
 			if (TargetSelection == ETargetSelection::All)
 			{
 				Targets.AddUnique(TargetCharacter);
@@ -158,66 +95,63 @@ TArray<ACharacter*> UAbility::RunEffect_AOE(UGameplayEffect* Effect, FVector Loc
 	return Targets;
 }
 
-void UAbility::RunEffect_Projectile(FLatentActionInfo LatentInfo, UGameplayEffect* Effect, UStaticMesh* Mesh, FVector Target, float Speed, int32 PenetrationCount, FVector& OutLocation)
+void UAbility::RunEffect_Projectile(FLatentActionInfo LatentInfo, TSubclassOf<UGameplayEffect> Effect, UStaticMesh* Mesh, FVector Target, float Speed, int32 PenetrationCount, FVector& OutLocation)
 {
 	if (Speed == 0.f)
 		UE_LOG(LogTemp, Warning, TEXT("Projectile has 0 speed"));
-	check(Mesh)
-	
-	if (!MyCaster || !World)
+	check(Mesh);
+
+	AProjectile* Projectile = World->SpawnActor<AProjectile>(
+	AProjectile::StaticClass(),
+	MyCaster->GetActorLocation(),
+	MyCaster->GetActorRotation()
+);
+	if (!Projectile)
 	{
 		return;
 	}
-
-	FLatentActionManager& LAM = World->GetLatentActionManager();
-	FEffect_ProjectileAction* ProjectileAction = new FEffect_ProjectileAction(LatentInfo, OutLocation);
-	LAM.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, ProjectileAction);
-
-	AProjectile* Projectile = World->SpawnActor<AProjectile>(
-		AProjectile::StaticClass(),
-		MyCaster->GetActorLocation(),
-		MyCaster->GetActorRotation()
-	);
+	
 	Projectile->SetMyAbility(this);
 	Projectile->SetMyCaster(MyCaster);
 	Projectile->Destination = Target;
 	Projectile->Speed = Speed;
 	Projectile->PenetrationCount = PenetrationCount;
+	Projectile->MeshComponent->SetStaticMesh(Mesh);
 	Projectile->MeshComponent->IgnoreActorWhenMoving(MyCaster, true);
+	
+	FLatentActionManager& LAM = World->GetLatentActionManager();
+	FEffect_ProjectileAction* ProjectileAction = new FEffect_ProjectileAction(LatentInfo, OutLocation);
+	static int32 ProjectileActionUUIDCounter = LatentInfo.UUID;
+	int32 UniqueUUID = ProjectileActionUUIDCounter++;
 
-	if (Mesh)
-	{
-		Projectile->MeshComponent->SetStaticMesh(Mesh);
-	}
+	LAM.AddNewAction(LatentInfo.CallbackTarget, UniqueUUID, ProjectileAction);
 
 	TWeakObjectPtr<UAbility> WeakThis = this;
-	Projectile->OnHit.BindLambda([WeakThis, ProjectileAction](FVector HitLocation)
-	{
-		if (WeakThis.IsValid())
-		{
-			ProjectileAction->Finish(HitLocation);
-		}
-	});
+    Projectile->OnFinished.BindLambda([WeakThis, ProjectileAction](FVector HitLocation)
+    {
+        if (WeakThis.IsValid())
+        {
+            ProjectileAction->Finish(HitLocation);
+        }
+    });
 }
 
-
-
-// Uncertain if I need
-/*AActor* UAbility::RunEffect_SpawnObject(AActor* SpawnActor, FVector SpawnLocation)
+AAbilityActor* UAbility::RunEffect_SpawnActor(TSubclassOf<AAbilityActor> NewActor, FTransform Transform)
 {
-	if (!World)
+	if (!NewActor || !World)
 	{
 		return nullptr;
 	}
 
-	FRotator SpawnRotation = SpawnParams.Owner ? SpawnParams.Owner->GetActorRotation() : FRotator::ZeroRotator;
-
-	AActor* SpawnedActor = World->SpawnActor<AActor>(
-		SpawnActor ? SpawnActor->GetClass() : AActor::StaticClass(),
-		SpawnLocation,
-		SpawnRotation,
-		SpawnParams
+	AAbilityActor* AbilityActor = World->SpawnActor<AAbilityActor>(
+		NewActor,
+		Transform
 	);
 
-	return SpawnedActor;
-}*/
+	if (AbilityActor)
+	{
+		AbilityActor->SetMyAbility(this);
+		AbilityActor->SetMyCaster(MyCaster);
+	}
+	return AbilityActor;
+}

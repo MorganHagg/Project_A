@@ -3,43 +3,48 @@
 #include "Components/ActorComponent.h"
 #include "AbilitySystem.generated.h"
 
-//Forward declaration
 class UAbility;
-class ACharacter;
+class AUnitBase;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJECT_A_API UAbilitySystem : public UActorComponent
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	UAbilitySystem();
+    UAbilitySystem();
 
 protected:
-	virtual void BeginPlay() override;
-
+    virtual void BeginPlay() override;
+    
+    UPROPERTY()
+    AUnitBase* MyOwner;
+    
 public:
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
+    
+    UPROPERTY(BlueprintReadOnly)
+    UAbility* ActiveAbility = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TArray<TSubclassOf<UAbility>> GrantedAbilities; 
+    void InstantiateAbilities(TArray<TSubclassOf<UAbility>> AbilityArray);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UAbility* ActiveAbility;
+    UFUNCTION(BlueprintCallable)
+    bool SwapAbility(TSubclassOf<UAbility> OldAbilityClass, TSubclassOf<UAbility> NewAbilityClass);
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Instanced)
+    TArray<UAbility*> GrantedAbilities;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	ACharacter *MyOwner = nullptr;
+    UAbility* InitiateAbility(int32 Slot);
+    
+    UFUNCTION(BlueprintCallable)
+    void SetActiveAbility(UAbility* NewActiveAbility);
 
-	UFUNCTION(BlueprintCallable)
-	void AddAbility(TSubclassOf<UAbility> AbilityClass, int Index);
+    virtual void TickComponent(
+    float DeltaTime,
+    ELevelTick TickType,
+    FActorComponentTickFunction* ThisTickFunction
+) override;
 
-	UFUNCTION(BlueprintCallable)  
-	void RemoveAbility(TSubclassOf<UAbility> AbilityClass);
-
-	UFUNCTION(BlueprintCallable)
-	void RemoveAbilityAtIndex(int Index);
-	
-	void InitializeAbility(int AbilityIndex);
-	void OnAbilityInputReleased();
+    UFUNCTION(BlueprintCallable)
+    void EndActiveAbility();
+    
 };

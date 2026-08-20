@@ -1,5 +1,5 @@
 ﻿#include "EffectHandler.h"
-#include "Gameframework/Character.h"
+#include "../Unit/UnitBase.h"
 #include "../GameplayEffect/GameplayEffect.h"
 #include "Stats.h"
 
@@ -12,7 +12,7 @@ UEffectHandler::UEffectHandler()
 void UEffectHandler::BeginPlay()
 {
 	Super::BeginPlay();
-	MyTarget = CastChecked<ACharacter>(GetOwner());
+	MyTarget = CastChecked<AUnitBase>(GetOwner());
 }
 
 void UEffectHandler::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -23,23 +23,28 @@ void UEffectHandler::TickComponent(float DeltaTime, ELevelTick TickType, FActorC
 
 void UEffectHandler::UpdateEffect()
 {
-	for (const TObjectPtr<UGameplayEffect>& Effect : GameplayEffects)
+	for (TObjectPtr<UGameplayEffect> Effect : GameplayEffects)
 	{
 		if (Effect)
 		{
-			// Run through array of effects, and execute them if they're set to execute. i.e, interval timer is 0
-			// Remove effect if duration <= 0
+			// Effect->...
 		}
 	}
 }
 
-void UEffectHandler::AddEffect(UGameplayEffect* Effect)
+void UEffectHandler::AddEffect(TSubclassOf<UGameplayEffect> EffectClass)
 {
+	if (!EffectClass)
+		return;
+
+	UGameplayEffect* Effect = NewObject<UGameplayEffect>(this, EffectClass);
 	GameplayEffects.Add(Effect);
 }
 
-void UEffectHandler::RemoveEffect(UGameplayEffect* Effect)
+void UEffectHandler::RemoveEffect(TSubclassOf<UGameplayEffect> Effect)
 {
-	GameplayEffects.Remove(Effect);
+	GameplayEffects.RemoveAll([Effect](const TObjectPtr<UGameplayEffect>& ExistingEffect)
+	{
+		return ExistingEffect && ExistingEffect->IsA(Effect);
+	});
 }
-

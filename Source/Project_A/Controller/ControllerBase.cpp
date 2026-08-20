@@ -1,8 +1,10 @@
 #include "ControllerBase.h"
 #include "EnhancedInputComponent.h"
-#include "../Actor/PlayerUnit.h"
-#include "../Component/AbilitySystem.h"
 #include "../Ability/Ability.h"
+#include "../Unit/PlayerUnit.h"
+#include "../Component/AbilitySystem.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "Camera/CameraComponent.h"
 
 AControllerBase::AControllerBase()
 {
@@ -10,150 +12,178 @@ AControllerBase::AControllerBase()
 
 void AControllerBase::BeginPlay()
 {
-	Super::BeginPlay();
-	
-	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = 
-		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
-	{
-		Subsystem->AddMappingContext(MappingContext_Control, 0);
-	}
-	bShowMouseCursor = true;
+    Super::BeginPlay();
+
+    if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
+        ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+    {
+        Subsystem->AddMappingContext(MappingContext_Control, 0);
+    }
+    bShowMouseCursor = true;
 }
 
 void AControllerBase::PossessPlayerUnit(APlayerUnit* NewPlayerUnit)
 {
-	PlayerUnit = NewPlayerUnit;
-	Possess(PlayerUnit);
+    PlayerUnit = NewPlayerUnit;
+    Possess(PlayerUnit);
 }
 
 void AControllerBase::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
-	if (PlayerUnit)
-		FaceMouseCursor();
+    Super::Tick(DeltaTime);
+    if (PlayerUnit)
+        FaceMouseCursor();
 }
 
 void AControllerBase::SetupInputComponent()
 {
-	Super::SetupInputComponent();
+    Super::SetupInputComponent();
 
-	UEnhancedInputComponent* Input =
-		CastChecked<UEnhancedInputComponent>(InputComponent);
+    UEnhancedInputComponent* Input = CastChecked<UEnhancedInputComponent>(InputComponent);
 
-	check(MappingContext_Control);
-	check(IA_Move);
-	check(IA_Dodge);
-	check(IA_Ability1);
-	check(IA_Ability2);
+    check(MappingContext_Control);
+    check(IA_Move);
+    check(IA_Primary);
+    check(IA_Secondary);
 
-	Input->BindAction(
-		IA_Move,
-		ETriggerEvent::Triggered,
-		this,
-		&AControllerBase::Move);
+    Input->BindAction(IA_Move, ETriggerEvent::Triggered, this, &AControllerBase::Move);
 
-	// Bind ability inputs
-	TArray<TPair<UInputAction*, EAbilityInputID>> Bindings = {
-		{ IA_Dodge, EAbilityInputID::Ability0 },
-		{ IA_Ability1, EAbilityInputID::Ability1 },
-		{ IA_Ability2, EAbilityInputID::Ability2 }
-	};
+    // Primary -> slots 0(tap)/1(hold)/2(modify), Secondary -> slots 3/4/5
+    TArray<TPair<UInputAction*, int32>> Bindings = {
+        { IA_Primary, 0 },
+        { IA_Secondary, 3 }
+    };
 
-	for (const auto& Pair : Bindings)
-	{
-		if (Pair.Key)
-		{
-			AbilityInputMap.Add(Pair.Key, Pair.Value);
-			Input->BindAction(Pair.Key, ETriggerEvent::Started, this, &AControllerBase::OnAbilityInputPressed);
-			Input->BindAction(Pair.Key, ETriggerEvent::Completed, this, &AControllerBase::OnAbilityInputReleased);
-		}  
-	}
+    for (const auto& Pair : Bindings)
+    {
+        if (Pair.Key)
+        {
+            AbilityInputMap.Add(Pair.Key, Pair.Value);
+            Input->BindAction(Pair.Key, ETriggerEvent::Started, this, &AControllerBase::OnAbilityInputPressed);
+            Input->BindAction(Pair.Key, ETriggerEvent::Completed, this, &AControllerBase::OnAbilityInputReleased);
+        }
+    }
+}
+
+bool AControllerBase::ResolveAbilitySlot(const FInputActionInstance& Instance, int32& OutBaseSlot)
+{
+    if (!PlayerUnit || !PlayerUnit->AbilitySystemComponent)
+        return false;
+
+    const UInputAction* Action = Instance.GetSourceAction();
+    if (!Action)
+        return false;
+
+    const int32* BaseSlot = AbilityInputMap.Find(Action);
+    if (!BaseSlot)
+        return false;
+
+    OutBaseSlot = *BaseSlot;
+    return true;
 }
 
 void AControllerBase::Move(const FInputActionValue& Value)
 {
-	if (!PlayerUnit)
-		return;
-	
-	FVector2D MovementVector = Value.Get<FVector2D>();
+    if (!PlayerUnit)
+        return;
 
-	const FRotator Rotation = GetControlRotation();
-	const FRotator YawRotation(0, Rotation.Yaw, 0);
+    FVector2D MovementVector = Value.Get<FVector2D>();
 
-	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+    const FRotator Rotation = GetControlRotation();
+    const FRotator YawRotation(0, Rotation.Yaw, 0);
 
-	PlayerUnit->AddMovementInput(ForwardDirection, MovementVector.Y);
-	PlayerUnit->AddMovementInput(RightDirection, MovementVector.X);
+    const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+    const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+
+    PlayerUnit->AddMovementInput(ForwardDirection, MovementVector.Y);
+    PlayerUnit->AddMovementInput(RightDirection, MovementVector.X);
 }
 
 void AControllerBase::FaceMouseCursor()
 {
-	if (!PlayerUnit)
-		return;
-	
-	FHitResult HitResult;
-	if (GetHitResultUnderCursor(ECC_Visibility, false, HitResult))
-	{
-		FVector CursorLocation = HitResult.Location;
-		FVector PlayerLocation = PlayerUnit->GetActorLocation();
+    if (!PlayerUnit)
+        return;
 
-		FVector Direction = (CursorLocation - PlayerLocation);
-		Direction.Z = 0.f;
+    FHitResult HitResult;
+    if (GetHitResultUnderCursor(ECC_Visibility, false, HitResult))
+    {
+        FVector CursorLocation = HitResult.Location;
+        FVector PlayerLocation = PlayerUnit->GetActorLocation();
 
-		FRotator NewRotation = Direction.Rotation();
-		PlayerUnit->SetActorRotation(NewRotation);
-	}
+        FVector Direction = (CursorLocation - PlayerLocation);
+        Direction.Z = 0.f;
+
+        FRotator NewRotation = Direction.Rotation();
+        PlayerUnit->SetActorRotation(NewRotation);
+    }
 }
 
 void AControllerBase::OnAbilityInputPressed(const FInputActionInstance& Instance)
 {
-	if (!PlayerUnit->AbilitySystemComponent) return;
+    int32 BaseSlot;
+    if (!ResolveAbilitySlot(Instance, BaseSlot))
+        return;
 
-	if (const UInputAction* Action = Instance.GetSourceAction())
-	{
-		if (const EAbilityInputID* InputID = AbilityInputMap.Find(Action))
-		{
-			if (PlayerUnit->AbilitySystemComponent->ActiveAbility)
-				PlayerUnit->AbilitySystemComponent->ActiveAbility->DoModify();
-			else
-				PlayerUnit->AbilitySystemComponent->InitializeAbility(static_cast<int32>(*InputID));
-		}
-	}
+    UAbilitySystem* AbilitySystem = PlayerUnit->AbilitySystemComponent;
+
+    if (AbilitySystem->ActiveAbility)
+    {
+        if (!AbilitySystem->GrantedAbilities.IsValidIndex(BaseSlot + 2))
+        {
+            UE_LOG(LogTemp, Error, TEXT("GrantedAbilities has no slot %d"), BaseSlot + 2);
+            return;
+        }
+
+        if (UAbility* ModifyAbility = AbilitySystem->GrantedAbilities[PressedBaseSlot + 2])
+        {
+            ModifyAbility->ActivateAbility();
+            if (ModifyAbility->bModifyEndsAbility)
+                AbilitySystem->EndActiveAbility();
+        }
+        return;
+    }
+
+    PressedBaseSlot = BaseSlot;
+    bHoldThresholdMet = false;
+
+    GetWorldTimerManager().SetTimer(
+        HoldTimerHandle, this, &AControllerBase::OnHoldThresholdMet, HoldThreshold, false);
+}
+
+void AControllerBase::OnHoldThresholdMet()
+{
+    bHoldThresholdMet = true;
+
+    if (!PlayerUnit || !PlayerUnit->AbilitySystemComponent)
+        return;
+
+    UAbilitySystem* AbilitySystem = PlayerUnit->AbilitySystemComponent;
+
+    if (AbilitySystem)
+    {
+        AbilitySystem->SetActiveAbility(AbilitySystem->InitiateAbility(PressedBaseSlot + 1));
+    }
 }
 
 void AControllerBase::OnAbilityInputReleased(const FInputActionInstance& Instance)
 {
-	if (!PlayerUnit->AbilitySystemComponent)
-		return;
+    int32 BaseSlot;
+    if (!ResolveAbilitySlot(Instance, BaseSlot) || BaseSlot != PressedBaseSlot)
+        return;
+    
+    GetWorldTimerManager().ClearTimer(HoldTimerHandle);
 
-	if (const UInputAction* Action = Instance.GetSourceAction())
-	{
-		if (AbilityInputMap.Contains(Action))
-		{
-			PlayerUnit->AbilitySystemComponent->OnAbilityInputReleased();
-		}
-	}
+    UAbilitySystem* AbilitySystem = PlayerUnit->AbilitySystemComponent;
+
+    if (bHoldThresholdMet)
+    {
+        AbilitySystem->EndActiveAbility();
+    }
+    else
+    {
+        AbilitySystem->InitiateAbility(PressedBaseSlot);
+    }
+
+    PressedBaseSlot = -1;
+    bHoldThresholdMet = false;
 }
-
-/*
-void AControllerBase::OnAbilityInputPressed(const FInputActionInstance& Instance)
-{
-	if (!PlayerUnit)
-		return;
-	
-	const int32 AbilityIndex = static_cast<int32>(Instance.GetValue().Get<float>());
-
-	PlayerUnit->AbilitySystemComponent->InitializeAbility(AbilityIndex);
-}
-
-void AControllerBase::OnAbilityInputReleased(const FInputActionInstance& Instance)
-{
-	if (!PlayerUnit)
-		return;
-	
-	const int32 AbilityIndex = static_cast<int32>(Instance.GetValue().Get<float>());
-
-	PlayerUnit->AbilitySystemComponent->OnAbilityInputReleased();
-}
-*/

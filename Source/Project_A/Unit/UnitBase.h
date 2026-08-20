@@ -1,10 +1,12 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
 #include "Gameframework/Character.h"
+#include "../DataAsset/UnitDataBase.h"
 #include "UnitBase.generated.h"
 
 class UAbilitySystem;
 class UEffectHandler;
+class UBehaviorTree;
 class UStats;
 
 UCLASS()
@@ -20,7 +22,9 @@ protected:
 
 public:
 	virtual void Tick(float DeltaTime) override;
-
+	
+	virtual void SetupUnit(UUnitDataBase* SpawnData);
+	
 	// System Components
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
 	UAbilitySystem* AbilitySystemComponent;
@@ -30,4 +34,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
 	UStats* StatsComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UUnitDataBase* UnitData;
+
+	
 };

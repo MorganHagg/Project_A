@@ -3,7 +3,7 @@
 #include "Components/ActorComponent.h"
 #include "EffectHandler.generated.h"
 
-class ACharacter;
+class AUnitBase;
 class UGameplayEffect;
 class UStats;
 
@@ -23,11 +23,11 @@ public:
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 
 	UPROPERTY()
-	ACharacter* MyTarget;
+	AUnitBase* MyTarget;
 	
 	void UpdateEffect();
-	void AddEffect(UGameplayEffect* Effect);
-	void RemoveEffect(UGameplayEffect* Effect);
+	void AddEffect(TSubclassOf<UGameplayEffect> Effect);
+	void RemoveEffect(TSubclassOf<UGameplayEffect> Effect);
 	
 	UPROPERTY()
 	TArray<TObjectPtr<UGameplayEffect>> GameplayEffects;
