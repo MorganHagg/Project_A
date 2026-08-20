@@ -9,7 +9,6 @@
 #include "../Unit/PlayerUnit.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-
 AUnitBase* UUnitSpawner::SpawnUnitInternal(
     UClass* UnitClass,
     UUnitDataBase* SpawnData,
