@@ -9,9 +9,9 @@ void AEnemyUnit::SetBehaviorTree(UBehaviorTree* InTree)
 		AIController->RunBehaviorTree(BehaviorTree);
 }
 
-void AEnemyUnit::Initiate(UUnitDataBase* SpawnData)
+void AEnemyUnit::SetupUnit(UUnitDataBase* SpawnData)
 {
-	Super::Initiate(SpawnData);
+	Super::SetupUnit(SpawnData);
 	if (UEnemyUnitData* EnemyData = Cast<UEnemyUnitData>(SpawnData))
 	{
 		if (EnemyData->BehaviorTree)

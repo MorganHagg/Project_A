@@ -23,6 +23,7 @@ protected:
 public:
 	virtual void Tick(float DeltaTime) override;
 	
+	virtual void SetupUnit(UUnitDataBase* SpawnData);
 	
 	// System Components
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
@@ -37,5 +38,5 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UUnitDataBase* UnitData;
 
-	virtual void Initiate(UUnitDataBase* SpawnData);
+	
 };

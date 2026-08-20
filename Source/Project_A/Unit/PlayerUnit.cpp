@@ -16,9 +16,9 @@ APlayerUnit::APlayerUnit()
 	AdjustCamera();
 }
 
-void APlayerUnit::Initiate(UUnitDataBase* SpawnData)
+void APlayerUnit::SetupUnit(UUnitDataBase* SpawnData)
 {
-	Super::Initiate(SpawnData);
+	Super::SetupUnit(SpawnData);
 	if (UPlayerUnitData* PlayerData = Cast<UPlayerUnitData>(SpawnData))
 	{
 		TalentComponent->AcquiredTalents = PlayerData->Talents;

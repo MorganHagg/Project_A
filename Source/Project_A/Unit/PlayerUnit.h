@@ -24,7 +24,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UTalentComponent* TalentComponent;
 
-	virtual void Initiate(UUnitDataBase* SpawnData) override;
+	virtual void SetupUnit(UUnitDataBase* SpawnData) override;
 	
 
 	void AdjustCamera();

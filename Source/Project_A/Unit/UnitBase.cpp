@@ -28,11 +28,11 @@ void AUnitBase::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-void AUnitBase::Initiate(UUnitDataBase* SpawnData)
+void AUnitBase::SetupUnit(UUnitDataBase* SpawnData)
 {
 	UnitData = SpawnData;
-	
-	AbilitySystemComponent->GrantedAbilities = SpawnData->DefaultAbilities;
+
+	AbilitySystemComponent->InstantiateAbilities(SpawnData->DefaultAbilities);
 
 	GetMesh()->SetSkeletalMesh(SpawnData->Mesh);
 	if (SpawnData->AnimationBlueprint)

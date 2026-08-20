@@ -4,9 +4,9 @@
 #include "../DataAsset/UnitDataBase.h"
 #include "../DataAsset/PlayerUnitData.h"
 #include "../DataAsset/EnemyUnitData.h"
-#include "../Actor/UnitBase.h"
-#include "../Actor/EnemyUnit.h"
-#include "../Actor/PlayerUnit.h"
+#include "../Unit/UnitBase.h"
+#include "../Unit/EnemyUnit.h"
+#include "../Unit/PlayerUnit.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 
@@ -24,7 +24,7 @@ AUnitBase* UUnitSpawner::SpawnUnitInternal(
     if (!NewUnit) return nullptr;
 
     NewUnit->FinishSpawning(SpawnTransform);
-    NewUnit->Initiate(SpawnData);
+    NewUnit->SetupUnit(SpawnData);
 
     return NewUnit;
 }

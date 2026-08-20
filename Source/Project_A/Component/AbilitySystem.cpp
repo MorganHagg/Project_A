@@ -1,6 +1,6 @@
 ﻿#include "AbilitySystem.h"
 #include "../Ability/Ability.h"
-#include "../Actor/UnitBase.h"
+#include "../Unit/UnitBase.h"
 
 UAbilitySystem::UAbilitySystem()
 {
@@ -14,44 +14,51 @@ void UAbilitySystem::BeginPlay()
 	MyOwner = CastChecked<AUnitBase>(GetOwner());
 }
 
-void UAbilitySystem::AddAbility(int32 Slot, TSubclassOf<UAbility> AbilityClass)
+void UAbilitySystem::InstantiateAbilities(TArray<TSubclassOf<UAbility>> AbilityArray)
 {
-	if (!AbilityClass)
+	for (TSubclassOf<UAbility> AbilityClass : AbilityArray)
 	{
-		UE_LOG(LogTemp, Error, TEXT("AbilityClass is null!"));
-		return;
-	}
+		if (!AbilityClass)
+		{
+			continue;
+		}
 
-	if (Slot < 0)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Slot is negative: %d"), Slot);
-		return;
+		UAbility* NewAbility = NewObject<UAbility>(this, AbilityClass);
+		NewAbility->SetupAbility(MyOwner);
+		GrantedAbilities.Add(NewAbility);
 	}
-
-	GrantedAbilities.SetNum(FMath::Max(GrantedAbilities.Num(), Slot + 1));
-	GrantedAbilities[Slot] = AbilityClass;
 }
 
-void UAbilitySystem::RemoveAbility(int32 Slot)
+bool UAbilitySystem::SwapAbility(TSubclassOf<UAbility> OldAbilityClass, TSubclassOf<UAbility> NewAbilityClass)
 {
-	if (GrantedAbilities.IsValidIndex(Slot))
+	if (!NewAbilityClass)
 	{
-		GrantedAbilities[Slot] = nullptr;
+		UE_LOG(LogTemp, Error, TEXT("NewAbilityClass is null!"));
+		return false;
 	}
+
+	for (UAbility*& Ability : GrantedAbilities)
+	{
+		if (Ability && Ability->GetClass() == OldAbilityClass)
+		{
+			Ability = NewObject<UAbility>(this, NewAbilityClass);
+			Ability->SetupAbility(MyOwner);
+			return true;
+		}
+	}
+
+	return false;
 }
 
 UAbility* UAbilitySystem::InitiateAbility(int32 Slot)
 {
+	UE_LOG(LogTemp, Warning, TEXT("The slot was %i"), Slot)
 	if (GrantedAbilities.IsValidIndex(Slot) &&
 		GrantedAbilities[Slot] &&
 		MyOwner)
 	{
-		UAbility* NewAbility = NewObject<UAbility>(
-			this,
-			GrantedAbilities[Slot]);
-
-		NewAbility->InitiateAbility(Cast<ACharacter>(MyOwner));
-		return NewAbility;
+		GrantedAbilities[Slot]->ActivateAbility();
+		return GrantedAbilities[Slot];	
 	}
 
 	GEngine->AddOnScreenDebugMessage(

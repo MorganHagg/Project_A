@@ -1,7 +1,7 @@
 #include "ControllerBase.h"
 #include "EnhancedInputComponent.h"
 #include "../Ability/Ability.h"
-#include "../Actor/PlayerUnit.h"
+#include "../Unit/PlayerUnit.h"
 #include "../Component/AbilitySystem.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -128,16 +128,18 @@ void AControllerBase::OnAbilityInputPressed(const FInputActionInstance& Instance
 
     if (AbilitySystem->ActiveAbility)
     {
-        UAbility* ModifyAbility = AbilitySystem->InitiateAbility(PressedBaseSlot + 2);
-        check(ModifyAbility);
-        
-        if (ModifyAbility->bModifyEndsAbility)
+        if (!AbilitySystem->GrantedAbilities.IsValidIndex(BaseSlot + 2))
         {
-            UE_LOG(LogTemp, Warning, TEXT("ModifyEnable is true"))
-            AbilitySystem->EndActiveAbility();
+            UE_LOG(LogTemp, Error, TEXT("GrantedAbilities has no slot %d"), BaseSlot + 2);
+            return;
         }
-            
 
+        if (UAbility* ModifyAbility = AbilitySystem->GrantedAbilities[PressedBaseSlot + 2])
+        {
+            ModifyAbility->ActivateAbility();
+            if (ModifyAbility->bModifyEndsAbility)
+                AbilitySystem->EndActiveAbility();
+        }
         return;
     }
 
@@ -159,8 +161,7 @@ void AControllerBase::OnHoldThresholdMet()
 
     if (AbilitySystem)
     {
-        UAbility* HoldAbility = AbilitySystem->InitiateAbility(PressedBaseSlot + 1);
-        AbilitySystem->SetActiveAbility(HoldAbility);
+        AbilitySystem->SetActiveAbility(AbilitySystem->InitiateAbility(PressedBaseSlot + 1));
     }
 }
 
@@ -169,8 +170,6 @@ void AControllerBase::OnAbilityInputReleased(const FInputActionInstance& Instanc
     int32 BaseSlot;
     if (!ResolveAbilitySlot(Instance, BaseSlot) || BaseSlot != PressedBaseSlot)
         return;
-    else
-        UE_LOG(LogTemp, Warning, TEXT("Released"))
     
     GetWorldTimerManager().ClearTimer(HoldTimerHandle);
 

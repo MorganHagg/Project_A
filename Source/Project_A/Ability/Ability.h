@@ -89,9 +89,6 @@ public:
 	UWorld* World;
 	FActorSpawnParameters SpawnParams;
 
-	FString AbilityUUID;
-	FString GetAbilityUUID();
-
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float CoolDown = 0.f;
 
@@ -102,14 +99,18 @@ public:
 	// Lifecycle
 	// --------------------------------------------------------------
 
-	// Activates this ability. Calls into OnActivate (Blueprint-implementable).
-	virtual void InitiateAbility(ACharacter* NewCaster);
-
+	// Sets up the ability for later use
+	void SetupAbility(ACharacter* NewCaster);
 	
+	// Activates this ability. Calls into OnActivate (Blueprint-implementable).
+	virtual void ActivateAbility();
 
 	// Ends this ability. Calls into OnEnd (Blueprint-implementable).
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	virtual void EndAbility();
+
+	// Called if an ability is no longer needed
+	void KillAbility();
 
 	// --------------------------------------------------------------
 	// Blueprint-buildable effect library (project E)

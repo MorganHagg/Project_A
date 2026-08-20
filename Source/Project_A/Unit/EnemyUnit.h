@@ -20,6 +20,6 @@ public:
 	UPROPERTY()
 	TObjectPtr<AAIController> AIController;
 
-	virtual void Initiate(UUnitDataBase* SpawnData) override;
+	virtual void SetupUnit(UUnitDataBase* SpawnData) override;
 	
 };

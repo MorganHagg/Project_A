@@ -40,7 +40,7 @@ void AProjectile::Travel(float DeltaTime)
 	SetActorLocation(NewLocation, true);
 	SetActorRotation(Direction.Rotation());
 
-	if (FVector::Dist(NewLocation, Destination) < 5.f)
+	if (FVector::Dist(NewLocation, Destination) < 25.f)
 	{
 		OnFinished(NewLocation);
 		Destroy();

@@ -13,18 +13,25 @@ class PROJECT_A_API UAbilitySystem : public UActorComponent
 
 public:
     UAbilitySystem();
+
+protected:
+    virtual void BeginPlay() override;
+    
+    UPROPERTY()
+    AUnitBase* MyOwner;
+    
+public:
     
     UPROPERTY(BlueprintReadOnly)
     UAbility* ActiveAbility = nullptr;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    TArray<TSubclassOf<UAbility>> GrantedAbilities;
+    void InstantiateAbilities(TArray<TSubclassOf<UAbility>> AbilityArray);
 
     UFUNCTION(BlueprintCallable)
-    void AddAbility(int32 Slot, TSubclassOf<UAbility> AbilityClass);
-
-    UFUNCTION(BlueprintCallable)
-    void RemoveAbility(int32 Slot);
+    bool SwapAbility(TSubclassOf<UAbility> OldAbilityClass, TSubclassOf<UAbility> NewAbilityClass);
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Instanced)
+    TArray<UAbility*> GrantedAbilities;
 
     UAbility* InitiateAbility(int32 Slot);
     
@@ -39,10 +46,5 @@ public:
 
     UFUNCTION(BlueprintCallable)
     void EndActiveAbility();
-
-protected:
-    virtual void BeginPlay() override;
-
-    UPROPERTY()
-    AUnitBase* MyOwner;
+    
 };
