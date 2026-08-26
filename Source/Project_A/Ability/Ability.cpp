@@ -1,5 +1,5 @@
 ﻿#include "Ability.h"
-#include "Gameframework/Character.h"
+#include "../Unit/UnitBase.h"
 #include "Gameframework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/OverlapResult.h"
@@ -7,6 +7,7 @@
 #include "AbilityActor.h"
 #include "../GameplayEffect/GameplayEffect.h"
 #include "../Component/EffectHandler.h"
+#include "DSP/SpectrumAnalyzer.h"
 
 
 // TODO:w
@@ -21,7 +22,22 @@ UAbility::UAbility()
 	
 }
 
-void UAbility::SetupAbility(ACharacter* NewCaster)
+float UAbility::GetCoolDown()
+{
+	return CoolDown;
+}
+
+float UAbility::GetCost()
+{
+	return Cost;
+}
+
+float UAbility::GetMagnitude()
+{
+	return MagnitudeMultiplier;
+}
+
+void UAbility::SetupAbility(AUnitBase* NewCaster)
 {
 	MyCaster = NewCaster;
 	World = MyCaster->GetWorld();
@@ -42,6 +58,7 @@ void UAbility::TickAbility(float DeltaTime)
 		IAbilityLifecycle::Execute_OnTick(this);
 }
 
+
 void UAbility::EndAbility()
 {
 	if (bHasEnded) return;
@@ -53,17 +70,17 @@ void UAbility::EndAbility()
 void UAbility::KillAbility()
 {
 	MyCaster = nullptr;
-	MyTarget = nullptr;
 }
 
 // ============================================================================
 // Effect library
 // ============================================================================
-void UAbility::RunEffect_Target(TSubclassOf<UGameplayEffect> Effect, ACharacter* Target)
+void UAbility::RunEffect_Target(TSubclassOf<UGameplayEffect> Effect, AUnitBase* Target)
 {
 	UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>();
 	if (EffectHandler)
 	{
+		DelegateOnHit(Target);
 		EffectHandler->AddEffect(Effect);
 	}
 }
@@ -79,7 +96,7 @@ TArray<ACharacter*> UAbility::RunEffect_AOE(TSubclassOf<UGameplayEffect> Effect,
 	{
 		for (FOverlapResult& Overlap : Overlaps)
 		{
-			ACharacter* TargetCharacter = Cast<ACharacter>(Overlap.GetActor());
+			AUnitBase* TargetCharacter = Cast<AUnitBase>(Overlap.GetActor());
 			if (!TargetCharacter)
 			{
 				continue;
@@ -87,6 +104,7 @@ TArray<ACharacter*> UAbility::RunEffect_AOE(TSubclassOf<UGameplayEffect> Effect,
 			//TODO: Update this so it checks whether the AOE should target friendly, hostile or all (From the perspective of the caster)
 			if (TargetSelection == ETargetSelection::All)
 			{
+				DelegateOnHit(TargetCharacter);
 				Targets.AddUnique(TargetCharacter);
 			}
 		}
@@ -154,4 +172,11 @@ AAbilityActor* UAbility::RunEffect_SpawnActor(TSubclassOf<AAbilityActor> NewActo
 		AbilityActor->SetMyCaster(MyCaster);
 	}
 	return AbilityActor;
+}
+
+
+void UAbility::DelegateOnHit(AUnitBase* Target)
+{
+	OnAbilityHit(Target);
+	OnHit.Broadcast(this, Target);
 }

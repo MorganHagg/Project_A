@@ -7,11 +7,17 @@
 #include "Ability.generated.h"
 
 // Forward declarations
-class ACharacter;
-class AProjectile;
+class AUnitBase;
 class AAbilityActor;
+class AProjectile;
 class UStaticMesh;
 class UGameplayEffect;
+
+// ============================================================================
+// Delegations
+// ============================================================================
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityHit, UAbility*, Ability, AUnitBase*, HitUnit);
+
 
 // ============================================================================
 // Enums
@@ -78,10 +84,7 @@ public:
 	bool bModifyEndsAbility = true;
 	
 	UPROPERTY(BlueprintReadOnly)
-	ACharacter* MyCaster;
-
-	UPROPERTY(BlueprintReadOnly)
-	ACharacter* MyTarget;
+	AUnitBase* MyCaster;
 
 	UPROPERTY(BlueprintReadOnly)
 	APlayerController* MyController;
@@ -92,6 +95,18 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float CoolDown = 0.f;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float Cost = 0.f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float MagnitudeMultiplier = 1.f;
+
+	// GetterFunctions
+
+	float GetCoolDown();
+	float GetCost();
+	float GetMagnitude();
+
 	UPROPERTY(EditAnywhere)
 	FIntervalTicker Ticker;
 
@@ -100,7 +115,7 @@ public:
 	// --------------------------------------------------------------
 
 	// Sets up the ability for later use
-	void SetupAbility(ACharacter* NewCaster);
+	void SetupAbility(AUnitBase* NewCaster);
 	
 	// Activates this ability. Calls into OnActivate (Blueprint-implementable).
 	virtual void ActivateAbility();
@@ -113,10 +128,10 @@ public:
 	void KillAbility();
 
 	// --------------------------------------------------------------
-	// Blueprint-buildable effect library (project E)
+	// Blueprint-buildable effect library
 	// --------------------------------------------------------------
 	UFUNCTION(BlueprintCallable)
-	void RunEffect_Target(TSubclassOf<UGameplayEffect> Effect, ACharacter* Target);
+	void RunEffect_Target(TSubclassOf<UGameplayEffect> Effect, AUnitBase* Target);
 
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	TArray<ACharacter*> RunEffect_AOE(TSubclassOf<UGameplayEffect> Effect, FVector Location, float Radius, ETargetSelection TargetSelection);
@@ -130,13 +145,21 @@ public:
 
 	void TickAbility(float DeltaTime);
 
-protected:
 	virtual FName GetAbilityName() const { return AbilityName; }
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability")
 	FName AbilityName = FName("NO_NAME_ABILITY");
-
+protected:
 	UPROPERTY()
 	bool bHasEnded = false;	// Small guard against double end
 
 	// TODO: Implement an interface that takes all the OnEnd(), OnTick() etc
+
+public:
+	UPROPERTY(BlueprintAssignable, Category = "Ability")
+	FOnAbilityHit OnHit;
+
+	void DelegateOnHit(AUnitBase* Target);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnAbilityHit(AUnitBase* Target);
 };

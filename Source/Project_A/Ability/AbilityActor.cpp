@@ -47,9 +47,7 @@ void AAbilityActor::Tick(float DeltaTime)
 		DurationTimer -= DeltaTime;
 		if (DurationTimer <= 0.f)
 			EndAbility();
-			
 	}
-		
 }
 
 void AAbilityActor::EndAbility()

@@ -22,7 +22,9 @@ void APlayerUnit::SetupUnit(UUnitDataBase* SpawnData)
 	if (UPlayerUnitData* PlayerData = Cast<UPlayerUnitData>(SpawnData))
 	{
 		TalentComponent->AcquiredTalents = PlayerData->Talents;
+		TalentComponent->AbilitySystemComponent = AbilitySystemComponent;
 	}
+	
 }
 
 void APlayerUnit::AdjustCamera()

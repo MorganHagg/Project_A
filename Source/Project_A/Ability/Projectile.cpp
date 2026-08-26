@@ -1,4 +1,6 @@
 ﻿#include "Projectile.h"
+#include "../Unit/UnitBase.h"
+#include "Ability.h"
 #include "Gameframework/Character.h"
 #include "../Component/EffectHandler.h"
 #include "Components/StaticMeshComponent.h"
@@ -62,6 +64,11 @@ void AProjectile::HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedCom
 	{
 		return;
 	}
+	
+	if (AUnitBase* HitUnit = Cast<AUnitBase>(OtherActor))
+	{
+		MyAbility->DelegateOnHit(HitUnit);
+	}
 	AlreadyHitActors.Add(OtherActor);
 
 	FVector OverlapLocation = bFromSweep ? FVector(SweepResult.ImpactPoint) : GetActorLocation();
@@ -84,5 +91,6 @@ void AProjectile::Finish(FVector HitLocation)
 	}
 	bHasFinished = true;
 	OnFinished.ExecuteIfBound(HitLocation);
+	Speed = 0.f;
 	SetLifeSpan(0.1f);
 }
