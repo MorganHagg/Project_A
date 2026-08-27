@@ -1,7 +1,7 @@
 ﻿#include "UnitBase.h"
 #include "../Component/AbilitySystem.h"
 #include "../Component/EffectHandler.h"
-#include "../Component/Stats.h"
+#include "../Component/AttributeComponent.h"
 #include "AIController.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -14,7 +14,7 @@ AUnitBase::AUnitBase()
 	PrimaryActorTick.bCanEverTick = true;
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystem>(TEXT("AbilitySystemComponent"));
 	EffectHandlerComponent = CreateDefaultSubobject<UEffectHandler>(TEXT("EffectHandlerComponent"));
-	StatsComponent = CreateDefaultSubobject<UStats>(TEXT("StatsComponent"));
+	AttributeComponent = CreateDefaultSubobject<UAttributeComponent>(TEXT("StatsComponent"));
 }
 
 void AUnitBase::BeginPlay()

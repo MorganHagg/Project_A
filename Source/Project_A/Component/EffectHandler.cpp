@@ -1,7 +1,7 @@
 ﻿#include "EffectHandler.h"
 #include "../Unit/UnitBase.h"
 #include "../GameplayEffect/GameplayEffect.h"
-#include "Stats.h"
+#include "AttributeSet.h"
 
 UEffectHandler::UEffectHandler()
 {
@@ -23,28 +23,15 @@ void UEffectHandler::TickComponent(float DeltaTime, ELevelTick TickType, FActorC
 
 void UEffectHandler::UpdateEffect()
 {
-	for (TObjectPtr<UGameplayEffect> Effect : GameplayEffects)
-	{
-		if (Effect)
-		{
-			// Effect->...
-		}
-	}
+	// TODO: FGameplayEffect is currently blank; nothing to tick yet.
 }
 
-void UEffectHandler::AddEffect(TSubclassOf<UGameplayEffect> EffectClass)
+void UEffectHandler::AddEffect(const FGameplayEffect& Effect)
 {
-	if (!EffectClass)
-		return;
-
-	UGameplayEffect* Effect = NewObject<UGameplayEffect>(this, EffectClass);
 	GameplayEffects.Add(Effect);
 }
 
-void UEffectHandler::RemoveEffect(TSubclassOf<UGameplayEffect> Effect)
+void UEffectHandler::RemoveEffect(const FGameplayEffect& Effect)
 {
-	GameplayEffects.RemoveAll([Effect](const TObjectPtr<UGameplayEffect>& ExistingEffect)
-	{
-		return ExistingEffect && ExistingEffect->IsA(Effect);
-	});
+	// TODO: FGameplayEffect has no identifying data yet, so instances can't be matched for removal.
 }

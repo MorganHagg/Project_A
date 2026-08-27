@@ -11,7 +11,7 @@ class AUnitBase;
 class AAbilityActor;
 class AProjectile;
 class UStaticMesh;
-class UGameplayEffect;
+struct FGameplayEffect;
 
 // ============================================================================
 // Delegations
@@ -131,13 +131,13 @@ public:
 	// Blueprint-buildable effect library
 	// --------------------------------------------------------------
 	UFUNCTION(BlueprintCallable)
-	void Execute_Target(TSubclassOf<UGameplayEffect> Effect, AUnitBase* Target);
+	void Execute_Target(const FGameplayEffect& Effect, AUnitBase* Target);
 
 	UFUNCTION(BlueprintCallable, Category = "Ability")
-	TArray<ACharacter*> Execute_AOE(TSubclassOf<UGameplayEffect> Effect, FVector Location, float Radius, ETargetSelection TargetSelection);
+	TArray<ACharacter*> Execute_AOE(const FGameplayEffect& Effect, FVector Location, float Radius, ETargetSelection TargetSelection);
 
 	UFUNCTION(BlueprintCallable, meta = (Latent, LatentInfo = "LatentInfo"), Category = "Ability")
-	void Execute_Projectile(FLatentActionInfo LatentInfo, TSubclassOf<UGameplayEffect> Effect, UStaticMesh* Mesh, FVector Target, float Speed,
+	void Execute_Projectile(FLatentActionInfo LatentInfo, const FGameplayEffect& Effect, UStaticMesh* Mesh, FVector Target, float Speed,
 		int32 PenetrationCount, FVector& OutLocation);
 
 	UFUNCTION(BlueprintCallable, Category = "Ability")

@@ -1,10 +1,10 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "../GameplayEffect/GameplayEffect.h"
 #include "EffectHandler.generated.h"
 
 class AUnitBase;
-class UGameplayEffect;
 class UStats;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -26,9 +26,9 @@ public:
 	AUnitBase* MyTarget;
 	
 	void UpdateEffect();
-	void AddEffect(TSubclassOf<UGameplayEffect> Effect);
-	void RemoveEffect(TSubclassOf<UGameplayEffect> Effect);
-	
+	void AddEffect(const FGameplayEffect& Effect);
+	void RemoveEffect(const FGameplayEffect& Effect);
+
 	UPROPERTY()
-	TArray<TObjectPtr<UGameplayEffect>> GameplayEffects;
+	TArray<FGameplayEffect> GameplayEffects;
 };

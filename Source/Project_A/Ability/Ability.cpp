@@ -75,7 +75,7 @@ void UAbility::KillAbility()
 // ============================================================================
 // Execute library
 // ============================================================================
-void UAbility::Execute_Target(TSubclassOf<UGameplayEffect> Effect, AUnitBase* Target)
+void UAbility::Execute_Target(const FGameplayEffect& Effect, AUnitBase* Target)
 {
 	UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>();
 	if (EffectHandler)
@@ -85,7 +85,7 @@ void UAbility::Execute_Target(TSubclassOf<UGameplayEffect> Effect, AUnitBase* Ta
 	}
 }
 
-TArray<ACharacter*> UAbility::Execute_AOE(TSubclassOf<UGameplayEffect> Effect, FVector Location, float Radius, ETargetSelection TargetSelection)
+TArray<ACharacter*> UAbility::Execute_AOE(const FGameplayEffect& Effect, FVector Location, float Radius, ETargetSelection TargetSelection)
 {
 	TArray<ACharacter*> Targets;
 	TArray<FOverlapResult> Overlaps;
@@ -113,7 +113,7 @@ TArray<ACharacter*> UAbility::Execute_AOE(TSubclassOf<UGameplayEffect> Effect, F
 	return Targets;
 }
 
-void UAbility::Execute_Projectile(FLatentActionInfo LatentInfo, TSubclassOf<UGameplayEffect> Effect, UStaticMesh* Mesh, FVector Target, float Speed, int32 PenetrationCount, FVector& OutLocation)
+void UAbility::Execute_Projectile(FLatentActionInfo LatentInfo, const FGameplayEffect& Effect, UStaticMesh* Mesh, FVector Target, float Speed, int32 PenetrationCount, FVector& OutLocation)
 {
 	if (Speed == 0.f)
 		UE_LOG(LogTemp, Warning, TEXT("Projectile has 0 speed"));

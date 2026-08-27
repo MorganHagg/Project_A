@@ -1,7 +1,6 @@
-﻿#pragma once
+#pragma once
 #include "CoreMinimal.h"
-#include "Components/ActorComponent.h"
-#include "Stats.generated.h"
+#include "AttributeSet.generated.h"
 
 USTRUCT(BlueprintType)
 struct FStats
@@ -32,32 +31,13 @@ struct FResource
 	float Value = 0.f;
 
 	UPROPERTY(BlueprintReadOnly)
-	FName Name;
+	float Max = 0.f;
 
 	UPROPERTY(BlueprintReadOnly)
-	float Max = 0.f;
+	FName Name;
 
 	float ReturnRatio() const
 	{
 		return Max > 0.f ? Value / Max : 0.f;
 	}
-};
-
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class PROJECT_A_API UStats : public UActorComponent
-{
-	GENERATED_BODY()
-
-public:
-	UStats();
-
-protected:
-	virtual void BeginPlay() override;
-
-public:
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
-
-	FResource Health = FResource(100.f, TEXT("Health"));
-	
 };
