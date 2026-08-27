@@ -131,17 +131,17 @@ public:
 	// Blueprint-buildable effect library
 	// --------------------------------------------------------------
 	UFUNCTION(BlueprintCallable)
-	void RunEffect_Target(TSubclassOf<UGameplayEffect> Effect, AUnitBase* Target);
+	void Execute_Target(TSubclassOf<UGameplayEffect> Effect, AUnitBase* Target);
 
 	UFUNCTION(BlueprintCallable, Category = "Ability")
-	TArray<ACharacter*> RunEffect_AOE(TSubclassOf<UGameplayEffect> Effect, FVector Location, float Radius, ETargetSelection TargetSelection);
+	TArray<ACharacter*> Execute_AOE(TSubclassOf<UGameplayEffect> Effect, FVector Location, float Radius, ETargetSelection TargetSelection);
 
 	UFUNCTION(BlueprintCallable, meta = (Latent, LatentInfo = "LatentInfo"), Category = "Ability")
-	void RunEffect_Projectile(FLatentActionInfo LatentInfo, TSubclassOf<UGameplayEffect> Effect, UStaticMesh* Mesh, FVector Target, float Speed,
+	void Execute_Projectile(FLatentActionInfo LatentInfo, TSubclassOf<UGameplayEffect> Effect, UStaticMesh* Mesh, FVector Target, float Speed,
 		int32 PenetrationCount, FVector& OutLocation);
 
 	UFUNCTION(BlueprintCallable, Category = "Ability")
-	AAbilityActor* RunEffect_SpawnActor(TSubclassOf<AAbilityActor> NewActor, FTransform Transform);
+	AAbilityActor* Execute_Summon(TSubclassOf<AAbilityActor> NewActor, FTransform Transform);
 
 	void TickAbility(float DeltaTime);
 

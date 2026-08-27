@@ -91,6 +91,5 @@ void AProjectile::Finish(FVector HitLocation)
 	}
 	bHasFinished = true;
 	OnFinished.ExecuteIfBound(HitLocation);
-	Speed = 0.f;
-	SetLifeSpan(0.1f);
+	Destroy();
 }

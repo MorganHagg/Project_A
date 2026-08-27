@@ -17,7 +17,7 @@ public:
 	float Duration = 0.f;
 	float Interval = 0.f;
 
-	void OnStartEffect();	// Runs on application, - if duration = 0 it also doesn't need to be added to an array
+	void OnStartEffect();	// Runs on application
 	void OnTickEffect();	// Runs whenever the EffectHandler's array says it's time to do something
 	void OnEndEffect();		// Runs at the end of an effects lifetime. Think Living Bomb /Unstable Affliction
 	// Todo: Add logic where how it ends is specified. Timer ran out, mob died, dispelled etc

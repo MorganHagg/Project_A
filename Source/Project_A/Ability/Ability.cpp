@@ -73,9 +73,9 @@ void UAbility::KillAbility()
 }
 
 // ============================================================================
-// Effect library
+// Execute library
 // ============================================================================
-void UAbility::RunEffect_Target(TSubclassOf<UGameplayEffect> Effect, AUnitBase* Target)
+void UAbility::Execute_Target(TSubclassOf<UGameplayEffect> Effect, AUnitBase* Target)
 {
 	UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>();
 	if (EffectHandler)
@@ -85,7 +85,7 @@ void UAbility::RunEffect_Target(TSubclassOf<UGameplayEffect> Effect, AUnitBase* 
 	}
 }
 
-TArray<ACharacter*> UAbility::RunEffect_AOE(TSubclassOf<UGameplayEffect> Effect, FVector Location, float Radius, ETargetSelection TargetSelection)
+TArray<ACharacter*> UAbility::Execute_AOE(TSubclassOf<UGameplayEffect> Effect, FVector Location, float Radius, ETargetSelection TargetSelection)
 {
 	TArray<ACharacter*> Targets;
 	TArray<FOverlapResult> Overlaps;
@@ -113,7 +113,7 @@ TArray<ACharacter*> UAbility::RunEffect_AOE(TSubclassOf<UGameplayEffect> Effect,
 	return Targets;
 }
 
-void UAbility::RunEffect_Projectile(FLatentActionInfo LatentInfo, TSubclassOf<UGameplayEffect> Effect, UStaticMesh* Mesh, FVector Target, float Speed, int32 PenetrationCount, FVector& OutLocation)
+void UAbility::Execute_Projectile(FLatentActionInfo LatentInfo, TSubclassOf<UGameplayEffect> Effect, UStaticMesh* Mesh, FVector Target, float Speed, int32 PenetrationCount, FVector& OutLocation)
 {
 	if (Speed == 0.f)
 		UE_LOG(LogTemp, Warning, TEXT("Projectile has 0 speed"));
@@ -144,17 +144,13 @@ void UAbility::RunEffect_Projectile(FLatentActionInfo LatentInfo, TSubclassOf<UG
 
 	LAM.AddNewAction(LatentInfo.CallbackTarget, UniqueUUID, ProjectileAction);
 
-	TWeakObjectPtr<UAbility> WeakThis = this;
-    Projectile->OnFinished.BindLambda([WeakThis, ProjectileAction](FVector HitLocation)
-    {
-        if (WeakThis.IsValid())
-        {
-            ProjectileAction->Finish(HitLocation);
-        }
-    });
+	Projectile->OnFinished.BindLambda([ProjectileAction](FVector HitLocation)
+{
+	ProjectileAction->Finish(HitLocation);
+});
 }
 
-AAbilityActor* UAbility::RunEffect_SpawnActor(TSubclassOf<AAbilityActor> NewActor, FTransform Transform)
+AAbilityActor* UAbility::Execute_Summon(TSubclassOf<AAbilityActor> NewActor, FTransform Transform)
 {
 	if (!NewActor || !World)
 	{
