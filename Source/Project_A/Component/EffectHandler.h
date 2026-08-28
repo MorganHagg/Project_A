@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "../GameplayEffect/GameplayEffect.h"
+#include "../Misc/GameplayEffect.h"
 #include "EffectHandler.generated.h"
 
 class AUnitBase;

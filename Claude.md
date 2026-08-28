@@ -174,6 +174,18 @@ Do not make broad changes when a local change is sufficient.
 
 # Verification
 
+## Build Command
+
+This is the project's C++ build/verification command:
+
+```
+& "C:\Program Files\Epic Games\UE_5.8\Engine\Build\BatchFiles\Build.bat" Project_AEditor Win64 Development "D:\Unreal Projects\Project_A\Project_A.uproject" -waitmutex
+```
+
+Run it after making C++ changes. If it fails, inspect the compiler/UHT errors, fix them, and rebuild.
+
+Do not consider a C++ task complete until this build succeeds, unless you are genuinely unable to run it (state that clearly if so).
+
 After making changes, check for obvious:
 
 * Compilation errors

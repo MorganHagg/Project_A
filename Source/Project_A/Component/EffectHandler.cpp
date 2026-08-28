@@ -1,7 +1,7 @@
 ﻿#include "EffectHandler.h"
 #include "../Unit/UnitBase.h"
-#include "../GameplayEffect/GameplayEffect.h"
-#include "AttributeSet.h"
+#include "../Misc/GameplayEffect.h"
+#include "../Misc/AttributeSet.h"
 
 UEffectHandler::UEffectHandler()
 {

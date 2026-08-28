@@ -1,7 +1,7 @@
 ﻿#include "PlayerUnit.h"
 #include "../Component/AbilitySystem.h"
 #include "../Component/EffectHandler.h"
-#include "../Component/AttributeSet.h"
+#include "../Misc/AttributeSet.h"
 #include "../Component/TalentComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"

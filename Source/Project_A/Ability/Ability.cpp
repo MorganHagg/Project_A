@@ -5,7 +5,7 @@
 #include "Engine/OverlapResult.h"
 #include "Projectile.h"
 #include "AbilityActor.h"
-#include "../GameplayEffect/GameplayEffect.h"
+#include "../Misc/GameplayEffect.h"
 #include "../Component/EffectHandler.h"
 #include "DSP/SpectrumAnalyzer.h"
 

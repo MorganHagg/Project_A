@@ -1,8 +1,10 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "AttributeSet.h"
+#include "../Misc/AttributeSet.h"
 #include "AttributeComponent.generated.h"
+
+class UUnitDataBase;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJECT_A_API UAttributeComponent : public UActorComponent
@@ -11,14 +13,18 @@ class PROJECT_A_API UAttributeComponent : public UActorComponent
 
 public:
 	UAttributeComponent();
+	
+	void InstantiateAttributes(const UUnitDataBase* UnitData);
+	
 
-protected:
-	virtual void BeginPlay() override;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FResource BaseHealth = FResource(100.f);
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TArray<float> Attributes;
 
-public:
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
-
-	FResource Health = FResource(100.f, TEXT("Health"));
-
+	
+	float GetAttribute(EAttributeType Type) const;
+	void SetAttribute(EAttributeType Type, float Value);
+	void ModifyAttribute(EAttributeType Type, float Amount);
 };

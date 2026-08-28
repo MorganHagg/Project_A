@@ -1,5 +1,5 @@
 #pragma once
-#include "CoreMinimal.h"
+#include "Runtime/Core/Public/CoreMinimal.h"
 #include "GameplayEffect.generated.h"
 
 USTRUCT(BlueprintType)
