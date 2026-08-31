@@ -47,6 +47,7 @@ void UAbility::SetupAbility(AUnitBase* NewCaster)
 
 void UAbility::ActivateAbility()
 {
+	bHasEnded = false;
 	IAbilityLifecycle::Execute_OnActivate(this);
 }
 
