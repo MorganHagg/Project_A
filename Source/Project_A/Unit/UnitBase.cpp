@@ -4,7 +4,7 @@
 #include "../Component/AttributeComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
-
+	
 
 AUnitBase::AUnitBase()
 {
