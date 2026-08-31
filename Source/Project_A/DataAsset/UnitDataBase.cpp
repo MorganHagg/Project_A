@@ -2,14 +2,13 @@
 
 UUnitDataBase::UUnitDataBase()
 {
-	Attributes.SetNum(static_cast<int32>(EAttributeType::Count));
-	
-	/*Attributes = {
-        10.f,  // Strength
-        10.f,  // Intellect
-        5.f,   // Armour
-        5.f,   // MagicResist
-        100.f, // Speed
-        5.f    // Crit
-    };*/
+	DefaultAttributes = {
+		{ EAttributeType::Health, 100.f },
+		{ EAttributeType::Strength, 10.f },
+		{ EAttributeType::Intellect, 10.f },
+		{ EAttributeType::Armour, 5.f },
+		{ EAttributeType::MagicResist, 5.f },
+		{ EAttributeType::Speed, 100.f },
+		{ EAttributeType::Crit, 5.f }
+	};
 }

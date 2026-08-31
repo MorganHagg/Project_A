@@ -16,7 +16,6 @@ class PROJECT_A_API UUnitDataBase : public UPrimaryDataAsset
 public:
 	
 	UUnitDataBase();
-	void InitializeArray();
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<USkeletalMesh> Mesh;
@@ -28,8 +27,5 @@ public:
 	TArray<TSubclassOf<UAbility>> DefaultAbilities;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	FResource BaseHealth = FResource(100.f);
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TArray<float> Attributes;
+	TMap<EAttributeType, float> DefaultAttributes;
 };

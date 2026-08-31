@@ -6,7 +6,7 @@
 
 class UUnitDataBase;
 
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(Blueprintable, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJECT_A_API UAttributeComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -18,13 +18,24 @@ public:
 	
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	FResource BaseHealth = FResource(100.f);
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TArray<float> Attributes;
+	TMap<EAttributeType, float> Attributes;
 
 	
+	UFUNCTION(BlueprintPure, Category = "Attributes")
 	float GetAttribute(EAttributeType Type) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void SetAttribute(EAttributeType Type, float Value);
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void ModifyAttribute(EAttributeType Type, float Amount);
+
+protected:
+	UFUNCTION(BlueprintNativeEvent, Category = "Attributes")
+	void OnDeath();
+
+private:
+	void SetHealthValue(float NewValue);
+
+	bool bIsDead = false;
 };

@@ -5,6 +5,8 @@
 UENUM(BlueprintType)
 enum class EAttributeType : uint8
 {
+	Health,
+	MaxHealth,
 	Strength,
 	Intellect,
 	Armour,
@@ -12,26 +14,5 @@ enum class EAttributeType : uint8
 	Speed,
 	Crit,
 
-	Count		// Gives the number of entries - Used in AUnitBase's constructor
-};
-
-USTRUCT(BlueprintType)
-struct FResource
-{
-	GENERATED_BODY()
-
-	FResource() = default;
-	FResource(float InResource)
-		: Value(InResource), Max(InResource) {}
-
-	UPROPERTY()
-	float Value = 0.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Max = 0.f;
-
-	float ReturnRatio() const
-	{
-		return Max > 0.f ? Value / Max : 0.f;
-	}
+	Count	UMETA(Hidden)	// Gives the number of entries - Used in AUnitBase's constructor
 };

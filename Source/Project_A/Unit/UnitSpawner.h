@@ -23,7 +23,7 @@ public:
 	AEnemyUnit* SpawnUnit(UEnemyUnitData* SpawnData, const FTransform& SpawnTransform);
 
 	UFUNCTION(BlueprintCallable)
-	APlayerUnit* SpawnPlayerUnit(UPlayerUnitData* SpawnData, FVector Location);
+	APlayerUnit* SpawnPlayerUnit(UPlayerUnitData* SpawnData, const FTransform& SpawnTransform);
 
 private:
 

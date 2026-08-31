@@ -70,23 +70,12 @@ void UEffectHandler::ApplyEffect(const FGameplayEffect& Effect)
 
 	const float SignedMagnitude = Effect.Operation == EEffectOperation::Subtract ? -Effect.Magnitude : Effect.Magnitude;
 
-	if (Effect.Attribute == EEffectAttribute::Health)
-	{
-		FResource& Health = MyTarget->AttributeComponent->BaseHealth;
-		Health.Value = Effect.Operation == EEffectOperation::Modify ? Effect.Magnitude : Health.Value + SignedMagnitude;
-		Health.Value = FMath::Clamp(Health.Value, 0.f, Health.Max);
-		return;
-	}
-
-	// EEffectAttribute mirrors EAttributeType with Health inserted at the front.
-	const EAttributeType AttributeType = static_cast<EAttributeType>(static_cast<uint8>(Effect.Attribute) - 1);
-
 	if (Effect.Operation == EEffectOperation::Modify)
 	{
-		MyTarget->AttributeComponent->SetAttribute(AttributeType, Effect.Magnitude);
+		MyTarget->AttributeComponent->SetAttribute(Effect.Attribute, Effect.Magnitude);
 	}
 	else
 	{
-		MyTarget->AttributeComponent->ModifyAttribute(AttributeType, SignedMagnitude);
+		MyTarget->AttributeComponent->ModifyAttribute(Effect.Attribute, SignedMagnitude);
 	}
 }

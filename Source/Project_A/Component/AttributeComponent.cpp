@@ -4,7 +4,11 @@
 UAttributeComponent::UAttributeComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
-	Attributes.SetNumZeroed(static_cast<int32>(EAttributeType::Count));
+
+	for (uint8 Index = 0; Index < static_cast<uint8>(EAttributeType::Count); ++Index)
+	{
+		Attributes.Add(static_cast<EAttributeType>(Index), 0.f);
+	}
 }
 
 void UAttributeComponent::InstantiateAttributes(const UUnitDataBase* UnitData)
@@ -14,44 +18,76 @@ void UAttributeComponent::InstantiateAttributes(const UUnitDataBase* UnitData)
 		return;
 	}
 
-	Attributes = UnitData->Attributes;
+	for (const TPair<EAttributeType, float>& Pair : UnitData->DefaultAttributes)
+	{
+		Attributes.Add(Pair.Key, Pair.Value);
+	}
+
+	// UUnitDataBase only configures a single Health value; use it as the starting max as well.
+	Attributes.Add(EAttributeType::MaxHealth, Attributes.FindRef(EAttributeType::Health));
 }
 
 float UAttributeComponent::GetAttribute(EAttributeType Type) const
 {
-	const int32 Index = static_cast<int32>(Type);
-
-	if (!Attributes.IsValidIndex(Index))
-	{
-		return 0.f;
-	}
-
-	return Attributes[Index];
+	return Attributes.FindRef(Type);
 }
 
 void UAttributeComponent::SetAttribute(EAttributeType Type, float Value)
 {
-	const int32 Index = static_cast<int32>(Type);
-
-	if (!Attributes.IsValidIndex(Index))
+	if (Type == EAttributeType::Health)
 	{
+		SetHealthValue(Value);
+		return;
+	}
+	if (Type == EAttributeType::MaxHealth)
+	{
+		const float Delta = Value - Attributes.FindRef(EAttributeType::MaxHealth);
+		Attributes.Add(EAttributeType::MaxHealth, Value);
+		SetHealthValue(Attributes.FindRef(EAttributeType::Health) + Delta);
 		return;
 	}
 
-	Attributes[Index] = Value;
+	Attributes.Add(Type, Value);
 }
 
 void UAttributeComponent::ModifyAttribute(EAttributeType Type, float Amount)
 {
-	// Test comment to verify the build command
-
-	const int32 Index = static_cast<int32>(Type);
-
-	if (!Attributes.IsValidIndex(Index))
+	if (Type == EAttributeType::Health)
 	{
+		SetHealthValue(Attributes.FindRef(EAttributeType::Health) + Amount);
+		return;
+	}
+	if (Type == EAttributeType::MaxHealth)
+	{
+		Attributes.Add(EAttributeType::MaxHealth, Attributes.FindRef(EAttributeType::MaxHealth) + Amount);
+		SetHealthValue(Attributes.FindRef(EAttributeType::Health) + Amount);
 		return;
 	}
 
-	Attributes[Index] += Amount;
+	Attributes.Add(Type, Attributes.FindRef(Type) + Amount);
+}
+
+void UAttributeComponent::SetHealthValue(float NewValue)
+{
+	const float MaxHealth = Attributes.FindRef(EAttributeType::MaxHealth);
+	const float ClampedValue = FMath::Clamp(NewValue, 0.f, MaxHealth);
+	Attributes.Add(EAttributeType::Health, ClampedValue);
+
+	if (ClampedValue <= 0.f)
+	{
+		if (!bIsDead)
+		{
+			bIsDead = true;
+			OnDeath();
+		}
+	}
+	else
+	{
+		bIsDead = false;
+	}
+}
+
+void UAttributeComponent::OnDeath_Implementation()
+{
 }
 
