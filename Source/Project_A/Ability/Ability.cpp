@@ -10,9 +10,7 @@
 #include "DSP/SpectrumAnalyzer.h"
 
 
-// TODO:w
-// so talents can listen to that ability instance.
-// Make OnHit, OnBeginOverlap etc for generic delegates, and specific (if needed) lives on blueprint child
+// TODO:
 // EndAbility resets the ability, doesn't destroy it.
 // Talents lives as UObjects
 // Talents are read into an "Available Talents" array during game-start, and read from this when rolling talents
@@ -91,7 +89,8 @@ TArray<ACharacter*> UAbility::Execute_AOE(const FGameplayEffect& Effect, FVector
 	TArray<FOverlapResult> Overlaps;
 	FCollisionShape Sphere = FCollisionShape::MakeSphere(Radius);
 	FCollisionQueryParams Params;
-
+	
+	//TODO: Check if TargetCharacter implements UEffectHandler, and if it exists. Else return
 	if (World && World->OverlapMultiByChannel(Overlaps, Location, FQuat::Identity, ECC_Pawn, Sphere, Params))
 	{
 		for (FOverlapResult& Overlap : Overlaps)
@@ -104,6 +103,10 @@ TArray<ACharacter*> UAbility::Execute_AOE(const FGameplayEffect& Effect, FVector
 			//TODO: Update this so it checks whether the AOE should target friendly, hostile or all (From the perspective of the caster)
 			if (TargetSelection == ETargetSelection::All)
 			{
+				if (UEffectHandler* EffectHandler = TargetCharacter->FindComponentByClass<UEffectHandler>())
+				{
+					EffectHandler->AddEffect(Effect);
+				}
 				DelegateOnHit(TargetCharacter);
 				Targets.AddUnique(TargetCharacter);
 			}
@@ -131,6 +134,7 @@ void UAbility::Execute_Projectile(FLatentActionInfo LatentInfo, const FGameplayE
 	
 	Projectile->SetMyAbility(this);
 	Projectile->SetMyCaster(MyCaster);
+	Projectile->MyEffect = Effect;
 	Projectile->Destination = Target;
 	Projectile->Speed = Speed;
 	Projectile->PenetrationCount = PenetrationCount;
@@ -150,7 +154,7 @@ void UAbility::Execute_Projectile(FLatentActionInfo LatentInfo, const FGameplayE
 });
 }
 
-AAbilityActor* UAbility::Execute_Summon(TSubclassOf<AAbilityActor> NewActor, FTransform Transform)
+AAbilityActor* UAbility::Execute_Summon(const FGameplayEffect& Effect, TSubclassOf<AAbilityActor> NewActor, FTransform Transform)
 {
 	if (!NewActor || !World)
 	{
@@ -166,6 +170,7 @@ AAbilityActor* UAbility::Execute_Summon(TSubclassOf<AAbilityActor> NewActor, FTr
 	{
 		AbilityActor->SetMyAbility(this);
 		AbilityActor->SetMyCaster(MyCaster);
+		AbilityActor->MyEffect = Effect;
 	}
 	return AbilityActor;
 }

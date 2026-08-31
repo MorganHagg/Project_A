@@ -141,7 +141,7 @@ public:
 		int32 PenetrationCount, FVector& OutLocation);
 
 	UFUNCTION(BlueprintCallable, Category = "Ability")
-	AAbilityActor* Execute_Summon(TSubclassOf<AAbilityActor> NewActor, FTransform Transform);
+	AAbilityActor* Execute_Summon(const FGameplayEffect& Effect, TSubclassOf<AAbilityActor> NewActor, FTransform Transform);
 
 	void TickAbility(float DeltaTime);
 

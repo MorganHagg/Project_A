@@ -1,0 +1,92 @@
+# Task: Refactor GameplayEffect into an Effect Struct
+
+## 1. GameplayEffect
+
+Update `GameplayEffect` so that it becomes a struct describing the configuration of an effect.
+
+The struct must contain:
+
+- `Attribute` enum:
+    - `Health`
+    - Every attribute type currently defined in `EAttributeType` in `AttributeSet.h`
+- `Operation` enum:
+    - `Subtract`
+    - `Add`
+    - `Modify`
+- `Magnitude` — `float`
+- `Duration` — `float`
+- `Interval` — `float`
+
+The final result should be a struct containing only the data necessary to describe how an effect is built.
+
+Do not create or retain a UObject-based `GameplayEffect` hierarchy unless required by existing code outside this task.
+
+Use the project's existing `EAttributeType` definitions from `AttributeSet.h`; do not duplicate or invent attribute types.
+
+## 2. Ability
+
+Update every `Execute_` function in `Ability` so that it accepts the new GameplayEffect struct as a parameter.
+
+Preserve the existing behavior of the functions unless explicitly changed below.
+
+## 3. Execute_Target
+
+Update `Execute_Target` so that it applies the supplied GameplayEffect to the target's `EffectHandler`.
+
+Do not make `Ability` responsible for directly modifying attributes.
+
+## 4. Execute_AOE
+
+Update `Execute_AOE` so that, when:
+
+`TargetSelection == ETargetSelection::All`
+
+the supplied GameplayEffect is applied to the `EffectHandler` of every target selected by the AOE.
+
+Do not apply the effect directly to the target's attributes.
+
+Preserve the existing target-selection and AOE behavior.
+
+## 5. Execute_Projectile
+
+Update `Projectile`:
+
+- Add a `MyEffect` variable using the new GameplayEffect struct.
+- In `Execute_Projectile`, assign the supplied GameplayEffect to the newly created Projectile's `MyEffect`.
+- Do not create or instantiate a GameplayEffect UObject.
+
+Update `Projectile::HandleComponentOverlap`:
+
+- Inside the existing:
+
+`if (AUnitBase* HitUnit = Cast<AUnitBase>(OtherActor))`
+
+apply `MyEffect` to the HitUnit's `EffectHandler`.
+
+Preserve the existing projectile collision and hit behavior.
+
+## 6. Execute_Summon
+
+Update `AbilityActor`:
+
+- Add a `MyEffect` variable using the new GameplayEffect struct.
+
+Update `Execute_Summon`:
+
+- Assign the supplied GameplayEffect to the newly created AbilityActor's `MyEffect`.
+
+For now, do nothing else with `MyEffect` inside `AbilityActor`.
+
+Do not add effect execution, ticking, or attribute modification to `AbilityActor`.
+
+## 7. Constraints
+
+- Follow the existing project architecture.
+- `AttributeComponent` remains responsible for attribute/state data.
+- `EffectHandler` remains responsible for applying/managing effects.
+- `Execute_*` functions are responsible for delivering the effect to the appropriate target(s).
+- Do not introduce Unreal's Gameplay Ability System (GAS).
+- Do not refactor unrelated systems.
+- Do not change existing behavior unless required for this refactor.
+- Resolve all compile errors caused by the changes.
+- Verify the project compiles successfully when finished.

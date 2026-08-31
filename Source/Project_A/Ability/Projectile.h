@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "../Misc/GameplayEffect.h"
 #include "Projectile.generated.h"
 
 class UAbility;
@@ -53,6 +54,9 @@ public:
 	void SetMyCaster(ACharacter* Caster);
 	UPROPERTY(VisibleAnywhere)
 	ACharacter* MyCaster;
+
+	UPROPERTY(VisibleAnywhere)
+	FGameplayEffect MyEffect;
 
 	FVector Destination;
 	float Speed;

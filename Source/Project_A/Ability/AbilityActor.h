@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "../Misc/IntervalTicker.h"
+#include "../Misc/GameplayEffect.h"
 #include "../Interfaces/AbilityLifecycle.h"
 #include "AbilityActor.generated.h"
 
@@ -47,11 +48,12 @@ public:
 	UPROPERTY(VisibleAnywhere)
 	ACharacter* MyCaster;
 
+	UPROPERTY(VisibleAnywhere)
+	FGameplayEffect MyEffect;
+
 	UPROPERTY()
 	bool bHasEnded = false;	// Small guard against double end
 	
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	void EndAbility();
 };
-
-// TODO: Make a similar helper function as IntervalTicker, but for Magnitude and Duration

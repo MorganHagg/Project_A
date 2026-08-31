@@ -24,7 +24,7 @@ struct FResource
 	FResource(float InResource)
 		: Value(InResource), Max(InResource) {}
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY()
 	float Value = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

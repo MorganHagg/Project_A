@@ -16,6 +16,7 @@ class PROJECT_A_API UUnitDataBase : public UPrimaryDataAsset
 public:
 	
 	UUnitDataBase();
+	void InitializeArray();
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<USkeletalMesh> Mesh;

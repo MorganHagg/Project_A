@@ -67,6 +67,10 @@ void AProjectile::HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedCom
 	
 	if (AUnitBase* HitUnit = Cast<AUnitBase>(OtherActor))
 	{
+		if (UEffectHandler* EffectHandler = HitUnit->FindComponentByClass<UEffectHandler>())
+		{
+			EffectHandler->AddEffect(MyEffect);
+		}
 		MyAbility->DelegateOnHit(HitUnit);
 	}
 	AlreadyHitActors.Add(OtherActor);
