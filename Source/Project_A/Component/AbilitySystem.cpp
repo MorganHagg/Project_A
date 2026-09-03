@@ -58,7 +58,6 @@ bool UAbilitySystem::SwapAbility(TSubclassOf<UAbility> OldAbilityClass, TSubclas
 
 UAbility* UAbilitySystem::InitiateAbility(int32 Slot)
 {
-	UE_LOG(LogTemp, Warning, TEXT("The slot was %i"), Slot)
 	if (GrantedAbilities.IsValidIndex(Slot) &&
 		GrantedAbilities[Slot] &&
 		MyOwner)

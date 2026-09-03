@@ -1,5 +1,6 @@
 ﻿#include "EffectHandler.h"
 #include "../Unit/UnitBase.h"
+#include "../Unit/PlayerUnit.h"
 #include "../Component/AttributeComponent.h"
 #include "../Misc/GameplayEffect.h"
 #include "../Misc/AttributeSet.h"
@@ -73,9 +74,24 @@ void UEffectHandler::ApplyEffect(const FGameplayEffect& Effect)
 	if (Effect.Operation == EEffectOperation::Modify)
 	{
 		MyTarget->AttributeComponent->SetAttribute(Effect.Attribute, Effect.Magnitude);
+		return;
 	}
-	else
+
+	if (Effect.Attribute == EAttributeType::Health)
 	{
-		MyTarget->AttributeComponent->ModifyAttribute(Effect.Attribute, SignedMagnitude);
+		if (APlayerUnit* PlayerUnit = Cast<APlayerUnit>(MyTarget))
+		{
+			if (SignedMagnitude < 0.f)
+			{
+				PlayerUnit->ReceiveDamage(-SignedMagnitude);
+			}
+			else if (SignedMagnitude > 0.f)
+			{
+				PlayerUnit->ReceiveHeal(SignedMagnitude);
+			}
+			return;
+		}
 	}
+
+	MyTarget->AttributeComponent->ModifyAttribute(Effect.Attribute, SignedMagnitude);
 }

@@ -1,5 +1,7 @@
 #include "AttributeComponent.h"
 #include "../DataAsset/UnitDataBase.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 UAttributeComponent::UAttributeComponent()
 {
@@ -7,7 +9,11 @@ UAttributeComponent::UAttributeComponent()
 
 	for (uint8 Index = 0; Index < static_cast<uint8>(EAttributeType::Count); ++Index)
 	{
-		Attributes.Add(static_cast<EAttributeType>(Index), 0.f);
+		const EAttributeType Type = static_cast<EAttributeType>(Index);
+		if (Type != EAttributeType::Speed)
+		{
+			Attributes.Add(Type, 0.f);
+		}
 	}
 }
 
@@ -20,6 +26,11 @@ void UAttributeComponent::InstantiateAttributes(const UUnitDataBase* UnitData)
 
 	for (const TPair<EAttributeType, float>& Pair : UnitData->DefaultAttributes)
 	{
+		if (Pair.Key == EAttributeType::Speed)
+		{
+			SetAttribute(EAttributeType::Speed, Pair.Value);
+			continue;
+		}
 		Attributes.Add(Pair.Key, Pair.Value);
 	}
 
@@ -29,6 +40,12 @@ void UAttributeComponent::InstantiateAttributes(const UUnitDataBase* UnitData)
 
 float UAttributeComponent::GetAttribute(EAttributeType Type) const
 {
+	if (Type == EAttributeType::Speed)
+	{
+		const UCharacterMovementComponent* MovementComponent = GetMovementComponent();
+		return MovementComponent ? MovementComponent->MaxWalkSpeed : 0.f;
+	}
+
 	return Attributes.FindRef(Type);
 }
 
@@ -44,6 +61,14 @@ void UAttributeComponent::SetAttribute(EAttributeType Type, float Value)
 		const float Delta = Value - Attributes.FindRef(EAttributeType::MaxHealth);
 		Attributes.Add(EAttributeType::MaxHealth, Value);
 		SetHealthValue(Attributes.FindRef(EAttributeType::Health) + Delta);
+		return;
+	}
+	if (Type == EAttributeType::Speed)
+	{
+		if (UCharacterMovementComponent* MovementComponent = GetMovementComponent())
+		{
+			MovementComponent->MaxWalkSpeed = Value;
+		}
 		return;
 	}
 
@@ -63,8 +88,22 @@ void UAttributeComponent::ModifyAttribute(EAttributeType Type, float Amount)
 		SetHealthValue(Attributes.FindRef(EAttributeType::Health) + Amount);
 		return;
 	}
+	if (Type == EAttributeType::Speed)
+	{
+		if (UCharacterMovementComponent* MovementComponent = GetMovementComponent())
+		{
+			MovementComponent->MaxWalkSpeed += Amount;
+		}
+		return;
+	}
 
 	Attributes.Add(Type, Attributes.FindRef(Type) + Amount);
+}
+
+UCharacterMovementComponent* UAttributeComponent::GetMovementComponent() const
+{
+	ACharacter* Character = Cast<ACharacter>(GetOwner());
+	return Character ? Character->GetCharacterMovement() : nullptr;
 }
 
 void UAttributeComponent::SetHealthValue(float NewValue)

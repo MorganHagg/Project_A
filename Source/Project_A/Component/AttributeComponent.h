@@ -5,6 +5,7 @@
 #include "AttributeComponent.generated.h"
 
 class UUnitDataBase;
+class UCharacterMovementComponent;
 
 UCLASS(Blueprintable, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJECT_A_API UAttributeComponent : public UActorComponent
@@ -36,6 +37,7 @@ protected:
 
 private:
 	void SetHealthValue(float NewValue);
+	UCharacterMovementComponent* GetMovementComponent() const;
 
 	bool bIsDead = false;
 };

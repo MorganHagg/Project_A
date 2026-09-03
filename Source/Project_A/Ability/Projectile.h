@@ -7,10 +7,15 @@
 class UAbility;
 class ACharacter;
 class UEffectHandler;
+class AUnitBase;
 
 // Delegates
 DECLARE_DELEGATE_OneParam(FOnProjectileHit, FVector);
 DECLARE_DELEGATE_OneParam(FOnProjectileFinished, FVector);
+
+// Broadcast to any listening talent (see UTalentBase::BindToProjectile).
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnProjectileHitDelegate, AUnitBase*, HitUnit);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnProjectileFinishDelegate, FVector, Location);
 
 UCLASS()
 class PROJECT_A_API AProjectile : public AActor
@@ -49,6 +54,7 @@ public:
 	void SetMyAbility(UAbility* Ability);
 	UPROPERTY(VisibleAnywhere)
 	UAbility* MyAbility;
+	UAbility* GetAbility();
 
 	UFUNCTION()
 	void SetMyCaster(ACharacter* Caster);
@@ -64,7 +70,13 @@ public:
 	
 	FOnProjectileHit OnHit;           // fired per penetrating hit — apply effects
 	FOnProjectileFinished OnFinished; // fired exactly once — resolves the latent action
-	
+
+	UPROPERTY(BlueprintAssignable, Category = "Projectile")
+	FOnProjectileHitDelegate OnProjectileHit;
+
+	UPROPERTY(BlueprintAssignable, Category = "Projectile")
+	FOnProjectileFinishDelegate OnProjectileFinish;
+
 	void Finish(FVector HitLocation);
 	
 	UFUNCTION()

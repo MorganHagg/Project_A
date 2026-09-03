@@ -2,6 +2,7 @@
 
 
 #include "AbilityActor.h"
+#include "Ability.h"
 
 
 // Sets default values
@@ -24,6 +25,7 @@ void AAbilityActor::BeginPlay()
 {
 	Super::BeginPlay();
 	DurationTimer = Duration;
+	Ticker.IntervalTimer = Ticker.Interval;
 	IAbilityLifecycle::Execute_OnActivate(this);
 }
 
@@ -40,13 +42,23 @@ void AAbilityActor::SetMyCaster(ACharacter* Caster)
 void AAbilityActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (Ticker.ShouldTick(DeltaTime))
-		IAbilityLifecycle::Execute_OnTick(this);
+
 	if (Duration != 0.f)
 	{
 		DurationTimer -= DeltaTime;
+
 		if (DurationTimer <= 0.f)
+		{
+			// Final tick
+			IAbilityLifecycle::Execute_OnTick(this);
 			EndAbility();
+			return;
+		}
+	}
+
+	if (Ticker.ShouldTick(DeltaTime))
+	{
+		IAbilityLifecycle::Execute_OnTick(this);
 	}
 }
 
@@ -57,4 +69,20 @@ void AAbilityActor::EndAbility()
 
 	IAbilityLifecycle::Execute_OnEnd(this);
 	Destroy();
+}
+
+void AAbilityActor::OnHit(AUnitBase* HitUnit)
+{
+	if (MyAbility)
+	{
+		MyAbility->DelegateOnHit(HitUnit);
+	}
+}
+
+void AAbilityActor::OnOverlap(AActor* HitActor)
+{
+	if (MyAbility)
+	{
+		MyAbility->DelegateOnOverlap(HitActor);
+	}
 }

@@ -12,16 +12,20 @@ struct FIntervalTicker
 
     UPROPERTY()
     float IntervalTimer = 0.0f;
-
+    
     bool ShouldTick(float DeltaTime)
     {
-        if (IntervalTimer > 0.f)
-            IntervalTimer -= DeltaTime;
+        if (Interval == 0.0f)
+            return false;
+        
+        IntervalTimer -= DeltaTime;
+
         if (IntervalTimer <= 0.f)
         {
             IntervalTimer = Interval;
             return true;
         }
+
         return false;
     }
 };

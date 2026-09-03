@@ -17,6 +17,8 @@ struct FGameplayEffect;
 // Delegations
 // ============================================================================
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityHit, UAbility*, Ability, AUnitBase*, HitUnit);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityOverlap, UAbility*, Ability, AActor*, OverlappedActor);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityHeal, UAbility*, Ability, AUnitBase*, HealedUnit);
 
 
 // ============================================================================
@@ -152,8 +154,6 @@ protected:
 	UPROPERTY()
 	bool bHasEnded = false;	// Small guard against double end
 
-	// TODO: Implement an interface that takes all the OnEnd(), OnTick() etc
-
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Ability")
 	FOnAbilityHit OnHit;
@@ -162,4 +162,20 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnAbilityHit(AUnitBase* Target);
+
+	UPROPERTY(BlueprintAssignable, Category = "Ability")
+	FOnAbilityOverlap OnOverlap;
+
+	void DelegateOnOverlap(AActor* OverlappedActor);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnAbilityOverlap(AActor* OverlappedActor);
+
+	UPROPERTY(BlueprintAssignable, Category = "Ability")
+	FOnAbilityHeal OnHeal;
+
+	void DelegateOnHeal(AUnitBase* HealedUnit);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnAbilityHeal(AUnitBase* HealedUnit);
 };

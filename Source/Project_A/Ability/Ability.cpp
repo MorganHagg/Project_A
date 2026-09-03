@@ -7,14 +7,7 @@
 #include "AbilityActor.h"
 #include "../Misc/GameplayEffect.h"
 #include "../Component/EffectHandler.h"
-#include "DSP/SpectrumAnalyzer.h"
 
-
-// TODO:
-// EndAbility resets the ability, doesn't destroy it.
-// Talents lives as UObjects
-// Talents are read into an "Available Talents" array during game-start, and read from this when rolling talents
-// (Can easily remove talents from the array as they get picked, or if some conflict with each other)
 UAbility::UAbility()
 {
 	
@@ -172,6 +165,7 @@ AAbilityActor* UAbility::Execute_Summon(const FGameplayEffect& Effect, TSubclass
 		AbilityActor->SetMyAbility(this);
 		AbilityActor->SetMyCaster(MyCaster);
 		AbilityActor->MyEffect = Effect;
+		AbilityActor->SetLifeSpan(Effect.Duration);
 	}
 	return AbilityActor;
 }
@@ -181,4 +175,16 @@ void UAbility::DelegateOnHit(AUnitBase* Target)
 {
 	OnAbilityHit(Target);
 	OnHit.Broadcast(this, Target);
+}
+
+void UAbility::DelegateOnOverlap(AActor* OverlappedActor)
+{
+	OnAbilityOverlap(OverlappedActor);
+	OnOverlap.Broadcast(this, OverlappedActor);
+}
+
+void UAbility::DelegateOnHeal(AUnitBase* HealedUnit)
+{
+	OnAbilityHeal(HealedUnit);
+	OnHeal.Broadcast(this, HealedUnit);
 }

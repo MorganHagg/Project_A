@@ -264,6 +264,16 @@ When updating `CLAUDE.md`, prefer documenting stable, project-wide rules rather 
 
 ---
 
+# Change log rules
+
+The project keeps a Notion Changelog documenting work done and AI involvement, for hiring-process purposes: https://app.notion.com/p/3cd797c7472c8025b7f5efd50607707a
+
+Upon request by the user, go to the Changelog, read the Changelog Instructions (child page of the Changelog), then suggest an entry to the user. The user will review the suggestion and either approve it or request changes before it is added as an entry.
+
+Do not add or edit Change log entries unprompted, and never add one without the user's approval of its content.
+
+---
+
 # Decision Making
 
 When choosing between multiple valid implementations:

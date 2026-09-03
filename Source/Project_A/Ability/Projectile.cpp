@@ -51,6 +51,11 @@ void AProjectile::SetMyAbility(UAbility* Ability)
 	MyAbility = Ability;
 }
 
+UAbility* AProjectile::GetAbility()
+{
+	return MyAbility;
+}
+
 void AProjectile::SetMyCaster(ACharacter* Caster)
 {
 	MyCaster = Caster;
@@ -64,15 +69,19 @@ void AProjectile::HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedCom
 	{
 		return;
 	}
-	
-	if (AUnitBase* HitUnit = Cast<AUnitBase>(OtherActor))
+
+	AUnitBase* HitUnit = Cast<AUnitBase>(OtherActor);
+	if (!HitUnit)
 	{
-		if (UEffectHandler* EffectHandler = HitUnit->FindComponentByClass<UEffectHandler>())
-		{
-			EffectHandler->AddEffect(MyEffect);
-		}
-		MyAbility->DelegateOnHit(HitUnit);
+		return;
 	}
+
+	if (UEffectHandler* EffectHandler = HitUnit->FindComponentByClass<UEffectHandler>())
+	{
+		EffectHandler->AddEffect(MyEffect);
+	}
+	MyAbility->DelegateOnHit(HitUnit);
+	OnProjectileHit.Broadcast(HitUnit);
 	AlreadyHitActors.Add(OtherActor);
 
 	FVector OverlapLocation = bFromSweep ? FVector(SweepResult.ImpactPoint) : GetActorLocation();
@@ -95,5 +104,6 @@ void AProjectile::Finish(FVector HitLocation)
 	}
 	bHasFinished = true;
 	OnFinished.ExecuteIfBound(HitLocation);
+	OnProjectileFinish.Broadcast(HitLocation);
 	Destroy();
 }

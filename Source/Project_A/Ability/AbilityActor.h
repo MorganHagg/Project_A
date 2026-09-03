@@ -9,6 +9,7 @@
 class UAbility;
 class ACharacter;
 class UEffectHandler;
+class AUnitBase;
 
 UCLASS()
 class PROJECT_A_API AAbilityActor : public AActor, public IAbilityLifecycle
@@ -40,15 +41,15 @@ public:
 	
 	UFUNCTION()
 	void SetMyAbility(UAbility* Ability);
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY()
 	UAbility* MyAbility;
 
 	UFUNCTION()
 	void SetMyCaster(ACharacter* Caster);
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY()
 	ACharacter* MyCaster;
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY()
 	FGameplayEffect MyEffect;
 
 	UPROPERTY()
@@ -56,4 +57,10 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	void EndAbility();
+
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	void OnHit(AUnitBase* HitUnit);
+
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	void OnOverlap(AActor* HitActor);
 };

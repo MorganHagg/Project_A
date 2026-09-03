@@ -8,7 +8,7 @@ UUnitDataBase::UUnitDataBase()
 		{ EAttributeType::Intellect, 10.f },
 		{ EAttributeType::Armour, 5.f },
 		{ EAttributeType::MagicResist, 5.f },
-		{ EAttributeType::Speed, 100.f },
+		{ EAttributeType::Speed, 600.f },
 		{ EAttributeType::Crit, 5.f }
 	};
 }
