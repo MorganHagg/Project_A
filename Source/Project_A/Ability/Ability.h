@@ -2,8 +2,10 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "Engine/LatentActionManager.h"
+#include "GameplayTagContainer.h"
 #include "../Misc/IntervalTicker.h"
 #include "../Interfaces/AbilityLifecycle.h"
+#include "AbilityEventPayload.h"
 #include "Ability.generated.h"
 
 // Forward declarations
@@ -12,14 +14,6 @@ class AAbilityActor;
 class AProjectile;
 class UStaticMesh;
 struct FGameplayEffect;
-
-// ============================================================================
-// Delegations
-// ============================================================================
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityHit, UAbility*, Ability, AUnitBase*, HitUnit);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityOverlap, UAbility*, Ability, AActor*, OverlappedActor);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityHeal, UAbility*, Ability, AUnitBase*, HealedUnit);
-
 
 // ============================================================================
 // Enums
@@ -150,32 +144,27 @@ public:
 	virtual FName GetAbilityName() const { return AbilityName; }
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability")
 	FName AbilityName = FName("NO_NAME_ABILITY");
+
+	// Root tag identifying this ability (e.g. "Ability.Fireball"). Event tags reported
+	// automatically by this class (Cast, TargetHit, Finish) are composed from this root.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability")
+	FGameplayTag AbilityTag;
+
 protected:
 	UPROPERTY()
 	bool bHasEnded = false;	// Small guard against double end
 
+	// Composes AbilityTag + "." + Suffix into a registered event tag (e.g. "TargetHit" -> "Ability.Fireball.TargetHit").
+	FGameplayTag ComposeEventTag(const TCHAR* Suffix) const;
+
 public:
-	UPROPERTY(BlueprintAssignable, Category = "Ability")
-	FOnAbilityHit OnHit;
-
-	void DelegateOnHit(AUnitBase* Target);
-
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnAbilityHit(AUnitBase* Target);
-
-	UPROPERTY(BlueprintAssignable, Category = "Ability")
-	FOnAbilityOverlap OnOverlap;
-
-	void DelegateOnOverlap(AActor* OverlappedActor);
-
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnAbilityOverlap(AActor* OverlappedActor);
-
-	UPROPERTY(BlueprintAssignable, Category = "Ability")
-	FOnAbilityHeal OnHeal;
-
-	void DelegateOnHeal(AUnitBase* HealedUnit);
-
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnAbilityHeal(AUnitBase* HealedUnit);
+	// --------------------------------------------------------------
+	// Talent delegation
+	// --------------------------------------------------------------
+	// Reports a tagged event (with contextual Payload) to the caster's
+	// PlayerUnit, which fans it out to any listening talents. Called by
+	// this Ability's own Execute_* library, or directly by the Ability
+	// Blueprint (e.g. from OnActivate/OnEnd for Cast/Finish events).
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	void ReportAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload);
 };

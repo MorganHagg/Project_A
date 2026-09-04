@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
 #include "UnitBase.h"
+#include "GameplayTagContainer.h"
+#include "../Ability/AbilityEventPayload.h"
 #include "PlayerUnit.generated.h"
 
 class USpringArmComponent;
@@ -9,6 +11,11 @@ class UTalentComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerReceiveDamage, float, Amount);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerReceiveHeal, float, Amount);
+
+// Sole delegation point for talents. Abilities report tagged events here (see
+// UAbility::ReportAbilityEvent); every listening talent receives every event
+// and filters by its own ListenTags (see UTalentBase::HandleAbilityEvent).
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityEvent, FGameplayTag, EventTag, FAbilityEventPayload, Payload);
 
 UCLASS()
 class PROJECT_A_API APlayerUnit : public AUnitBase
@@ -46,4 +53,13 @@ public:
 
 	void DelegateOnReceiveDamage(float Amount);
 	void DelegateOnReceiveHeal(float Amount);
+
+	// --------------------------------------------------------------
+	// Talent delegation
+	// --------------------------------------------------------------
+	UPROPERTY(BlueprintAssignable, Category = "Talent")
+	FOnAbilityEvent OnAbilityEvent;
+
+	UFUNCTION(BlueprintCallable, Category = "Talent")
+	void BroadcastAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload);
 };

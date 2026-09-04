@@ -1,7 +1,9 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "GameplayTagContainer.h"
 #include "../Misc/GameplayEffect.h"
+#include "AbilityEventPayload.h"
 #include "Projectile.generated.h"
 
 class UAbility;
@@ -9,13 +11,9 @@ class ACharacter;
 class UEffectHandler;
 class AUnitBase;
 
-// Delegates
+// Delegates used internally by UAbility::Execute_Projectile's latent action - unrelated to talent delegation.
 DECLARE_DELEGATE_OneParam(FOnProjectileHit, FVector);
 DECLARE_DELEGATE_OneParam(FOnProjectileFinished, FVector);
-
-// Broadcast to any listening talent (see UTalentBase::BindToProjectile).
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnProjectileHitDelegate, AUnitBase*, HitUnit);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnProjectileFinishDelegate, FVector, Location);
 
 UCLASS()
 class PROJECT_A_API AProjectile : public AActor
@@ -71,11 +69,17 @@ public:
 	FOnProjectileHit OnHit;           // fired per penetrating hit — apply effects
 	FOnProjectileFinished OnFinished; // fired exactly once — resolves the latent action
 
-	UPROPERTY(BlueprintAssignable, Category = "Projectile")
-	FOnProjectileHitDelegate OnProjectileHit;
+	// Tags reported to MyAbility on hit / on finish (set by UAbility::Execute_Projectile).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	FGameplayTag HitEventTag;
 
-	UPROPERTY(BlueprintAssignable, Category = "Projectile")
-	FOnProjectileFinishDelegate OnProjectileFinish;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	FGameplayTag FinishEventTag;
+
+	// Reports a tagged event (with contextual Payload) to this Projectile's
+	// owning Ability, which forwards it up to the caster's PlayerUnit.
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	void ReportAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload);
 
 	void Finish(FVector HitLocation);
 	

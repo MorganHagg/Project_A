@@ -71,18 +71,10 @@ void AAbilityActor::EndAbility()
 	Destroy();
 }
 
-void AAbilityActor::OnHit(AUnitBase* HitUnit)
+void AAbilityActor::ReportAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload)
 {
 	if (MyAbility)
 	{
-		MyAbility->DelegateOnHit(HitUnit);
-	}
-}
-
-void AAbilityActor::OnOverlap(AActor* HitActor)
-{
-	if (MyAbility)
-	{
-		MyAbility->DelegateOnOverlap(HitActor);
+		MyAbility->ReportAbilityEvent(EventTag, Payload);
 	}
 }

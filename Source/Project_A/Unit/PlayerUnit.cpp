@@ -74,3 +74,8 @@ void APlayerUnit::DelegateOnReceiveHeal(float Amount)
 {
 	OnReceiveHeal.Broadcast(Amount);
 }
+
+void APlayerUnit::BroadcastAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload)
+{
+	OnAbilityEvent.Broadcast(EventTag, Payload);
+}

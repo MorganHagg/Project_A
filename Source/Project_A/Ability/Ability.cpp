@@ -1,5 +1,6 @@
 ﻿#include "Ability.h"
 #include "../Unit/UnitBase.h"
+#include "../Unit/PlayerUnit.h"
 #include "Gameframework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/OverlapResult.h"
@@ -41,6 +42,11 @@ void UAbility::SetupAbility(AUnitBase* NewCaster)
 void UAbility::ActivateAbility()
 {
 	bHasEnded = false;
+
+	FAbilityEventPayload CastPayload;
+	CastPayload.Location = MyCaster ? MyCaster->GetActorLocation() : FVector::ZeroVector;
+	ReportAbilityEvent(ComposeEventTag(TEXT("Cast")), CastPayload);
+
 	IAbilityLifecycle::Execute_OnActivate(this);
 }
 
@@ -55,8 +61,12 @@ void UAbility::EndAbility()
 {
 	if (bHasEnded) return;
 	bHasEnded = true;
-	
+
 	IAbilityLifecycle::Execute_OnEnd(this);
+
+	FAbilityEventPayload FinishPayload;
+	FinishPayload.Location = MyCaster ? MyCaster->GetActorLocation() : FVector::ZeroVector;
+	ReportAbilityEvent(ComposeEventTag(TEXT("Finish")), FinishPayload);
 }
 
 void UAbility::KillAbility()
@@ -72,18 +82,26 @@ void UAbility::Execute_Target(const FGameplayEffect& Effect, AUnitBase* Target)
 	UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>();
 	if (EffectHandler)
 	{
-		DelegateOnHit(Target);
 		EffectHandler->AddEffect(Effect);
+
+		FAbilityEventPayload Payload;
+		Payload.Target = Target;
+		Payload.Location = Target->GetActorLocation();
+		Payload.AppliedEffect = Effect;
+		Payload.Magnitude = Effect.Magnitude;
+		ReportAbilityEvent(ComposeEventTag(TEXT("TargetHit")), Payload);
 	}
 }
 
-TArray<ACharacter*> UAbility::Execute_AOE(const FGameplayEffect& Effect, FVector Location, float Radius, ETargetSelection TargetSelection)
+TArray<ACharacter*> UAbility::Execute_AOE(
+	const FGameplayEffect& Effect, FVector Location, float Radius,
+	ETargetSelection TargetSelection)
 {
 	TArray<ACharacter*> Targets;
 	TArray<FOverlapResult> Overlaps;
 	FCollisionShape Sphere = FCollisionShape::MakeSphere(Radius);
 	FCollisionQueryParams Params;
-	
+
 	//TODO: Check if TargetCharacter implements UEffectHandler, and if it exists. Else return
 	if (World && World->OverlapMultiByChannel(Overlaps, Location, FQuat::Identity, ECC_Pawn, Sphere, Params))
 	{
@@ -101,7 +119,14 @@ TArray<ACharacter*> UAbility::Execute_AOE(const FGameplayEffect& Effect, FVector
 				{
 					EffectHandler->AddEffect(Effect);
 				}
-				DelegateOnHit(TargetCharacter);
+
+				FAbilityEventPayload Payload;
+				Payload.Target = TargetCharacter;
+				Payload.Location = TargetCharacter->GetActorLocation();
+				Payload.AppliedEffect = Effect;
+				Payload.Magnitude = Effect.Magnitude;
+				ReportAbilityEvent(ComposeEventTag(TEXT("TargetHit")), Payload);
+
 				Targets.AddUnique(TargetCharacter);
 			}
 		}
@@ -110,7 +135,9 @@ TArray<ACharacter*> UAbility::Execute_AOE(const FGameplayEffect& Effect, FVector
 	return Targets;
 }
 
-void UAbility::Execute_Projectile(FLatentActionInfo LatentInfo, const FGameplayEffect& Effect, UStaticMesh* Mesh, FVector Target, float Speed, int32 PenetrationCount, FVector& OutLocation)
+void UAbility::Execute_Projectile(
+	FLatentActionInfo LatentInfo, const FGameplayEffect& Effect, UStaticMesh* Mesh,
+	FVector Target, float Speed, int32 PenetrationCount, FVector& OutLocation)
 {
 	if (Speed == 0.f)
 		UE_LOG(LogTemp, Warning, TEXT("Projectile has 0 speed"));
@@ -132,6 +159,8 @@ void UAbility::Execute_Projectile(FLatentActionInfo LatentInfo, const FGameplayE
 	Projectile->Destination = Target;
 	Projectile->Speed = Speed;
 	Projectile->PenetrationCount = PenetrationCount;
+	Projectile->HitEventTag = ComposeEventTag(TEXT("TargetHit"));
+	Projectile->FinishEventTag = ComposeEventTag(TEXT("Finish"));
 	Projectile->MeshComponent->SetStaticMesh(Mesh);
 	Projectile->MeshComponent->IgnoreActorWhenMoving(MyCaster, true);
 	
@@ -171,20 +200,20 @@ AAbilityActor* UAbility::Execute_Summon(const FGameplayEffect& Effect, TSubclass
 }
 
 
-void UAbility::DelegateOnHit(AUnitBase* Target)
+void UAbility::ReportAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload)
 {
-	OnAbilityHit(Target);
-	OnHit.Broadcast(this, Target);
+	Payload.Ability = this;
+	if (APlayerUnit* PlayerUnit = Cast<APlayerUnit>(MyCaster))
+	{
+		PlayerUnit->BroadcastAbilityEvent(EventTag, Payload);
+	}
 }
 
-void UAbility::DelegateOnOverlap(AActor* OverlappedActor)
+FGameplayTag UAbility::ComposeEventTag(const TCHAR* Suffix) const
 {
-	OnAbilityOverlap(OverlappedActor);
-	OnOverlap.Broadcast(this, OverlappedActor);
-}
-
-void UAbility::DelegateOnHeal(AUnitBase* HealedUnit)
-{
-	OnAbilityHeal(HealedUnit);
-	OnHeal.Broadcast(this, HealedUnit);
+	if (!AbilityTag.IsValid())
+	{
+		return FGameplayTag();
+	}
+	return FGameplayTag::RequestGameplayTag(FName(*(AbilityTag.ToString() + TEXT(".") + Suffix)));
 }

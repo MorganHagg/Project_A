@@ -80,11 +80,17 @@ void AProjectile::HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedCom
 	{
 		EffectHandler->AddEffect(MyEffect);
 	}
-	MyAbility->DelegateOnHit(HitUnit);
-	OnProjectileHit.Broadcast(HitUnit);
-	AlreadyHitActors.Add(OtherActor);
 
 	FVector OverlapLocation = bFromSweep ? FVector(SweepResult.ImpactPoint) : GetActorLocation();
+
+	FAbilityEventPayload Payload;
+	Payload.Target = HitUnit;
+	Payload.Location = OverlapLocation;
+	Payload.AppliedEffect = MyEffect;
+	Payload.Magnitude = MyEffect.Magnitude;
+	ReportAbilityEvent(HitEventTag, Payload);
+
+	AlreadyHitActors.Add(OtherActor);
 
 	if (PenetrationCount == -1 || PenetrationsSoFar < PenetrationCount)
 	{
@@ -104,6 +110,20 @@ void AProjectile::Finish(FVector HitLocation)
 	}
 	bHasFinished = true;
 	OnFinished.ExecuteIfBound(HitLocation);
-	OnProjectileFinish.Broadcast(HitLocation);
+
+	FAbilityEventPayload Payload;
+	Payload.Location = HitLocation;
+	Payload.AppliedEffect = MyEffect;
+	ReportAbilityEvent(FinishEventTag, Payload);
+
 	Destroy();
+}
+
+void AProjectile::ReportAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload)
+{
+	Payload.Projectile = this;
+	if (MyAbility)
+	{
+		MyAbility->ReportAbilityEvent(EventTag, Payload);
+	}
 }

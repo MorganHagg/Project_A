@@ -1,9 +1,11 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "GameplayTagContainer.h"
 #include "../Misc/IntervalTicker.h"
 #include "../Misc/GameplayEffect.h"
 #include "../Interfaces/AbilityLifecycle.h"
+#include "AbilityEventPayload.h"
 #include "AbilityActor.generated.h"
 
 class UAbility;
@@ -58,9 +60,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	void EndAbility();
 
+	// Reports a tagged event (with contextual Payload) to this AbilityActor's
+	// owning Ability, which forwards it up to the caster's PlayerUnit.
 	UFUNCTION(BlueprintCallable, Category = "Ability")
-	void OnHit(AUnitBase* HitUnit);
-
-	UFUNCTION(BlueprintCallable, Category = "Ability")
-	void OnOverlap(AActor* HitActor);
+	void ReportAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload);
 };
