@@ -1,11 +1,8 @@
-﻿#pragma once
+#pragma once
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
-#include "GameplayTagContainer.h"
+#include "AbilityProduct.h"
 #include "../Misc/IntervalTicker.h"
-#include "../Misc/GameplayEffect.h"
 #include "../Interfaces/AbilityLifecycle.h"
-#include "AbilityEventPayload.h"
 #include "AbilityActor.generated.h"
 
 class UAbility;
@@ -14,15 +11,12 @@ class UEffectHandler;
 class AUnitBase;
 
 UCLASS()
-class PROJECT_A_API AAbilityActor : public AActor, public IAbilityLifecycle
+class PROJECT_A_API AAbilityActor : public AAbilityProduct, public IAbilityLifecycle
 {
 	GENERATED_BODY()
 
 public:
 	AAbilityActor();
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	UStaticMeshComponent* MeshComponent;
 
 protected:
 	virtual void BeginPlay() override;
@@ -33,35 +27,14 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float Duration = 0.f;	// 0 = lasts infinite
 	float DurationTimer = 0.f;
-	
+
 	UPROPERTY(EditAnywhere)
 	FIntervalTicker Ticker;
-	
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float Magnitude = 0.f;
 
-	
-	UFUNCTION()
-	void SetMyAbility(UAbility* Ability);
-	UPROPERTY()
-	UAbility* MyAbility;
-
-	UFUNCTION()
-	void SetMyCaster(ACharacter* Caster);
-	UPROPERTY()
-	ACharacter* MyCaster;
-
-	UPROPERTY()
-	FGameplayEffect MyEffect;
-
-	UPROPERTY()
-	bool bHasEnded = false;	// Small guard against double end
-	
-	UFUNCTION(BlueprintCallable, Category = "Ability")
-	void EndAbility();
-
-	// Reports a tagged event (with contextual Payload) to this AbilityActor's
-	// owning Ability, which forwards it up to the caster's PlayerUnit.
-	UFUNCTION(BlueprintCallable, Category = "Ability")
-	void ReportAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload);
+	// Reports OnEnd, then defers to the shared AAbilityProduct::Finish() for the generic
+	// finish-report/broadcast/destroy logic.
+	virtual FVector Finish() override;
 };

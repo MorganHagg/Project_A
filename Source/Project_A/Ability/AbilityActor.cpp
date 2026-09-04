@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "AbilityActor.h"
@@ -8,17 +8,6 @@
 // Sets default values
 AAbilityActor::AAbilityActor()
 {
-	PrimaryActorTick.bCanEverTick = true;
-	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
-	RootComponent = MeshComponent;
-
-	// No mass / no physics - query-only collision, overlap rather than block.
-	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	MeshComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
-	MeshComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
-	MeshComponent->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Overlap);
-	MeshComponent->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
-	MeshComponent->SetGenerateOverlapEvents(true);
 }
 
 void AAbilityActor::BeginPlay()
@@ -27,16 +16,6 @@ void AAbilityActor::BeginPlay()
 	DurationTimer = Duration;
 	Ticker.IntervalTimer = Ticker.Interval;
 	IAbilityLifecycle::Execute_OnActivate(this);
-}
-
-void AAbilityActor::SetMyAbility(UAbility* Ability)
-{
-	MyAbility = Ability;
-}
-
-void AAbilityActor::SetMyCaster(ACharacter* Caster)
-{
-	MyCaster = Caster;
 }
 
 void AAbilityActor::Tick(float DeltaTime)
@@ -51,7 +30,7 @@ void AAbilityActor::Tick(float DeltaTime)
 		{
 			// Final tick
 			IAbilityLifecycle::Execute_OnTick(this);
-			EndAbility();
+			Finish();
 			return;
 		}
 	}
@@ -62,19 +41,13 @@ void AAbilityActor::Tick(float DeltaTime)
 	}
 }
 
-void AAbilityActor::EndAbility()
+FVector AAbilityActor::Finish()
 {
-	if (bHasEnded) return;
-	bHasEnded = true;
-
-	IAbilityLifecycle::Execute_OnEnd(this);
-	Destroy();
-}
-
-void AAbilityActor::ReportAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload)
-{
-	if (MyAbility)
+	// OnEnd must only ever fire once - Super::Finish()'s guard only protects its own body,
+	// not this one, so check bHasFinished (inherited, protected) here first.
+	if (!bHasFinished)
 	{
-		MyAbility->ReportAbilityEvent(EventTag, Payload);
+		IAbilityLifecycle::Execute_OnEnd(this);
 	}
+	return Super::Finish();
 }

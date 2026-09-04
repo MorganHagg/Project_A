@@ -1,4 +1,4 @@
-﻿#include "Projectile.h"
+#include "Projectile.h"
 #include "../Unit/UnitBase.h"
 #include "Ability.h"
 #include "Gameframework/Character.h"
@@ -7,17 +7,6 @@
 
 AProjectile::AProjectile()
 {
-	PrimaryActorTick.bCanEverTick = true;
-	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
-	RootComponent = MeshComponent;
-
-	// No mass / no physics - query-only collision, overlap rather than block.
-	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	MeshComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
-	MeshComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
-	MeshComponent->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Overlap);
-	MeshComponent->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
-	MeshComponent->SetGenerateOverlapEvents(true);
 }
 
 void AProjectile::BeginPlay()
@@ -46,21 +35,10 @@ void AProjectile::Travel(float DeltaTime)
 	}
 }
 
-void AProjectile::SetMyAbility(UAbility* Ability)
-{
-	MyAbility = Ability;
-}
-
 UAbility* AProjectile::GetAbility()
 {
 	return MyAbility;
 }
-
-void AProjectile::SetMyCaster(ACharacter* Caster)
-{
-	MyCaster = Caster;
-}
-
 
 void AProjectile::HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -84,6 +62,8 @@ void AProjectile::HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedCom
 	FVector OverlapLocation = bFromSweep ? FVector(SweepResult.ImpactPoint) : GetActorLocation();
 
 	FAbilityEventPayload Payload;
+	Payload.Ability = MyAbility;
+	Payload.AbilityProduct = this;
 	Payload.Target = HitUnit;
 	Payload.Location = OverlapLocation;
 	Payload.AppliedEffect = MyEffect;
@@ -95,35 +75,23 @@ void AProjectile::HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedCom
 	if (PenetrationCount == -1 || PenetrationsSoFar < PenetrationCount)
 	{
 		PenetrationsSoFar++;
-		OnHit.ExecuteIfBound(OverlapLocation);
+		OnPenetrateHit.ExecuteIfBound(OverlapLocation);
 		return;
 	}
 
 	Finish(OverlapLocation);
 }
 
-void AProjectile::Finish(FVector HitLocation)
+FVector AProjectile::Finish(FVector HitLocation)
 {
-	if (bHasFinished)
+	// OnFinished must only ever fire once (it resolves Execute_Projectile's latent action) -
+	// Super::Finish()'s guard only protects its own body, not this one, so check bHasFinished
+	// (inherited, protected) here first.
+	if (!bHasFinished)
 	{
-		return;
+		OnFinished.ExecuteIfBound(HitLocation);
 	}
-	bHasFinished = true;
-	OnFinished.ExecuteIfBound(HitLocation);
 
-	FAbilityEventPayload Payload;
-	Payload.Location = HitLocation;
-	Payload.AppliedEffect = MyEffect;
-	ReportAbilityEvent(FinishEventTag, Payload);
-
-	Destroy();
-}
-
-void AProjectile::ReportAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload)
-{
-	Payload.Projectile = this;
-	if (MyAbility)
-	{
-		MyAbility->ReportAbilityEvent(EventTag, Payload);
-	}
+	SetActorLocation(HitLocation, false);
+	return Super::Finish();
 }
