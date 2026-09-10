@@ -64,6 +64,7 @@ void UEffectHandler::RemoveEffect(const FGameplayEffect& Effect)
 
 void UEffectHandler::ApplyEffect(const FGameplayEffect& Effect)
 {
+	UE_LOG(LogTemp, Warning, TEXT("I took damage!"))
 	if (!MyTarget || !MyTarget->AttributeComponent)
 	{
 		return;

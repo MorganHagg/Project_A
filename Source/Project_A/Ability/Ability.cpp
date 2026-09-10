@@ -98,6 +98,14 @@ void UAbility::Execute_Target(const FGameplayEffect& Effect, AUnitBase* Target)
 	}
 }
 
+void UAbility::ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect)
+{
+	if (UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>())
+	{
+		EffectHandler->AddEffect(Effect);
+	}
+}
+
 TArray<ACharacter*> UAbility::Execute_AOE(
 	const FGameplayEffect& Effect, FVector Location, float Radius,
 	ETargetSelection TargetSelection)

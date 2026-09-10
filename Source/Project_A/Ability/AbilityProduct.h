@@ -40,9 +40,6 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	ACharacter* MyCaster;
 
-	UPROPERTY(BlueprintReadOnly)
-	FGameplayEffect MyEffect;
-
 	// Tag reported through ReportAbilityEvent when this actor finishes (see Finish()).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability", meta = (Categories = "Ability"))
 	FGameplayTag FinishEventTag;
@@ -72,13 +69,19 @@ public:
 	// something" entry point for both AProjectile (called from HandleComponentBeginOverlap) and
 	// AAbilityActor (called manually, e.g. from an animation notify on a melee swing, or from
 	// OnTick for interval damage - the system doesn't distinguish why HitTarget was called).
+	// Purely a report - pair with ApplyEffect if the hit should also deliver a GameplayEffect.
 	// BlueprintNativeEvent so a Blueprint subclass (e.g. Projectile_Fireball) can override it to
 	// run its own bespoke logic (call Parent: HitTarget to still get the native report).
 	// Auto-composes HitEventTag from the owning Ability's AbilityTag (TargetHit suffix) unless a
 	// bespoke tag is already set.
 	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
-	void HitTarget(AUnitBase* Target, FVector Location, const FGameplayEffect& Effect);
-	virtual void HitTarget_Implementation(AUnitBase* Target, FVector Location, const FGameplayEffect& Effect);
+	void HitTarget(AUnitBase* Target, FVector Location);
+	virtual void HitTarget_Implementation(AUnitBase* Target, FVector Location);
+
+	// Forwards to MyAbility->ApplyEffect - lets AProjectile/AAbilityActor apply a GameplayEffect
+	// to a target without reaching through MyAbility themselves.
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	void ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect);
 
 protected:
 	UPROPERTY()

@@ -129,6 +129,11 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void Execute_Target(const FGameplayEffect& Effect, AUnitBase* Target);
 
+	// Applies Effect to Target's EffectHandler. No reporting - just the effect application, so
+	// callers (e.g. AAbilityProduct::ApplyEffect) can pair it with their own reporting logic.
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	void ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect);
+
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	TArray<ACharacter*> Execute_AOE(const FGameplayEffect& Effect, FVector Location, float Radius, ETargetSelection TargetSelection);
 

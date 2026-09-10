@@ -11,13 +11,20 @@ AProjectile::AProjectile()
 void AProjectile::BeginPlay()
 {
 	Super::BeginPlay();
+	Ticker.IntervalTimer = Ticker.Interval;
 	MeshComponent->OnComponentBeginOverlap.AddDynamic(this, &AProjectile::HandleComponentBeginOverlap);
+	IAbilityLifecycle::Execute_OnActivate(this);
 }
 
 void AProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	Travel(DeltaTime);
+
+	if (Ticker.ShouldTick(DeltaTime))
+	{
+		IAbilityLifecycle::Execute_OnTick(this);
+	}
 }
 
 void AProjectile::Travel(float DeltaTime)
@@ -55,7 +62,7 @@ void AProjectile::HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedCom
 
 	FVector OverlapLocation = bFromSweep ? FVector(SweepResult.ImpactPoint) : GetActorLocation();
 
-	HitTarget(HitUnit, OverlapLocation, MyEffect);
+	HitTarget(HitUnit, OverlapLocation);
 
 	AlreadyHitActors.Add(OtherActor);
 
@@ -71,14 +78,17 @@ void AProjectile::HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedCom
 
 void AProjectile::Finish(FVector HitLocation)
 {
-	// OnFinished must only ever fire once (it resolves Execute_Projectile's latent action) -
-	// Super::Finish()'s guard only protects its own body, not this one, so check bHasFinished
-	// (inherited, protected) here first.
-	if (!bHasFinished)
+	if (bHasFinished)
 	{
-		OnFinished.ExecuteIfBound(HitLocation);
+		return;
 	}
 
+	OnFinished.ExecuteIfBound(HitLocation);
 	SetActorLocation(HitLocation, false);
-	Super::Finish();
+
+	const FAbilityEventPayload Payload = NotifyFinish();
+
+	IAbilityLifecycle::Execute_OnEnd(this, Payload.Location);
+
+	Destroy();
 }

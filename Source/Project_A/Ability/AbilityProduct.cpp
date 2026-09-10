@@ -1,7 +1,5 @@
 	#include "AbilityProduct.h"
 #include "Ability.h"
-#include "../Unit/UnitBase.h"
-#include "../Component/EffectHandler.h"
 #include "Components/StaticMeshComponent.h"
 
 AAbilityProduct::AAbilityProduct()
@@ -70,20 +68,13 @@ FAbilityEventPayload AAbilityProduct::NotifyFinish()
 	return Payload;
 }
 
-void AAbilityProduct::HitTarget_Implementation(AUnitBase* Target, FVector Location, const FGameplayEffect& Effect)
+void AAbilityProduct::HitTarget_Implementation(AUnitBase* Target, FVector Location)
 {
-	if (UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>())
-	{
-		EffectHandler->AddEffect(Effect);
-	}
-
 	FAbilityEventPayload Payload;
 	Payload.Ability = MyAbility;
 	Payload.AbilityProduct = this;
 	Payload.Target = Target;
 	Payload.Location = Location;
-	Payload.AppliedEffect = Effect;
-	Payload.Magnitude = Effect.Magnitude;
 
 	if (!HitEventTag.IsValid() && MyAbility)
 	{
@@ -92,4 +83,12 @@ void AAbilityProduct::HitTarget_Implementation(AUnitBase* Target, FVector Locati
 
 	ReportAbilityEvent(HitEventTag, Payload);
 	OnHit.Broadcast(Payload);
+}
+
+void AAbilityProduct::ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect)
+{
+	if (MyAbility)
+	{
+		MyAbility->ApplyEffect(Target, Effect);
+	}
 }
