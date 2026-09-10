@@ -14,14 +14,13 @@
 
 namespace
 {
-	// Most of these are produced by UAbility::ComposeEventTag somewhere in the C++: Cast/Finish
-	// (UAbility itself, unconditionally), TargetHit (Execute_Target/Execute_AOE/Execute_Projectile),
-	// Overlap (AAbilityActor::HandleOverlap). TargetHit.Crit has no C++ producer yet (no
-	// crit-detection logic exists) - registered pre-emptively so the tag is ready whenever that
-	// lands. Anything more bespoke (e.g. a hand-typed Blueprint literal like "Tick") stays
-	// manually added.
+	// Produced by UAbility::ComposeEventTag somewhere in the C++: Cast/Finish (UAbility itself,
+	// unconditionally), TargetHit (Execute_Target/Execute_AOE/Execute_Projectile), Overlap
+	// (AAbilityActor::HandleOverlap). TargetHit.Crit has no C++ producer yet (no crit-detection
+	// logic exists) - registered pre-emptively so the tag is ready whenever that lands. Anything
+	// more bespoke stays manually added.
 	static const TCHAR* StandardAbilityTagSuffixes[] = {
-		TEXT("Cast"), TEXT("Finish"), TEXT("TargetHit"), TEXT("TargetHit.Crit"), TEXT("Overlap"), TEXT("Tick")
+		TEXT("Cast"), TEXT("Finish"), TEXT("TargetHit"), TEXT("TargetHit.Crit"), TEXT("Overlap")
 	};
 
 	void SyncOneAbility(const UAbility* AbilityCDO, IGameplayTagsEditorModule& TagsEditor)

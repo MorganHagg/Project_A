@@ -1,5 +1,7 @@
 	#include "AbilityProduct.h"
 #include "Ability.h"
+#include "../Unit/UnitBase.h"
+#include "../Component/EffectHandler.h"
 #include "Components/StaticMeshComponent.h"
 
 AAbilityProduct::AAbilityProduct()
@@ -38,7 +40,6 @@ void AAbilityProduct::ReportAbilityEvent(FGameplayTag EventTag, FAbilityEventPay
 	{
 		MyAbility->ReportAbilityEvent(EventTag, Payload);
 	}
-	OnHit.Broadcast(Payload);
 }
 
 void AAbilityProduct::Finish()
@@ -67,4 +68,28 @@ FAbilityEventPayload AAbilityProduct::NotifyFinish()
 	OnFinish.Broadcast(Payload);
 
 	return Payload;
+}
+
+void AAbilityProduct::HitTarget_Implementation(AUnitBase* Target, FVector Location, const FGameplayEffect& Effect)
+{
+	if (UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>())
+	{
+		EffectHandler->AddEffect(Effect);
+	}
+
+	FAbilityEventPayload Payload;
+	Payload.Ability = MyAbility;
+	Payload.AbilityProduct = this;
+	Payload.Target = Target;
+	Payload.Location = Location;
+	Payload.AppliedEffect = Effect;
+	Payload.Magnitude = Effect.Magnitude;
+
+	if (!HitEventTag.IsValid() && MyAbility)
+	{
+		HitEventTag = MyAbility->ComposeEventTag(TEXT("TargetHit"));
+	}
+
+	ReportAbilityEvent(HitEventTag, Payload);
+	OnHit.Broadcast(Payload);
 }

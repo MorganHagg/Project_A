@@ -53,11 +53,6 @@ public:
 	FOnProjectileHit OnPenetrateHit;   // fired per penetrating hit — apply effects
 	FOnProjectileFinished OnFinished;  // fired exactly once — resolves the latent action
 
-	// Tag reported to MyAbility on hit (set by UAbility::Execute_Projectile). Finish uses the
-	// inherited FinishEventTag.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability", meta = (Categories = "Ability"))
-	FGameplayTag HitEventTag;
-
 	// Snaps to the given hit location (the actual finish point may be a sweep impact point,
 	// different from GetActorLocation()), then defers to the shared AAbilityProduct::Finish().
 	void Finish(FVector HitLocation);

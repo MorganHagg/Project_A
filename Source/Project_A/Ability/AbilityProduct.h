@@ -8,6 +8,7 @@
 
 class UAbility;
 class ACharacter;
+class AUnitBase;
 
 // ============================================================================
 // AAbilityProduct
@@ -62,6 +63,22 @@ public:
 	// Reports FinishEventTag, broadcasts OnFinish, and destroys this actor.
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	virtual void Finish();
+
+	// Tag reported to MyAbility when HitTarget is called.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability", meta = (Categories = "Ability"))
+	FGameplayTag HitEventTag;
+
+	// Builds a payload for Target/Location and reports HitEventTag - the shared "this hit
+	// something" entry point for both AProjectile (called from HandleComponentBeginOverlap) and
+	// AAbilityActor (called manually, e.g. from an animation notify on a melee swing, or from
+	// OnTick for interval damage - the system doesn't distinguish why HitTarget was called).
+	// BlueprintNativeEvent so a Blueprint subclass (e.g. Projectile_Fireball) can override it to
+	// run its own bespoke logic (call Parent: HitTarget to still get the native report).
+	// Auto-composes HitEventTag from the owning Ability's AbilityTag (TargetHit suffix) unless a
+	// bespoke tag is already set.
+	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
+	void HitTarget(AUnitBase* Target, FVector Location, const FGameplayEffect& Effect);
+	virtual void HitTarget_Implementation(AUnitBase* Target, FVector Location, const FGameplayEffect& Effect);
 
 protected:
 	UPROPERTY()

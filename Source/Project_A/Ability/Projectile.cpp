@@ -2,7 +2,6 @@
 #include "../Unit/UnitBase.h"
 #include "Ability.h"
 #include "Gameframework/Character.h"
-#include "../Component/EffectHandler.h"
 #include "Components/StaticMeshComponent.h"
 
 AProjectile::AProjectile()
@@ -54,21 +53,9 @@ void AProjectile::HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedCom
 		return;
 	}
 
-	if (UEffectHandler* EffectHandler = HitUnit->FindComponentByClass<UEffectHandler>())
-	{
-		EffectHandler->AddEffect(MyEffect);
-	}
-
 	FVector OverlapLocation = bFromSweep ? FVector(SweepResult.ImpactPoint) : GetActorLocation();
 
-	FAbilityEventPayload Payload;
-	Payload.Ability = MyAbility;
-	Payload.AbilityProduct = this;
-	Payload.Target = HitUnit;
-	Payload.Location = OverlapLocation;
-	Payload.AppliedEffect = MyEffect;
-	Payload.Magnitude = MyEffect.Magnitude;
-	ReportAbilityEvent(HitEventTag, Payload);
+	HitTarget(HitUnit, OverlapLocation, MyEffect);
 
 	AlreadyHitActors.Add(OtherActor);
 

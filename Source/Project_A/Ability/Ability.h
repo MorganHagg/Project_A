@@ -133,11 +133,11 @@ public:
 	TArray<ACharacter*> Execute_AOE(const FGameplayEffect& Effect, FVector Location, float Radius, ETargetSelection TargetSelection);
 
 	UFUNCTION(BlueprintCallable, meta = (Latent, LatentInfo = "LatentInfo"), Category = "Ability")
-	void Execute_Projectile(FLatentActionInfo LatentInfo, const FGameplayEffect& Effect, UStaticMesh* Mesh, FVector Target, float Speed,
+	void Execute_Projectile(FLatentActionInfo LatentInfo, TSubclassOf<AProjectile> NewProjectile, FVector Target, float Speed,
 		int32 PenetrationCount, FVector& OutLocation);
 
 	UFUNCTION(BlueprintCallable, Category = "Ability")
-	AAbilityActor* Execute_Summon(const FGameplayEffect& Effect, TSubclassOf<AAbilityActor> NewActor, FTransform Transform);
+	AAbilityActor* Execute_Summon(TSubclassOf<AAbilityActor> NewActor, FTransform Transform);
 
 	void TickAbility(float DeltaTime);
 

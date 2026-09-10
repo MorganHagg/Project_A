@@ -141,34 +141,47 @@ TArray<ACharacter*> UAbility::Execute_AOE(
 }
 
 void UAbility::Execute_Projectile(
-	FLatentActionInfo LatentInfo, const FGameplayEffect& Effect, UStaticMesh* Mesh,
+	FLatentActionInfo LatentInfo, TSubclassOf<AProjectile> NewProjectile,
 	FVector Target, float Speed, int32 PenetrationCount, FVector& OutLocation)
 {
 	if (Speed == 0.f)
 		UE_LOG(LogTemp, Warning, TEXT("Projectile has 0 speed"));
-	check(Mesh);
 
-	AProjectile* Projectile = World->SpawnActor<AProjectile>(
-	AProjectile::StaticClass(),
-	MyCaster->GetActorLocation(),
-	MyCaster->GetActorRotation()
-);
+	if (!NewProjectile)
+	{
+		return;
+	}
+
+	// Deferred spawn: MyCaster must be set on the projectile before BeginPlay (and the collision
+	// registration that comes with it) runs, or HandleComponentBeginOverlap's OtherActor == MyCaster
+	// check races against a still-null MyCaster - since the projectile spawns exactly at
+	// MyCaster->GetActorLocation(), an initial overlap against the caster's own collision can fire
+	// before SetMyCaster would otherwise have been called, making the projectile "hit" its own caster.
+	FTransform SpawnTransform(MyCaster->GetActorRotation(), MyCaster->GetActorLocation());
+	AProjectile* Projectile = World->SpawnActorDeferred<AProjectile>(NewProjectile, SpawnTransform);
 	if (!Projectile)
 	{
 		return;
 	}
-	
+
 	Projectile->SetMyAbility(this);
 	Projectile->SetMyCaster(MyCaster);
-	Projectile->MyEffect = Effect;
 	Projectile->Destination = Target;
 	Projectile->Speed = Speed;
 	Projectile->PenetrationCount = PenetrationCount;
-	Projectile->HitEventTag = ComposeEventTag(TEXT("TargetHit"));
-	Projectile->FinishEventTag = ComposeEventTag(TEXT("Finish"));
-	Projectile->MeshComponent->SetStaticMesh(Mesh);
 	Projectile->MeshComponent->IgnoreActorWhenMoving(MyCaster, true);
-	
+
+	if (!Projectile->HitEventTag.IsValid())
+	{
+		Projectile->HitEventTag = ComposeEventTag(TEXT("TargetHit"));
+	}
+	if (!Projectile->FinishEventTag.IsValid())
+	{
+		Projectile->FinishEventTag = ComposeEventTag(TEXT("Finish"));
+	}
+
+	Projectile->FinishSpawning(SpawnTransform);
+
 	FLatentActionManager& LAM = World->GetLatentActionManager();
 	FEffect_ProjectileAction* ProjectileAction = new FEffect_ProjectileAction(LatentInfo, OutLocation);
 	static int32 ProjectileActionUUIDCounter = LatentInfo.UUID;
@@ -182,7 +195,7 @@ void UAbility::Execute_Projectile(
 });
 }
 
-AAbilityActor* UAbility::Execute_Summon(const FGameplayEffect& Effect, TSubclassOf<AAbilityActor> NewActor, FTransform Transform)
+AAbilityActor* UAbility::Execute_Summon(TSubclassOf<AAbilityActor> NewActor, FTransform Transform)
 {
 	if (!NewActor || !World)
 	{
@@ -196,10 +209,8 @@ AAbilityActor* UAbility::Execute_Summon(const FGameplayEffect& Effect, TSubclass
 
 	if (AbilityActor)
 	{
-		AbilityActor->SetMyAbility(this);
+		AbilityActor->SetMyAbility(this); 
 		AbilityActor->SetMyCaster(MyCaster);
-		AbilityActor->MyEffect = Effect;
-		AbilityActor->SetLifeSpan(Effect.Duration);
 
 		if (!AbilityActor->FinishEventTag.IsValid())
 		{
