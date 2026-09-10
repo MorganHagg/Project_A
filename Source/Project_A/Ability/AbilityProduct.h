@@ -59,11 +59,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Ability")
 	FOnAbilityEventDelegate OnFinish;
 
-	// Reports FinishEventTag, broadcasts OnFinish, and destroys this actor. Returns the
-	// location it finished at (GetActorLocation() by default). Override to determine that
-	// location differently - e.g. AProjectile snaps to an explicit hit location first.
+	// Reports FinishEventTag, broadcasts OnFinish, and destroys this actor.
 	UFUNCTION(BlueprintCallable, Category = "Ability")
-	virtual FVector Finish();
+	virtual void Finish();
 
 protected:
 	UPROPERTY()

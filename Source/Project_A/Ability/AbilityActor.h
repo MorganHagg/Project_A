@@ -38,7 +38,7 @@ public:
 	// OnFinish listeners reacting to the finish can still take effect before OnEnd runs - then
 	// destroys the actor. Does not call Super::Finish(), since that would destroy before OnEnd
 	// could fire; duplicates only the guard check, not the notify/destroy logic.
-	virtual FVector Finish() override;
+	virtual void Finish() override;
 
 	// Tag reported to MyAbility on overlap (see HandleOverlap).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability", meta = (Categories = "Ability"))

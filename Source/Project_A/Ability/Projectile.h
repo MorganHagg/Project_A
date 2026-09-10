@@ -60,7 +60,7 @@ public:
 
 	// Snaps to the given hit location (the actual finish point may be a sweep impact point,
 	// different from GetActorLocation()), then defers to the shared AAbilityProduct::Finish().
-	FVector Finish(FVector HitLocation);
+	void Finish(FVector HitLocation);
 
 	UFUNCTION()
 	void HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,

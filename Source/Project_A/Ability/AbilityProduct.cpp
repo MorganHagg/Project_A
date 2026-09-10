@@ -41,17 +41,16 @@ void AAbilityProduct::ReportAbilityEvent(FGameplayTag EventTag, FAbilityEventPay
 	OnHit.Broadcast(Payload);
 }
 
-FVector AAbilityProduct::Finish()
+void AAbilityProduct::Finish()
 {
 	if (bHasFinished)
 	{
-		return GetActorLocation();
+		return;
 	}
 
-	const FAbilityEventPayload Payload = NotifyFinish();
+	NotifyFinish();
 
 	Destroy();
-	return Payload.Location;
 }
 
 FAbilityEventPayload AAbilityProduct::NotifyFinish()

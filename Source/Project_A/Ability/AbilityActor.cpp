@@ -46,11 +46,11 @@ void AAbilityActor::Tick(float DeltaTime)
 	}
 }
 
-FVector AAbilityActor::Finish()
+void AAbilityActor::Finish()
 {
 	if (bHasFinished)
 	{
-		return GetActorLocation();
+		return;
 	}
 
 	const FAbilityEventPayload Payload = NotifyFinish();
@@ -58,7 +58,6 @@ FVector AAbilityActor::Finish()
 	IAbilityLifecycle::Execute_OnEnd(this, Payload.Location);
 
 	Destroy();
-	return Payload.Location;
 }
 
 void AAbilityActor::HandleOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,

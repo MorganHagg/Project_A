@@ -82,7 +82,7 @@ void AProjectile::HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedCom
 	Finish(OverlapLocation);
 }
 
-FVector AProjectile::Finish(FVector HitLocation)
+void AProjectile::Finish(FVector HitLocation)
 {
 	// OnFinished must only ever fire once (it resolves Execute_Projectile's latent action) -
 	// Super::Finish()'s guard only protects its own body, not this one, so check bHasFinished
@@ -93,5 +93,5 @@ FVector AProjectile::Finish(FVector HitLocation)
 	}
 
 	SetActorLocation(HitLocation, false);
-	return Super::Finish();
+	Super::Finish();
 }
