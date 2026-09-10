@@ -147,17 +147,21 @@ public:
 
 	// Root tag identifying this ability (e.g. "Ability.Fireball"). Event tags reported
 	// automatically by this class (Cast, TargetHit, Finish) are composed from this root.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability")
+	// Auto-derived from AbilityName in SetupAbility ("Ability." + AbilityName) - not directly
+	// editable, so there's only one place (AbilityName) to author the ability's identity.
+	UPROPERTY(BlueprintReadOnly, Category = "Ability")
 	FGameplayTag AbilityTag;
 
 protected:
 	UPROPERTY()
 	bool bHasEnded = false;	// Small guard against double end
 
+public:
 	// Composes AbilityTag + "." + Suffix into a registered event tag (e.g. "TargetHit" -> "Ability.Fireball.TargetHit").
+	// Public so callers outside UAbility (e.g. AAbilityActor::HandleOverlap) can compose their own
+	// event tags from the owning ability's AbilityTag.
 	FGameplayTag ComposeEventTag(const TCHAR* Suffix) const;
 
-public:
 	// --------------------------------------------------------------
 	// Talent delegation
 	// --------------------------------------------------------------

@@ -29,6 +29,12 @@ struct FAbilityEventPayload
 	UPROPERTY(BlueprintReadWrite, Category = "Ability")
 	AAbilityProduct* AbilityProduct = nullptr;
 
+	// The other AbilityProduct involved when this event came from an overlap (e.g. a Projectile
+	// that overlapped this AbilityActor). AbilityProduct above always refers to the reporting
+	// instance itself - this is the other one. Populated by AAbilityActor::HandleOverlap.
+	UPROPERTY(BlueprintReadWrite, Category = "Ability")
+	AAbilityProduct* OverlappedProduct = nullptr;
+
 	UPROPERTY(BlueprintReadWrite, Category = "Ability")
 	FVector Location = FVector::ZeroVector;
 

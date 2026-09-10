@@ -1,4 +1,4 @@
-#include "AbilityProduct.h"
+	#include "AbilityProduct.h"
 #include "Ability.h"
 #include "Components/StaticMeshComponent.h"
 
@@ -30,7 +30,10 @@ void AAbilityProduct::SetMyCaster(ACharacter* Caster)
 void AAbilityProduct::ReportAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload)
 {
 	Payload.Ability = MyAbility;
-	Payload.AbilityProduct = this;
+	if (Payload.AbilityProduct == nullptr)
+	{
+		Payload.AbilityProduct = this;
+	}
 	if (MyAbility)
 	{
 		MyAbility->ReportAbilityEvent(EventTag, Payload);

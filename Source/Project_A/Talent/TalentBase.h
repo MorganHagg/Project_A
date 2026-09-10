@@ -36,4 +36,10 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnAbilityEvent(FAbilityEventPayload Payload);
+
+	// Finds a granted ability of the given class on MyPlayerUnit's AbilitySystem. Logs an error
+	// and returns nullptr if MyPlayerUnit isn't bound yet, has no AbilitySystem, or doesn't have
+	// an ability of that class.
+	UFUNCTION(BlueprintCallable, Category = "Talent")
+	UAbility* GetAbility(TSubclassOf<UAbility> AbilityClass) const;
 };

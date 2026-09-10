@@ -37,6 +37,10 @@ void UAbility::SetupAbility(AUnitBase* NewCaster)
 	// Checks
 	check(MyCaster);
 	check(World);
+	checkf(AbilityName != FName("NO_NAME_ABILITY"),
+		TEXT("%s has no AbilityName set - every ability must be given a unique name."), *GetClass()->GetName());
+
+	AbilityTag = FGameplayTag::RequestGameplayTag(FName(*(FString(TEXT("Ability.")) + AbilityName.ToString())));
 }
 
 void UAbility::ActivateAbility()
@@ -195,6 +199,11 @@ AAbilityActor* UAbility::Execute_Summon(const FGameplayEffect& Effect, TSubclass
 		AbilityActor->SetMyCaster(MyCaster);
 		AbilityActor->MyEffect = Effect;
 		AbilityActor->SetLifeSpan(Effect.Duration);
+
+		if (!AbilityActor->FinishEventTag.IsValid())
+		{
+			AbilityActor->FinishEventTag = ComposeEventTag(TEXT("Finish"));
+		}
 	}
 	return AbilityActor;
 }

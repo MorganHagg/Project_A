@@ -37,4 +37,20 @@ public:
 	// Reports OnEnd, then defers to the shared AAbilityProduct::Finish() for the generic
 	// finish-report/broadcast/destroy logic.
 	virtual FVector Finish() override;
+
+	// Tag reported to MyAbility on overlap (see HandleOverlap).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	FGameplayTag OverlapEventTag;
+
+	// Bound to MeshComponent->OnComponentBeginOverlap. Sorts OtherActor into the payload: a unit
+	// goes into Target, another AbilityProduct (e.g. a Projectile passing through) goes into
+	// OverlappedProduct - then reports OverlapEventTag.
+	UFUNCTION()
+	void HandleOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	// All AUnitBase actors currently overlapping MeshComponent. bIsHelpful selects which side:
+	// true -> APlayerUnit only, false (default) -> AEnemyUnit only.
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	TArray<AUnitBase*> GetOverlappingUnits(bool bIsHelpful = false);
 };
