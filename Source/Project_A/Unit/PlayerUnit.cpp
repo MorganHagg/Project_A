@@ -1,7 +1,8 @@
 ﻿#include "PlayerUnit.h"
 #include "../Component/AbilitySystem.h"
+#include "../Component/AttributeComponent.h"
 #include "../Component/EffectHandler.h"
-#include "../Component/Stats.h"
+#include "../Misc/AttributeSet.h"
 #include "../Component/TalentComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -22,7 +23,9 @@ void APlayerUnit::SetupUnit(UUnitDataBase* SpawnData)
 	if (UPlayerUnitData* PlayerData = Cast<UPlayerUnitData>(SpawnData))
 	{
 		TalentComponent->AcquiredTalents = PlayerData->Talents;
+		TalentComponent->AbilitySystemComponent = AbilitySystemComponent;
 	}
+	
 }
 
 void APlayerUnit::AdjustCamera()
@@ -42,4 +45,37 @@ void APlayerUnit::AdjustCamera()
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 640.f, 0.f);
+}
+
+void APlayerUnit::ReceiveDamage(float Amount)
+{
+	if (AttributeComponent)
+	{
+		AttributeComponent->ModifyAttribute(EAttributeType::Health, -Amount);
+	}
+	DelegateOnReceiveDamage(Amount);
+}
+
+void APlayerUnit::ReceiveHeal(float Amount)
+{
+	if (AttributeComponent)
+	{
+		AttributeComponent->ModifyAttribute(EAttributeType::Health, Amount);
+	}
+	DelegateOnReceiveHeal(Amount);
+}
+
+void APlayerUnit::DelegateOnReceiveDamage(float Amount)
+{
+	OnReceiveDamage.Broadcast(Amount);
+}
+
+void APlayerUnit::DelegateOnReceiveHeal(float Amount)
+{
+	OnReceiveHeal.Broadcast(Amount);
+}
+
+void APlayerUnit::BroadcastAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload)
+{
+	OnAbilityEvent.Broadcast(EventTag, Payload);
 }

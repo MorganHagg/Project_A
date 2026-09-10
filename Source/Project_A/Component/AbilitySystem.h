@@ -5,6 +5,7 @@
 
 class UAbility;
 class AUnitBase;
+class UUnitDataBase;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJECT_A_API UAbilitySystem : public UActorComponent
@@ -25,7 +26,7 @@ public:
     UPROPERTY(BlueprintReadOnly)
     UAbility* ActiveAbility = nullptr;
 
-    void InstantiateAbilities(TArray<TSubclassOf<UAbility>> AbilityArray);
+    void InstantiateAbilities(const UUnitDataBase* UnitData);
 
     UFUNCTION(BlueprintCallable)
     bool SwapAbility(TSubclassOf<UAbility> OldAbilityClass, TSubclassOf<UAbility> NewAbilityClass);

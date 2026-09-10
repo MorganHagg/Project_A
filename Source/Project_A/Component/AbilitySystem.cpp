@@ -1,6 +1,7 @@
 ﻿#include "AbilitySystem.h"
 #include "../Ability/Ability.h"
 #include "../Unit/UnitBase.h"
+#include "../DataAsset/UnitDataBase.h"
 
 UAbilitySystem::UAbilitySystem()
 {
@@ -14,9 +15,14 @@ void UAbilitySystem::BeginPlay()
 	MyOwner = CastChecked<AUnitBase>(GetOwner());
 }
 
-void UAbilitySystem::InstantiateAbilities(TArray<TSubclassOf<UAbility>> AbilityArray)
+void UAbilitySystem::InstantiateAbilities(const UUnitDataBase* UnitData)
 {
-	for (TSubclassOf<UAbility> AbilityClass : AbilityArray)
+	if (!UnitData)
+	{
+		return;
+	}
+
+	for (TSubclassOf<UAbility> AbilityClass : UnitData->DefaultAbilities)
 	{
 		if (!AbilityClass)
 		{
@@ -52,7 +58,6 @@ bool UAbilitySystem::SwapAbility(TSubclassOf<UAbility> OldAbilityClass, TSubclas
 
 UAbility* UAbilitySystem::InitiateAbility(int32 Slot)
 {
-	UE_LOG(LogTemp, Warning, TEXT("The slot was %i"), Slot)
 	if (GrantedAbilities.IsValidIndex(Slot) &&
 		GrantedAbilities[Slot] &&
 		MyOwner)

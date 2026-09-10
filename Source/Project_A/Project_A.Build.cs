@@ -8,9 +8,16 @@ public class Project_A : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "AIModule" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "AIModule", "GameplayTags" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
+
+		if (Target.Type == TargetType.Editor)
+		{
+			// Editor-only: lets AbilityTagSync.cpp scan /Game/Abilities and register the standard
+			// event tags for each Ability's AbilityName without manual Config/DefaultGameplayTags.ini edits.
+			PrivateDependencyModuleNames.AddRange(new string[] { "GameplayTagsEditor", "AssetRegistry" });
+		}
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

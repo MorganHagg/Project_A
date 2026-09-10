@@ -30,11 +30,16 @@ AUnitBase* UUnitSpawner::SpawnUnitInternal(
 
 AEnemyUnit* UUnitSpawner::SpawnUnit(UEnemyUnitData* SpawnData, const FTransform& SpawnTransform)
 {
-    return Cast<AEnemyUnit>(SpawnUnitInternal(AEnemyUnit::StaticClass(), SpawnData, SpawnTransform));
+    if (!SpawnData) return nullptr;
+
+    UClass* ClassToSpawn = SpawnData->CustomUnitClass ? *SpawnData->CustomUnitClass : AEnemyUnit::StaticClass();
+    return Cast<AEnemyUnit>(SpawnUnitInternal(ClassToSpawn, SpawnData, SpawnTransform));
 }
 
-APlayerUnit* UUnitSpawner::SpawnPlayerUnit(UPlayerUnitData* SpawnData, FVector Location)
+APlayerUnit* UUnitSpawner::SpawnPlayerUnit(UPlayerUnitData* SpawnData, const FTransform& SpawnTransform)
 {
-    FTransform SpawnTransform(FRotator::ZeroRotator, Location);
-    return Cast<APlayerUnit>(SpawnUnitInternal(APlayerUnit::StaticClass(), SpawnData, SpawnTransform));
+    if (!SpawnData) return nullptr;
+
+    UClass* ClassToSpawn = SpawnData->CustomUnitClass ? *SpawnData->CustomUnitClass : APlayerUnit::StaticClass();
+    return Cast<APlayerUnit>(SpawnUnitInternal(ClassToSpawn, SpawnData, SpawnTransform));
 }

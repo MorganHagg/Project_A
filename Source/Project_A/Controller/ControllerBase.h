@@ -51,15 +51,28 @@ private:
 	TMap<TObjectPtr<UInputAction>, int32> AbilityInputMap;
 
 	bool ResolveAbilitySlot(const FInputActionInstance& Instance, int32& OutBaseSlot);
-	
-	FTimerHandle HoldTimerHandle;
-	int32 PressedBaseSlot = -1;
-	bool bHoldThresholdMet = false;
+
+	// Tracks each base slot currently being held, from press until release/resolution.
+	struct FAbilityPressState
+	{
+		FTimerHandle HoldTimerHandle;
+		bool bHoldThresholdMet = false;
+	};
+	TMap<int32, FAbilityPressState> PressedSlots;
+
+	// Base slot of the hold ability currently active, if any. Modify always acts on this slot (base+2).
+	int32 ActiveHoldBaseSlot = -1;
 
 	void Move(const FInputActionValue& Value);
 	void FaceMouseCursor();
 
 	void OnAbilityInputPressed(const FInputActionInstance& Instance);
 	void OnAbilityInputReleased(const FInputActionInstance& Instance);
-	void OnHoldThresholdMet();
+	void OnHoldThresholdMet(int32 BaseSlot);
+
+	// Activates the hold ability at BaseSlot, as if its threshold had just been met.
+	void ActivateHold(int32 BaseSlot);
+
+	// Applies the Modify ability for whichever slot is in ActiveHoldBaseSlot.
+	void ApplyModify();
 };

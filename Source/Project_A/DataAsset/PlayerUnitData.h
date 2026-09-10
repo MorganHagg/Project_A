@@ -4,6 +4,7 @@
 #include "PlayerUnitData.generated.h"
 
 class UTalentData;
+class APlayerUnit;
 
 UCLASS(BlueprintType)
 class PROJECT_A_API UPlayerUnitData : public UUnitDataBase
@@ -12,4 +13,7 @@ class PROJECT_A_API UPlayerUnitData : public UUnitDataBase
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TArray<UTalentData*> Talents;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<APlayerUnit> CustomUnitClass;
 };

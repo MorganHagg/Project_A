@@ -7,7 +7,7 @@
 class UAbilitySystem;
 class UEffectHandler;
 class UBehaviorTree;
-class UStats;
+class UAttributeComponent;
 
 UCLASS()
 class PROJECT_A_API AUnitBase : public ACharacter
@@ -33,7 +33,7 @@ public:
 	UEffectHandler* EffectHandlerComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
-	UStats* StatsComponent;
+	UAttributeComponent* AttributeComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UUnitDataBase* UnitData;

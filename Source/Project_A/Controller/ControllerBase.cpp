@@ -124,66 +124,98 @@ void AControllerBase::OnAbilityInputPressed(const FInputActionInstance& Instance
     if (!ResolveAbilitySlot(Instance, BaseSlot))
         return;
 
-    UAbilitySystem* AbilitySystem = PlayerUnit->AbilitySystemComponent;
-
-    if (AbilitySystem->ActiveAbility)
+    if (ActiveHoldBaseSlot != -1)
     {
-        if (!AbilitySystem->GrantedAbilities.IsValidIndex(BaseSlot + 2))
-        {
-            UE_LOG(LogTemp, Error, TEXT("GrantedAbilities has no slot %d"), BaseSlot + 2);
-            return;
-        }
-
-        if (UAbility* ModifyAbility = AbilitySystem->GrantedAbilities[PressedBaseSlot + 2])
-        {
-            ModifyAbility->ActivateAbility();
-            if (ModifyAbility->bModifyEndsAbility)
-                AbilitySystem->EndActiveAbility();
-        }
+        // A hold is already active: this press modifies it, rather than starting its own tap/hold.
+        ApplyModify();
         return;
     }
 
-    PressedBaseSlot = BaseSlot;
-    bHoldThresholdMet = false;
+    for (const auto& Pair : PressedSlots)
+    {
+        if (Pair.Key != BaseSlot)
+        {
+            // Another ability is still pending its own hold threshold: force it active now, then modify it.
+            ActivateHold(Pair.Key);
+            ApplyModify();
+            return;
+        }
+    }
 
-    GetWorldTimerManager().SetTimer(
-        HoldTimerHandle, this, &AControllerBase::OnHoldThresholdMet, HoldThreshold, false);
+    FAbilityPressState& State = PressedSlots.Add(BaseSlot);
+    State.bHoldThresholdMet = false;
+
+    FTimerDelegate Delegate = FTimerDelegate::CreateUObject(this, &AControllerBase::OnHoldThresholdMet, BaseSlot);
+    GetWorldTimerManager().SetTimer(State.HoldTimerHandle, Delegate, HoldThreshold, false);
 }
 
-void AControllerBase::OnHoldThresholdMet()
+void AControllerBase::OnHoldThresholdMet(int32 BaseSlot)
 {
-    bHoldThresholdMet = true;
+    ActivateHold(BaseSlot);
+}
 
+void AControllerBase::ActivateHold(int32 BaseSlot)
+{
     if (!PlayerUnit || !PlayerUnit->AbilitySystemComponent)
         return;
 
+    if (FAbilityPressState* State = PressedSlots.Find(BaseSlot))
+    {
+        GetWorldTimerManager().ClearTimer(State->HoldTimerHandle);
+        State->bHoldThresholdMet = true;
+    }
+
+    UAbilitySystem* AbilitySystem = PlayerUnit->AbilitySystemComponent;
+    AbilitySystem->SetActiveAbility(AbilitySystem->InitiateAbility(BaseSlot + 1));
+    ActiveHoldBaseSlot = BaseSlot;
+}
+
+void AControllerBase::ApplyModify()
+{
     UAbilitySystem* AbilitySystem = PlayerUnit->AbilitySystemComponent;
 
-    if (AbilitySystem)
+    if (!AbilitySystem->GrantedAbilities.IsValidIndex(ActiveHoldBaseSlot + 2))
     {
-        AbilitySystem->SetActiveAbility(AbilitySystem->InitiateAbility(PressedBaseSlot + 1));
+        UE_LOG(LogTemp, Error, TEXT("GrantedAbilities has no slot %d"), ActiveHoldBaseSlot + 2);
+        return;
+    }
+
+    if (UAbility* ModifyAbility = AbilitySystem->GrantedAbilities[ActiveHoldBaseSlot + 2])
+    {
+        ModifyAbility->ActivateAbility();
+        if (ModifyAbility->bModifyEndsAbility)
+        {
+            AbilitySystem->EndActiveAbility();
+            ActiveHoldBaseSlot = -1;
+        }
     }
 }
 
 void AControllerBase::OnAbilityInputReleased(const FInputActionInstance& Instance)
 {
     int32 BaseSlot;
-    if (!ResolveAbilitySlot(Instance, BaseSlot) || BaseSlot != PressedBaseSlot)
+    if (!ResolveAbilitySlot(Instance, BaseSlot))
         return;
-    
-    GetWorldTimerManager().ClearTimer(HoldTimerHandle);
+
+    FAbilityPressState State;
+    if (!PressedSlots.RemoveAndCopyValue(BaseSlot, State))
+        return; // Not a tracked press (e.g. it was consumed earlier as a Modify trigger).
+
+    GetWorldTimerManager().ClearTimer(State.HoldTimerHandle);
 
     UAbilitySystem* AbilitySystem = PlayerUnit->AbilitySystemComponent;
 
-    if (bHoldThresholdMet)
+    if (State.bHoldThresholdMet)
     {
-        AbilitySystem->EndActiveAbility();
+        if (ActiveHoldBaseSlot == BaseSlot)
+        {
+            AbilitySystem->EndActiveAbility();
+            ActiveHoldBaseSlot = -1;
+        }
+        // Else: already ended by a Modify tap while held.
     }
     else
     {
-        AbilitySystem->InitiateAbility(PressedBaseSlot);
+        AbilitySystem->InitiateAbility(BaseSlot);
     }
-
-    PressedBaseSlot = -1;
-    bHoldThresholdMet = false;
 }

@@ -2,9 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "../Talent/TalentBase.h"
 #include "TalentComponent.generated.h"
 
 class UTalentData;
+class UAbilitySystem;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJECT_A_API UTalentComponent : public UActorComponent
@@ -25,4 +27,7 @@ public:
 	TArray<UTalentData*> AcquiredTalents;
 
 	bool bContainAcquiredTalents(UTalentData* Talents);
+
+	UPROPERTY()
+	UAbilitySystem* AbilitySystemComponent;
 };

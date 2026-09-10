@@ -6,6 +6,7 @@
 class UAbility;
 class UBehaviorTree;
 class USkeletalMesh;
+class AEnemyUnit;
 
 UCLASS(BlueprintType)
 class PROJECT_A_API UEnemyUnitData : public UUnitDataBase
@@ -15,4 +16,7 @@ class PROJECT_A_API UEnemyUnitData : public UUnitDataBase
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	UBehaviorTree* BehaviorTree;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<AEnemyUnit> CustomUnitClass;
 };

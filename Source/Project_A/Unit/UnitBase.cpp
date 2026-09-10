@@ -1,20 +1,17 @@
 ﻿#include "UnitBase.h"
 #include "../Component/AbilitySystem.h"
 #include "../Component/EffectHandler.h"
-#include "../Component/Stats.h"
-#include "AIController.h"
-#include "BehaviorTree/BehaviorTree.h"
-#include "GameFramework/CharacterMovementComponent.h"
+#include "../Component/AttributeComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
-
+	
 
 AUnitBase::AUnitBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystem>(TEXT("AbilitySystemComponent"));
 	EffectHandlerComponent = CreateDefaultSubobject<UEffectHandler>(TEXT("EffectHandlerComponent"));
-	StatsComponent = CreateDefaultSubobject<UStats>(TEXT("StatsComponent"));
+	AttributeComponent = CreateDefaultSubobject<UAttributeComponent>(TEXT("AttributeComponent"));
 }
 
 void AUnitBase::BeginPlay()
@@ -32,7 +29,8 @@ void AUnitBase::SetupUnit(UUnitDataBase* SpawnData)
 {
 	UnitData = SpawnData;
 
-	AbilitySystemComponent->InstantiateAbilities(SpawnData->DefaultAbilities);
+	AbilitySystemComponent->InstantiateAbilities(SpawnData);
+	AttributeComponent->InstantiateAttributes(SpawnData);
 
 	GetMesh()->SetSkeletalMesh(SpawnData->Mesh);
 	if (SpawnData->AnimationBlueprint)
