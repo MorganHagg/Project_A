@@ -21,7 +21,10 @@ public:
 	void OnTick();
 	virtual void OnTick_Implementation() {}
 
+	// Location is where the ability/product ended - passed through from Finish()/EndAbility() so
+	// Blueprint doesn't need to query it separately (it may no longer be meaningful by the time
+	// this fires, e.g. after MyCaster is cleared).
 	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
-	void OnEnd();
-	virtual void OnEnd_Implementation() {}
+	void OnEnd(FVector Location);
+	virtual void OnEnd_Implementation(FVector Location) {}
 };

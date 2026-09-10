@@ -34,12 +34,14 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float Magnitude = 0.f;
 
-	// Reports OnEnd, then defers to the shared AAbilityProduct::Finish() for the generic
-	// finish-report/broadcast/destroy logic.
+	// Notifies (reports FinishEventTag, broadcasts OnFinish) before firing OnEnd, so talents/
+	// OnFinish listeners reacting to the finish can still take effect before OnEnd runs - then
+	// destroys the actor. Does not call Super::Finish(), since that would destroy before OnEnd
+	// could fire; duplicates only the guard check, not the notify/destroy logic.
 	virtual FVector Finish() override;
 
 	// Tag reported to MyAbility on overlap (see HandleOverlap).
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability", meta = (Categories = "Ability"))
 	FGameplayTag OverlapEventTag;
 
 	// Bound to MeshComponent->OnComponentBeginOverlap. Sorts OtherActor into the payload: a unit

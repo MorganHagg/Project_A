@@ -17,7 +17,7 @@ public:
 	// (e.g. "Ability.Fireball") also catches its children (e.g. "Ability.Fireball.Finish").
 	// A talent that needs to react to more than one distinct event should be split into
 	// separate talents, one per event.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent", meta = (Categories = "Ability"))
 	FGameplayTag ListenTag;
 
 	// Binds this talent to its owning PlayerUnit - the sole delegation point for talents.

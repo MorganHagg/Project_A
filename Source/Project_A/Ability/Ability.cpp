@@ -66,10 +66,11 @@ void UAbility::EndAbility()
 	if (bHasEnded) return;
 	bHasEnded = true;
 
-	IAbilityLifecycle::Execute_OnEnd(this);
+	const FVector EndLocation = MyCaster ? MyCaster->GetActorLocation() : FVector::ZeroVector;
+	IAbilityLifecycle::Execute_OnEnd(this, EndLocation);
 
 	FAbilityEventPayload FinishPayload;
-	FinishPayload.Location = MyCaster ? MyCaster->GetActorLocation() : FVector::ZeroVector;
+	FinishPayload.Location = EndLocation;
 	ReportAbilityEvent(ComposeEventTag(TEXT("Finish")), FinishPayload);
 }
 

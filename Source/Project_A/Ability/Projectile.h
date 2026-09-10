@@ -55,7 +55,7 @@ public:
 
 	// Tag reported to MyAbility on hit (set by UAbility::Execute_Projectile). Finish uses the
 	// inherited FinishEventTag.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability", meta = (Categories = "Ability"))
 	FGameplayTag HitEventTag;
 
 	// Snaps to the given hit location (the actual finish point may be a sweep impact point,

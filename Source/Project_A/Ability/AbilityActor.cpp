@@ -48,13 +48,17 @@ void AAbilityActor::Tick(float DeltaTime)
 
 FVector AAbilityActor::Finish()
 {
-	// OnEnd must only ever fire once - Super::Finish()'s guard only protects its own body,
-	// not this one, so check bHasFinished (inherited, protected) here first.
-	if (!bHasFinished)
+	if (bHasFinished)
 	{
-		IAbilityLifecycle::Execute_OnEnd(this);
+		return GetActorLocation();
 	}
-	return Super::Finish();
+
+	const FAbilityEventPayload Payload = NotifyFinish();
+
+	IAbilityLifecycle::Execute_OnEnd(this, Payload.Location);
+
+	Destroy();
+	return Payload.Location;
 }
 
 void AAbilityActor::HandleOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,

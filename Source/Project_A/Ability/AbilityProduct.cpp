@@ -47,6 +47,15 @@ FVector AAbilityProduct::Finish()
 	{
 		return GetActorLocation();
 	}
+
+	const FAbilityEventPayload Payload = NotifyFinish();
+
+	Destroy();
+	return Payload.Location;
+}
+
+FAbilityEventPayload AAbilityProduct::NotifyFinish()
+{
 	bHasFinished = true;
 
 	FAbilityEventPayload Payload;
@@ -58,6 +67,5 @@ FVector AAbilityProduct::Finish()
 	ReportAbilityEvent(FinishEventTag, Payload);
 	OnFinish.Broadcast(Payload);
 
-	Destroy();
-	return Payload.Location;
+	return Payload;
 }

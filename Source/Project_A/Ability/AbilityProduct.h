@@ -43,7 +43,7 @@ public:
 	FGameplayEffect MyEffect;
 
 	// Tag reported through ReportAbilityEvent when this actor finishes (see Finish()).
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability", meta = (Categories = "Ability"))
 	FGameplayTag FinishEventTag;
 
 	// Reports a tagged event (with contextual Payload) to this actor's owning Ability,
@@ -68,4 +68,11 @@ public:
 protected:
 	UPROPERTY()
 	bool bHasFinished = false;
+
+	// Sets bHasFinished, builds the finish payload, reports FinishEventTag, and broadcasts
+	// OnFinish - everything Finish() does except actually destroying the actor. Split out so
+	// AAbilityActor::Finish() can insert its OnEnd hook between notifying and destroying, instead
+	// of OnEnd firing before talents/OnFinish listeners get a chance to react. Callers must still
+	// check bHasFinished themselves first - this does not guard against being called twice.
+	FAbilityEventPayload NotifyFinish();
 };
