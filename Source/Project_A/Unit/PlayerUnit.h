@@ -14,8 +14,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerReceiveHeal, float, Amount)
 
 // Sole delegation point for talents. Abilities report tagged events here (see
 // UAbility::ReportAbilityEvent); every listening talent receives every event
-// and filters by its own ListenTags (see UTalentBase::HandleAbilityEvent).
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityEvent, FGameplayTag, EventTag, FAbilityEventPayload, Payload);
+// and filters by its own RequiredTags (see UTalentBase::HandleAbilityEvent).
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityEvent, FGameplayTagContainer, EventTags, FAbilityEventPayload, Payload);
 
 UCLASS()
 class PROJECT_A_API APlayerUnit : public AUnitBase
@@ -61,5 +61,5 @@ public:
 	FOnAbilityEvent OnAbilityEvent;
 
 	UFUNCTION(BlueprintCallable, Category = "Talent")
-	void BroadcastAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload);
+	void BroadcastAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload);
 };

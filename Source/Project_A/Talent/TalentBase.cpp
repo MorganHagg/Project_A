@@ -18,9 +18,12 @@ void UTalentBase::BindToPlayerUnit(APlayerUnit* PlayerUnit)
 	OnSetup();
 }
 
-void UTalentBase::HandleAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload)
+void UTalentBase::HandleAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload)
 {
-	if (EventTag.MatchesTag(ListenTag))
+	// RequiredTags.IsEmpty() is guarded explicitly - FGameplayTagContainer::HasAll() considers an
+	// empty requirement trivially satisfied, which would otherwise make an unconfigured talent
+	// fire on every event instead of staying inert.
+	if (!RequiredTags.IsEmpty() && EventTags.HasAll(RequiredTags))
 	{
 		OnAbilityEvent(Payload);
 	}

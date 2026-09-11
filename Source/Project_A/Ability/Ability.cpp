@@ -49,7 +49,7 @@ void UAbility::ActivateAbility()
 
 	FAbilityEventPayload CastPayload;
 	CastPayload.Location = MyCaster ? MyCaster->GetActorLocation() : FVector::ZeroVector;
-	ReportAbilityEvent(ComposeEventTag(TEXT("Cast")), CastPayload);
+	ReportAbilityEvent(ComposeEventTags(TEXT("Cast")), CastPayload);
 
 	IAbilityLifecycle::Execute_OnActivate(this);
 }
@@ -71,7 +71,7 @@ void UAbility::EndAbility()
 
 	FAbilityEventPayload FinishPayload;
 	FinishPayload.Location = EndLocation;
-	ReportAbilityEvent(ComposeEventTag(TEXT("Finish")), FinishPayload);
+	ReportAbilityEvent(ComposeEventTags(TEXT("Finish")), FinishPayload);
 }
 
 void UAbility::KillAbility()
@@ -94,7 +94,7 @@ void UAbility::Execute_Target(const FGameplayEffect& Effect, AUnitBase* Target)
 		Payload.Location = Target->GetActorLocation();
 		Payload.AppliedEffect = Effect;
 		Payload.Magnitude = Effect.Magnitude;
-		ReportAbilityEvent(ComposeEventTag(TEXT("TargetHit")), Payload);
+		ReportAbilityEvent(ComposeEventTags(TEXT("TargetHit")), Payload);
 	}
 }
 
@@ -138,7 +138,7 @@ TArray<ACharacter*> UAbility::Execute_AOE(
 				Payload.Location = TargetCharacter->GetActorLocation();
 				Payload.AppliedEffect = Effect;
 				Payload.Magnitude = Effect.Magnitude;
-				ReportAbilityEvent(ComposeEventTag(TEXT("TargetHit")), Payload);
+				ReportAbilityEvent(ComposeEventTags(TEXT("TargetHit")), Payload);
 
 				Targets.AddUnique(TargetCharacter);
 			}
@@ -179,13 +179,13 @@ void UAbility::Execute_Projectile(
 	Projectile->PenetrationCount = PenetrationCount;
 	Projectile->MeshComponent->IgnoreActorWhenMoving(MyCaster, true);
 
-	if (!Projectile->HitEventTag.IsValid())
+	if (Projectile->HitEventTags.IsEmpty())
 	{
-		Projectile->HitEventTag = ComposeEventTag(TEXT("TargetHit"));
+		Projectile->HitEventTags = ComposeEventTags(TEXT("TargetHit"));
 	}
-	if (!Projectile->FinishEventTag.IsValid())
+	if (Projectile->FinishEventTags.IsEmpty())
 	{
-		Projectile->FinishEventTag = ComposeEventTag(TEXT("Finish"));
+		Projectile->FinishEventTags = ComposeEventTags(TEXT("Finish"));
 	}
 
 	Projectile->FinishSpawning(SpawnTransform);
@@ -220,29 +220,39 @@ AAbilityActor* UAbility::Execute_Summon(TSubclassOf<AAbilityActor> NewActor, FTr
 		AbilityActor->SetMyAbility(this); 
 		AbilityActor->SetMyCaster(MyCaster);
 
-		if (!AbilityActor->FinishEventTag.IsValid())
+		if (AbilityActor->FinishEventTags.IsEmpty())
 		{
-			AbilityActor->FinishEventTag = ComposeEventTag(TEXT("Finish"));
+			AbilityActor->FinishEventTags = ComposeEventTags(TEXT("Finish"));
 		}
 	}
 	return AbilityActor;
 }
 
 
-void UAbility::ReportAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload)
+void UAbility::ReportAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload)
 {
 	Payload.Ability = this;
 	if (APlayerUnit* PlayerUnit = Cast<APlayerUnit>(MyCaster))
 	{
-		PlayerUnit->BroadcastAbilityEvent(EventTag, Payload);
+		PlayerUnit->BroadcastAbilityEvent(EventTags, Payload);
 	}
 }
 
-FGameplayTag UAbility::ComposeEventTag(const TCHAR* Suffix) const
+FGameplayTagContainer UAbility::ComposeEventTags(const TCHAR* Suffix) const
 {
 	if (!AbilityTag.IsValid())
 	{
-		return FGameplayTag();
+		return FGameplayTagContainer();
 	}
-	return FGameplayTag::RequestGameplayTag(FName(*(AbilityTag.ToString() + TEXT(".") + Suffix)));
+
+	FGameplayTagContainer Tags;
+	Tags.AddTag(AbilityTag);
+
+	const FGameplayTag EventTag = FGameplayTag::RequestGameplayTag(FName(*(FString(TEXT("Event.")) + Suffix)));
+	if (EventTag.IsValid())
+	{
+		Tags.AddTag(EventTag);
+	}
+
+	return Tags;
 }

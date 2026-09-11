@@ -13,12 +13,15 @@ class PROJECT_A_API UTalentBase : public UObject
 {
 	GENERATED_BODY()
 public:
-	// The single event this talent reacts to. Hierarchical - listening to a parent tag
-	// (e.g. "Ability.Fireball") also catches its children (e.g. "Ability.Fireball.Finish").
-	// A talent that needs to react to more than one distinct event should be split into
-	// separate talents, one per event.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent", meta = (Categories = "Ability"))
-	FGameplayTag ListenTag;
+	// The set of facet tags this talent requires to all be present on a reported event (AND, not
+	// OR - see HandleAbilityEvent). Events report independent facets: an ability identity tag
+	// (e.g. "Ability.Fireball") plus one or more event-category tags (e.g. "Event.TargetHit",
+	// "Event.Crit"). {Event.Crit} reacts to a crit from any ability; {Ability.Fireball, Event.Crit}
+	// reacts only to Fireball's crits. Left empty, the talent never fires - it isn't a wildcard.
+	// A talent that needs to react to more than one distinct combination should be split into
+	// separate talents, one per combination.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent", meta = (Categories = "Ability,Event"))
+	FGameplayTagContainer RequiredTags;
 
 	// Binds this talent to its owning PlayerUnit - the sole delegation point for talents.
 	UFUNCTION(BlueprintCallable)
@@ -30,9 +33,9 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	APlayerUnit* MyPlayerUnit;
 
-	// Native filter: forwards to OnAbilityEvent only if EventTag matches ListenTag.
+	// Native filter: forwards to OnAbilityEvent only if EventTags has every tag in RequiredTags.
 	UFUNCTION()
-	void HandleAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload);
+	void HandleAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload);
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnAbilityEvent(FAbilityEventPayload Payload);

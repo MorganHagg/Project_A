@@ -34,19 +34,19 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float Magnitude = 0.f;
 
-	// Notifies (reports FinishEventTag, broadcasts OnFinish) before firing OnEnd, so talents/
+	// Notifies (reports FinishEventTags, broadcasts OnFinish) before firing OnEnd, so talents/
 	// OnFinish listeners reacting to the finish can still take effect before OnEnd runs - then
 	// destroys the actor. Does not call Super::Finish(), since that would destroy before OnEnd
 	// could fire; duplicates only the guard check, not the notify/destroy logic.
 	virtual void Finish() override;
 
-	// Tag reported to MyAbility on overlap (see HandleOverlap).
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability", meta = (Categories = "Ability"))
-	FGameplayTag OverlapEventTag;
+	// Tags reported to MyAbility on overlap (see HandleOverlap).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability", meta = (Categories = "Ability,Event"))
+	FGameplayTagContainer OverlapEventTags;
 
 	// Bound to MeshComponent->OnComponentBeginOverlap. Sorts OtherActor into the payload: a unit
 	// goes into Target, another AbilityProduct (e.g. a Projectile passing through) goes into
-	// OverlappedProduct - then reports OverlapEventTag.
+	// OverlappedProduct - then reports OverlapEventTags.
 	UFUNCTION()
 	void HandleOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);

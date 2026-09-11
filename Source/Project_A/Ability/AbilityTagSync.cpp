@@ -1,7 +1,10 @@
 // Editor-only dev tool: scans /Game/Abilities for every UAbility Blueprint class and registers
-// the standard event tags for each one's AbilityName, so DefaultGameplayTags.ini doesn't have to
-// be hand-edited every time a new ability is authored. Deliberately kept out of Ability.h/.cpp so
-// UAbility itself has no dependency on the editor-only GameplayTagsEditor/AssetRegistry modules.
+// each one's identity tag (Ability.<Name>), so DefaultGameplayTags.ini doesn't have to be
+// hand-edited every time a new ability is authored. The shared, ability-agnostic event-category
+// tags (Event.Cast/Finish/TargetHit/Overlap/Crit - see UAbility::ComposeEventTags) are fixed and
+// don't multiply per ability, so they're maintained by hand in DefaultGameplayTags.ini instead.
+// Deliberately kept out of Ability.h/.cpp so UAbility itself has no dependency on the editor-only
+// GameplayTagsEditor/AssetRegistry modules.
 #if WITH_EDITOR
 
 #include "Ability.h"
@@ -14,15 +17,6 @@
 
 namespace
 {
-	// Produced by UAbility::ComposeEventTag somewhere in the C++: Cast/Finish (UAbility itself,
-	// unconditionally), TargetHit (Execute_Target/Execute_AOE/Execute_Projectile), Overlap
-	// (AAbilityActor::HandleOverlap). TargetHit.Crit has no C++ producer yet (no crit-detection
-	// logic exists) - registered pre-emptively so the tag is ready whenever that lands. Anything
-	// more bespoke stays manually added.
-	static const TCHAR* StandardAbilityTagSuffixes[] = {
-		TEXT("Cast"), TEXT("Finish"), TEXT("TargetHit"), TEXT("TargetHit.Crit"), TEXT("Overlap")
-	};
-
 	void SyncOneAbility(const UAbility* AbilityCDO, IGameplayTagsEditorModule& TagsEditor)
 	{
 		const FName AbilityName = AbilityCDO->GetAbilityName();
@@ -32,21 +26,16 @@ namespace
 			return;
 		}
 
-		for (const TCHAR* Suffix : StandardAbilityTagSuffixes)
+		const FString NewTag = FString::Printf(TEXT("Ability.%s"), *AbilityName.ToString());
+
+		// Skip tags that already resolve - AddNewGameplayTagToINI logs an Error for an
+		// already-existing tag, which would otherwise spam the log on every re-run.
+		if (!FGameplayTag::RequestGameplayTag(FName(*NewTag), /*ErrorIfNotFound=*/false).IsValid())
 		{
-			const FString NewTag = FString::Printf(TEXT("Ability.%s.%s"), *AbilityName.ToString(), Suffix);
-
-			// Skip tags that already resolve - AddNewGameplayTagToINI logs an Error for an
-			// already-existing tag, which would otherwise spam the log on every re-run.
-			if (FGameplayTag::RequestGameplayTag(FName(*NewTag), /*ErrorIfNotFound=*/false).IsValid())
-			{
-				continue;
-			}
-
 			TagsEditor.AddNewGameplayTagToINI(NewTag);
 		}
 
-		UE_LOG(LogTemp, Log, TEXT("Abilities.SyncTags: registered standard tags for Ability.%s."), *AbilityName.ToString());
+		UE_LOG(LogTemp, Log, TEXT("Abilities.SyncTags: registered identity tag for Ability.%s."), *AbilityName.ToString());
 	}
 
 	void SyncAbilityTags(const TArray<FString>& Args)
@@ -88,7 +77,7 @@ namespace
 
 	static FAutoConsoleCommand SyncAbilityTagsCommand(
 		TEXT("Abilities.SyncTags"),
-		TEXT("Scans /Game/Abilities for every UAbility Blueprint class and registers the standard Cast/Finish/TargetHit/Overlap gameplay tags for each one's AbilityName."),
+		TEXT("Scans /Game/Abilities for every UAbility Blueprint class and registers each one's Ability.<Name> identity tag."),
 		FConsoleCommandWithArgsDelegate::CreateStatic(&SyncAbilityTags));
 }
 

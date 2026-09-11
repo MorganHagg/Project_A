@@ -64,7 +64,7 @@ public:
 	FOnProjectileHit OnPenetrateHit;   // fired per penetrating hit — apply effects
 	FOnProjectileFinished OnFinished;  // fired exactly once — resolves the latent action
 
-	// Notifies (reports FinishEventTag, broadcasts OnFinish) before firing OnEnd, then destroys -
+	// Notifies (reports FinishEventTags, broadcasts OnFinish) before firing OnEnd, then destroys -
 	// same ordering as AAbilityActor::Finish(). Snaps to the given hit location first (the actual
 	// finish point may be a sweep impact point, different from GetActorLocation()). Does not call
 	// Super::Finish(), since that would destroy before OnEnd could fire.

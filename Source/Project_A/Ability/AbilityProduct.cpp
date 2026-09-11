@@ -27,7 +27,7 @@ void AAbilityProduct::SetMyCaster(ACharacter* Caster)
 	MyCaster = Caster;
 }
 
-void AAbilityProduct::ReportAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload)
+void AAbilityProduct::ReportAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload)
 {
 	Payload.Ability = MyAbility;
 	if (Payload.AbilityProduct == nullptr)
@@ -36,7 +36,7 @@ void AAbilityProduct::ReportAbilityEvent(FGameplayTag EventTag, FAbilityEventPay
 	}
 	if (MyAbility)
 	{
-		MyAbility->ReportAbilityEvent(EventTag, Payload);
+		MyAbility->ReportAbilityEvent(EventTags, Payload);
 	}
 }
 
@@ -60,9 +60,8 @@ FAbilityEventPayload AAbilityProduct::NotifyFinish()
 	Payload.Ability = MyAbility;
 	Payload.AbilityProduct = this;
 	Payload.Location = GetActorLocation();
-	Payload.AppliedEffect = MyEffect;
 
-	ReportAbilityEvent(FinishEventTag, Payload);
+	ReportAbilityEvent(FinishEventTags, Payload);
 	OnFinish.Broadcast(Payload);
 
 	return Payload;
@@ -76,12 +75,12 @@ void AAbilityProduct::HitTarget_Implementation(AUnitBase* Target, FVector Locati
 	Payload.Target = Target;
 	Payload.Location = Location;
 
-	if (!HitEventTag.IsValid() && MyAbility)
+	if (HitEventTags.IsEmpty() && MyAbility)
 	{
-		HitEventTag = MyAbility->ComposeEventTag(TEXT("TargetHit"));
+		HitEventTags = MyAbility->ComposeEventTags(TEXT("TargetHit"));
 	}
 
-	ReportAbilityEvent(HitEventTag, Payload);
+	ReportAbilityEvent(HitEventTags, Payload);
 	OnHit.Broadcast(Payload);
 }
 

@@ -162,10 +162,14 @@ protected:
 	bool bHasEnded = false;	// Small guard against double end
 
 public:
-	// Composes AbilityTag + "." + Suffix into a registered event tag (e.g. "TargetHit" -> "Ability.Fireball.TargetHit").
-	// Public so callers outside UAbility (e.g. AAbilityActor::HandleOverlap) can compose their own
-	// event tags from the owning ability's AbilityTag.
-	FGameplayTag ComposeEventTag(const TCHAR* Suffix) const;
+	// Builds the tag set reported for one event: this ability's identity tag (AbilityTag, e.g.
+	// "Ability.Fireball") plus the shared, ability-agnostic event-category tag ("Event." + Suffix,
+	// e.g. "Event.TargetHit"). Reporting both as independent facets (rather than one composed
+	// "Ability.Fireball.TargetHit" tag) lets a talent's RequiredTags AND them together - e.g.
+	// {Event.Crit} to react to any ability's crit, or {Ability.Fireball, Event.Crit} for Fireball's
+	// only. Public so callers outside UAbility (e.g. AAbilityActor::HandleOverlap) can compose their
+	// own event tag sets from the owning ability's AbilityTag.
+	FGameplayTagContainer ComposeEventTags(const TCHAR* Suffix) const;
 
 	// --------------------------------------------------------------
 	// Talent delegation
@@ -175,5 +179,5 @@ public:
 	// this Ability's own Execute_* library, or directly by the Ability
 	// Blueprint (e.g. from OnActivate/OnEnd for Cast/Finish events).
 	UFUNCTION(BlueprintCallable, Category = "Ability")
-	void ReportAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload);
+	void ReportAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload);
 };
