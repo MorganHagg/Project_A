@@ -1,6 +1,7 @@
 ﻿#include "Ability.h"
 #include "../Unit/UnitBase.h"
 #include "../Unit/PlayerUnit.h"
+#include "../Unit/EnemyUnit.h"
 #include "Gameframework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/OverlapResult.h"
@@ -82,20 +83,49 @@ void UAbility::KillAbility()
 // ============================================================================
 // Execute library
 // ============================================================================
-void UAbility::Execute_Target(const FGameplayEffect& Effect, AUnitBase* Target)
+bool UAbility::MatchesSelection(const AUnitBase* Unit, ETargetSelection TargetSelection)
 {
-	UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>();
-	if (EffectHandler)
+	switch (TargetSelection)
 	{
-		EffectHandler->AddEffect(Effect);
-
-		FAbilityEventPayload Payload;
-		Payload.Target = Target;
-		Payload.Location = Target->GetActorLocation();
-		Payload.AppliedEffect = Effect;
-		Payload.Magnitude = Effect.Magnitude;
-		ReportAbilityEvent(ComposeEventTags(TEXT("TargetHit")), Payload);
+	case ETargetSelection::PlayerUnit:
+		return Unit->IsA<APlayerUnit>();
+	case ETargetSelection::EnemyUnit:
+		return Unit->IsA<AEnemyUnit>();
+	case ETargetSelection::All:
+	default:
+		return true;
 	}
+}
+
+AUnitBase* UAbility::Target_Single(ETargetSelection TargetSelection, FVector Location)
+{
+	TArray<FOverlapResult> Overlaps;
+	FCollisionShape Sphere = FCollisionShape::MakeSphere(TargetAcceptanceRadius);
+	FCollisionQueryParams Params;
+
+	AUnitBase* Target = nullptr;
+	float ClosestDistSq = 0.f;
+
+	if (World && World->OverlapMultiByChannel(Overlaps, Location, FQuat::Identity, ECC_Pawn, Sphere, Params))
+	{
+		for (FOverlapResult& Overlap : Overlaps)
+		{
+			AUnitBase* Unit = Cast<AUnitBase>(Overlap.GetActor());
+			if (!Unit || !MatchesSelection(Unit, TargetSelection))
+			{
+				continue;
+			}
+
+			const float DistSq = FVector::DistSquared(Unit->GetActorLocation(), Location);
+			if (!Target || DistSq < ClosestDistSq)
+			{
+				Target = Unit;
+				ClosestDistSq = DistSq;
+			}
+		}
+	}
+
+	return Target;
 }
 
 void UAbility::ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect)
@@ -106,46 +136,26 @@ void UAbility::ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect)
 	}
 }
 
-TArray<ACharacter*> UAbility::Execute_AOE(
-	const FGameplayEffect& Effect, FVector Location, float Radius,
-	ETargetSelection TargetSelection)
+TArray<AUnitBase*> UAbility::Target_AOE(ETargetSelection TargetSelection, FVector Location, float Radius)
 {
-	TArray<ACharacter*> Targets;
+	TArray<AUnitBase*> FoundUnits;
 	TArray<FOverlapResult> Overlaps;
 	FCollisionShape Sphere = FCollisionShape::MakeSphere(Radius);
 	FCollisionQueryParams Params;
 
-	//TODO: Check if TargetCharacter implements UEffectHandler, and if it exists. Else return
 	if (World && World->OverlapMultiByChannel(Overlaps, Location, FQuat::Identity, ECC_Pawn, Sphere, Params))
 	{
 		for (FOverlapResult& Overlap : Overlaps)
 		{
-			AUnitBase* TargetCharacter = Cast<AUnitBase>(Overlap.GetActor());
-			if (!TargetCharacter)
+			AUnitBase* Unit = Cast<AUnitBase>(Overlap.GetActor());
+			if (Unit && MatchesSelection(Unit, TargetSelection))
 			{
-				continue;
-			}
-			//TODO: Update this so it checks whether the AOE should target friendly, hostile or all (From the perspective of the caster)
-			if (TargetSelection == ETargetSelection::All)
-			{
-				if (UEffectHandler* EffectHandler = TargetCharacter->FindComponentByClass<UEffectHandler>())
-				{
-					EffectHandler->AddEffect(Effect);
-				}
-
-				FAbilityEventPayload Payload;
-				Payload.Target = TargetCharacter;
-				Payload.Location = TargetCharacter->GetActorLocation();
-				Payload.AppliedEffect = Effect;
-				Payload.Magnitude = Effect.Magnitude;
-				ReportAbilityEvent(ComposeEventTags(TEXT("TargetHit")), Payload);
-
-				Targets.AddUnique(TargetCharacter);
+				FoundUnits.Add(Unit);
 			}
 		}
 	}
 
-	return Targets;
+	return FoundUnits;
 }
 
 void UAbility::Execute_Projectile(

@@ -22,8 +22,8 @@ struct FGameplayEffect;
 UENUM(BlueprintType)
 enum class ETargetSelection : uint8
 {
-	Friendly,
-	Hostile,
+	PlayerUnit,
+	EnemyUnit,
 	All
 };
 
@@ -150,20 +150,36 @@ protected:
 	UPROPERTY()
 	bool bHasEnded = false;	// Small guard against double end
 
+private:
+	// Shared selection test for Target_Single/Target_AOE: does Unit match TargetSelection?
+	// PlayerUnit/EnemyUnit are absolute type checks (IsA), not relative to MyCaster - an
+	// EnemyUnit-selection ability never matches another AEnemyUnit regardless of who cast it.
+	static bool MatchesSelection(const AUnitBase* Unit, ETargetSelection TargetSelection);
+
 public:
 	// --------------------------------------------------------------
 	// Blueprint-buildable effect library
 	// --------------------------------------------------------------
-	UFUNCTION(BlueprintCallable)
-	void Execute_Target(const FGameplayEffect& Effect, AUnitBase* Target);
+
+	// Radius used by Target_Single's nearest-match search. Internal only - not exposed to
+	// Blueprint or the Details panel.
+	float TargetAcceptanceRadius = 10.f;
+
+	// Finds the closest AUnitBase to Location (within TargetAcceptanceRadius) matching
+	// TargetSelection. Pure target-finder - does not apply an effect or report an event; pair
+	// with ApplyEffect for that.
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	AUnitBase* Target_Single(ETargetSelection TargetSelection, FVector Location);
 
 	// Applies Effect to Target's EffectHandler. No reporting - just the effect application, so
 	// callers (e.g. AAbilityProduct::ApplyEffect) can pair it with their own reporting logic.
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	void ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect);
 
+	// Finds every AUnitBase within Radius of Location matching TargetSelection. Pure
+	// target-finder - does not apply an effect or report an event; pair with ApplyEffect for that.
 	UFUNCTION(BlueprintCallable, Category = "Ability")
-	TArray<ACharacter*> Execute_AOE(const FGameplayEffect& Effect, FVector Location, float Radius, ETargetSelection TargetSelection);
+	TArray<AUnitBase*> Target_AOE(ETargetSelection TargetSelection, FVector Location, float Radius);
 
 	UFUNCTION(BlueprintCallable, meta = (Latent, LatentInfo = "LatentInfo"), Category = "Ability")
 	void Execute_Projectile(FLatentActionInfo LatentInfo, TSubclassOf<AProjectile> NewProjectile, FVector Target, float Speed,
