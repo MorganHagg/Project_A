@@ -24,6 +24,8 @@ protected:
 public:
 	virtual void Tick(float DeltaTime) override;
 
+	// -- Tunables --
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float Duration = 0.f;	// 0 = lasts infinite
 	float DurationTimer = 0.f;
@@ -34,15 +36,19 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float Magnitude = 0.f;
 
+	// -- Event tags --
+
+	// Tags reported to MyAbility on overlap (see HandleOverlap).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability", meta = (Categories = "Ability,Event"))
+	FGameplayTagContainer OverlapEventTags;
+
+	// -- Functions --
+
 	// Notifies (reports FinishEventTags, broadcasts OnFinish) before firing OnEnd, so talents/
 	// OnFinish listeners reacting to the finish can still take effect before OnEnd runs - then
 	// destroys the actor. Does not call Super::Finish(), since that would destroy before OnEnd
 	// could fire; duplicates only the guard check, not the notify/destroy logic.
 	virtual void Finish() override;
-
-	// Tags reported to MyAbility on overlap (see HandleOverlap).
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability", meta = (Categories = "Ability,Event"))
-	FGameplayTagContainer OverlapEventTags;
 
 	// Bound to MeshComponent->OnComponentBeginOverlap. Sorts OtherActor into the payload: a unit
 	// goes into Target, another AbilityProduct (e.g. a Projectile passing through) goes into

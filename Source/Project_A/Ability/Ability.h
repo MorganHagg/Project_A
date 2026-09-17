@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "Engine/LatentActionManager.h"
@@ -76,9 +76,10 @@ class PROJECT_A_API UAbility : public UObject, public IAbilityLifecycle
 public:
 	UAbility();
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	bool bModifyEndsAbility = true;
-	
+	// --------------------------------------------------------------
+	// Context
+	// --------------------------------------------------------------
+
 	UPROPERTY(BlueprintReadOnly)
 	AUnitBase* MyCaster;
 
@@ -87,6 +88,28 @@ public:
 
 	UWorld* World;
 	FActorSpawnParameters SpawnParams;
+
+	// --------------------------------------------------------------
+	// Identity
+	// --------------------------------------------------------------
+
+	virtual FName GetAbilityName() const { return AbilityName; }
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability")
+	FName AbilityName = FName("NO_NAME_ABILITY");
+
+	// Root tag identifying this ability (e.g. "Ability.Fireball"). Event tags reported
+	// automatically by this class (Cast, TargetHit, Finish) are composed from this root.
+	// Auto-derived from AbilityName in SetupAbility ("Ability." + AbilityName) - not directly
+	// editable, so there's only one place (AbilityName) to author the ability's identity.
+	UPROPERTY(BlueprintReadOnly, Category = "Ability")
+	FGameplayTag AbilityTag;
+
+	// --------------------------------------------------------------
+	// Tunables
+	// --------------------------------------------------------------
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	bool bModifyEndsAbility = true;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float CoolDown = 0.f;
@@ -97,14 +120,12 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float MagnitudeMultiplier = 1.f;
 
-	// GetterFunctions
+	UPROPERTY(EditAnywhere)
+	FIntervalTicker Ticker;
 
 	float GetCoolDown();
 	float GetCost();
 	float GetMagnitude();
-
-	UPROPERTY(EditAnywhere)
-	FIntervalTicker Ticker;
 
 	// --------------------------------------------------------------
 	// Lifecycle
@@ -112,9 +133,11 @@ public:
 
 	// Sets up the ability for later use
 	void SetupAbility(AUnitBase* NewCaster);
-	
+
 	// Activates this ability. Calls into OnActivate (Blueprint-implementable).
 	virtual void ActivateAbility();
+
+	void TickAbility(float DeltaTime);
 
 	// Ends this ability. Calls into OnEnd (Blueprint-implementable).
 	UFUNCTION(BlueprintCallable, Category = "Ability")
@@ -123,6 +146,11 @@ public:
 	// Called if an ability is no longer needed
 	void KillAbility();
 
+protected:
+	UPROPERTY()
+	bool bHasEnded = false;	// Small guard against double end
+
+public:
 	// --------------------------------------------------------------
 	// Blueprint-buildable effect library
 	// --------------------------------------------------------------
@@ -144,33 +172,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	AAbilityActor* Execute_Summon(TSubclassOf<AAbilityActor> NewActor, FTransform Transform);
 
-	void TickAbility(float DeltaTime);
-
-	virtual FName GetAbilityName() const { return AbilityName; }
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability")
-	FName AbilityName = FName("NO_NAME_ABILITY");
-
-	// Root tag identifying this ability (e.g. "Ability.Fireball"). Event tags reported
-	// automatically by this class (Cast, TargetHit, Finish) are composed from this root.
-	// Auto-derived from AbilityName in SetupAbility ("Ability." + AbilityName) - not directly
-	// editable, so there's only one place (AbilityName) to author the ability's identity.
-	UPROPERTY(BlueprintReadOnly, Category = "Ability")
-	FGameplayTag AbilityTag;
-
-protected:
-	UPROPERTY()
-	bool bHasEnded = false;	// Small guard against double end
-
-public:
-	// Builds the tag set reported for one event: this ability's identity tag (AbilityTag, e.g.
-	// "Ability.Fireball") plus the shared, ability-agnostic event-category tag ("Event." + Suffix,
-	// e.g. "Event.TargetHit"). Reporting both as independent facets (rather than one composed
-	// "Ability.Fireball.TargetHit" tag) lets a talent's RequiredTags AND them together - e.g.
-	// {Event.Crit} to react to any ability's crit, or {Ability.Fireball, Event.Crit} for Fireball's
-	// only. Public so callers outside UAbility (e.g. AAbilityActor::HandleOverlap) can compose their
-	// own event tag sets from the owning ability's AbilityTag.
-	FGameplayTagContainer ComposeEventTags(const TCHAR* Suffix) const;
-
 	// --------------------------------------------------------------
 	// Talent delegation
 	// --------------------------------------------------------------
@@ -180,4 +181,13 @@ public:
 	// Blueprint (e.g. from OnActivate/OnEnd for Cast/Finish events).
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	void ReportAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload);
+
+	// Builds the tag set reported for one event: this ability's identity tag (AbilityTag, e.g.
+	// "Ability.Fireball") plus the shared, ability-agnostic event-category tag ("Event." + Suffix,
+	// e.g. "Event.TargetHit"). Reporting both as independent facets (rather than one composed
+	// "Ability.Fireball.TargetHit" tag) lets a talent's RequiredTags AND them together - e.g.
+	// {Event.Crit} to react to any ability's crit, or {Ability.Fireball, Event.Crit} for Fireball's
+	// only. Public so callers outside UAbility (e.g. AAbilityActor::HandleOverlap) can compose their
+	// own event tag sets from the owning ability's AbilityTag.
+	FGameplayTagContainer ComposeEventTags(const TCHAR* Suffix) const;
 };

@@ -41,11 +41,6 @@ void AProjectile::Travel(float DeltaTime)
 	}
 }
 
-UAbility* AProjectile::GetAbility()
-{
-	return MyAbility;
-}
-
 void AProjectile::HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -91,4 +86,9 @@ void AProjectile::Finish(FVector HitLocation)
 	IAbilityLifecycle::Execute_OnEnd(this, Payload.Location);
 
 	Destroy();
+}
+
+UAbility* AProjectile::GetAbility()
+{
+	return MyAbility;
 }

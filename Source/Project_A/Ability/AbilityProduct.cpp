@@ -1,4 +1,4 @@
-	#include "AbilityProduct.h"
+#include "AbilityProduct.h"
 #include "Ability.h"
 #include "Components/StaticMeshComponent.h"
 
@@ -40,6 +40,31 @@ void AAbilityProduct::ReportAbilityEvent(FGameplayTagContainer EventTags, FAbili
 	}
 }
 
+void AAbilityProduct::HitTarget_Implementation(AUnitBase* Target, FVector Location)
+{
+	FAbilityEventPayload Payload;
+	Payload.Ability = MyAbility;
+	Payload.AbilityProduct = this;
+	Payload.Target = Target;
+	Payload.Location = Location;
+
+	if (HitEventTags.IsEmpty() && MyAbility)
+	{
+		HitEventTags = MyAbility->ComposeEventTags(TEXT("TargetHit"));
+	}
+
+	ReportAbilityEvent(HitEventTags, Payload);
+	OnHit.Broadcast(Payload);
+}
+
+void AAbilityProduct::ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect)
+{
+	if (MyAbility)
+	{
+		MyAbility->ApplyEffect(Target, Effect);
+	}
+}
+
 void AAbilityProduct::Finish()
 {
 	if (bHasFinished)
@@ -65,29 +90,4 @@ FAbilityEventPayload AAbilityProduct::NotifyFinish()
 	OnFinish.Broadcast(Payload);
 
 	return Payload;
-}
-
-void AAbilityProduct::HitTarget_Implementation(AUnitBase* Target, FVector Location)
-{
-	FAbilityEventPayload Payload;
-	Payload.Ability = MyAbility;
-	Payload.AbilityProduct = this;
-	Payload.Target = Target;
-	Payload.Location = Location;
-
-	if (HitEventTags.IsEmpty() && MyAbility)
-	{
-		HitEventTags = MyAbility->ComposeEventTags(TEXT("TargetHit"));
-	}
-
-	ReportAbilityEvent(HitEventTags, Payload);
-	OnHit.Broadcast(Payload);
-}
-
-void AAbilityProduct::ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect)
-{
-	if (MyAbility)
-	{
-		MyAbility->ApplyEffect(Target, Effect);
-	}
 }

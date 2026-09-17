@@ -27,6 +27,8 @@ class PROJECT_A_API AAbilityProduct : public AActor
 public:
 	AAbilityProduct();
 
+	// -- Context --
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* MeshComponent;
 
@@ -40,32 +42,34 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	ACharacter* MyCaster;
 
+	// -- Event tags --
+
+	// Tags reported to MyAbility when HitTarget is called.
+	UPROPERTY(BlueprintReadWrite, Category = "Ability")
+	FGameplayTagContainer HitEventTags;
+
 	// Tags reported through ReportAbilityEvent when this actor finishes (see Finish()). Normally
 	// the owning Ability's identity tag plus Event.Finish (see UAbility::ComposeEventTags) - set
 	// this directly for a bespoke override.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability", meta = (Categories = "Ability,Event"))
+	UPROPERTY(BlueprintReadWrite, Category = "Ability")
 	FGameplayTagContainer FinishEventTags;
 
-	// Reports a tagged event (with contextual Payload) to this actor's owning Ability,
-	// which forwards it up to the caster's PlayerUnit.
-	UFUNCTION(BlueprintCallable, Category = "Ability")
-	void ReportAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload);
-
+	// -- Delegates --
 	// Per-instance hooks - bind to these (e.g. via "Bind Event to...") on a specific reference
 	// to attach extra behavior to just that instance, without going through the tag system.
+
 	UPROPERTY(BlueprintAssignable, Category = "Ability")
 	FOnAbilityEventDelegate OnHit;
 
 	UPROPERTY(BlueprintAssignable, Category = "Ability")
 	FOnAbilityEventDelegate OnFinish;
 
-	// Reports FinishEventTags, broadcasts OnFinish, and destroys this actor.
-	UFUNCTION(BlueprintCallable, Category = "Ability")
-	virtual void Finish();
+	// -- Functions --
 
-	// Tags reported to MyAbility when HitTarget is called.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability", meta = (Categories = "Ability,Event"))
-	FGameplayTagContainer HitEventTags;
+	// Reports a tagged event (with contextual Payload) to this actor's owning Ability,
+	// which forwards it up to the caster's PlayerUnit.
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	void ReportAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload);
 
 	// Builds a payload for Target/Location and reports HitEventTags - the shared "this hit
 	// something" entry point for both AProjectile (called from HandleComponentBeginOverlap) and
@@ -84,6 +88,10 @@ public:
 	// to a target without reaching through MyAbility themselves.
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	void ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect);
+
+	// Reports FinishEventTags, broadcasts OnFinish, and destroys this actor.
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	virtual void Finish();
 
 protected:
 	UPROPERTY()

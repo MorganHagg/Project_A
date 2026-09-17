@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "AbilitySystem.generated.h"
@@ -17,35 +17,40 @@ public:
 
 protected:
     virtual void BeginPlay() override;
-    
+
     UPROPERTY()
     AUnitBase* MyOwner;
-    
+
 public:
-    
-    UPROPERTY(BlueprintReadOnly)
-    UAbility* ActiveAbility = nullptr;
-
-    void InstantiateAbilities(const UUnitDataBase* UnitData);
-
-    UFUNCTION(BlueprintCallable)
-    bool SwapAbility(TSubclassOf<UAbility> OldAbilityClass, TSubclassOf<UAbility> NewAbilityClass);
-    
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Instanced)
-    TArray<UAbility*> GrantedAbilities;
-
-    UAbility* InitiateAbility(int32 Slot);
-    
-    UFUNCTION(BlueprintCallable)
-    void SetActiveAbility(UAbility* NewActiveAbility);
-
     virtual void TickComponent(
     float DeltaTime,
     ELevelTick TickType,
     FActorComponentTickFunction* ThisTickFunction
 ) override;
 
+    // -- Config --
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Instanced)
+    TArray<UAbility*> GrantedAbilities;
+
+    // -- State --
+
+    UPROPERTY(BlueprintReadOnly)
+    UAbility* ActiveAbility = nullptr;
+
+    // -- Functions --
+
+    void InstantiateAbilities(const UUnitDataBase* UnitData);
+
+    UAbility* InitiateAbility(int32 Slot);
+
+    UFUNCTION(BlueprintCallable)
+    void SetActiveAbility(UAbility* NewActiveAbility);
+
     UFUNCTION(BlueprintCallable)
     void EndActiveAbility();
-    
+
+    UFUNCTION(BlueprintCallable)
+    bool SwapAbility(TSubclassOf<UAbility> OldAbilityClass, TSubclassOf<UAbility> NewAbilityClass);
+
 };

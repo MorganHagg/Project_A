@@ -31,7 +31,7 @@ protected:
 public:
 	virtual void Tick(float DeltaTime) override;
 
-	void Travel(float DeltaTime);
+	// -- Tunables --
 
 	// Gates OnTick (IAbilityLifecycle), not Travel - movement stays frame-accurate every Tick.
 	// Interval = 0 fires OnTick continuously. No Duration equivalent: a projectile's end is
@@ -51,18 +51,28 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 	int32 PenetrationCount = 0;
 
-	UAbility* GetAbility();
-
-	// Unhide AAbilityProduct::Finish() - Finish(FVector) below has a different signature and
-	// would otherwise shadow it.
-	using AAbilityProduct::Finish;
+	// -- Flight state --
 
 	FVector Destination;
 	float Speed;
 	int TaskID;
 
+	// -- Delegates --
+
 	FOnProjectileHit OnPenetrateHit;   // fired per penetrating hit — apply effects
 	FOnProjectileFinished OnFinished;  // fired exactly once — resolves the latent action
+
+	// -- Functions --
+
+	void Travel(float DeltaTime);
+
+	UFUNCTION()
+	void HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	// Unhide AAbilityProduct::Finish() - Finish(FVector) below has a different signature and
+	// would otherwise shadow it.
+	using AAbilityProduct::Finish;
 
 	// Notifies (reports FinishEventTags, broadcasts OnFinish) before firing OnEnd, then destroys -
 	// same ordering as AAbilityActor::Finish(). Snaps to the given hit location first (the actual
@@ -70,9 +80,7 @@ public:
 	// Super::Finish(), since that would destroy before OnEnd could fire.
 	void Finish(FVector HitLocation);
 
-	UFUNCTION()
-	void HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	UAbility* GetAbility();
 
 protected:
 	UPROPERTY()
