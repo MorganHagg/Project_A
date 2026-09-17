@@ -9,6 +9,19 @@
 class UAbilitySlot;
 class ACharacter;
 class AUnitBase;
+struct FGameplayEffect;
+
+// ============================================================================
+// Enums
+// ============================================================================
+
+UENUM(BlueprintType)
+enum class ETargetSelection : uint8
+{
+	PlayerUnit,
+	EnemyUnit,
+	All
+};
 
 // ============================================================================
 // AAbility
@@ -63,13 +76,13 @@ public:
 
 	// -- Event tags --
 
-	// Tags reported to MyAbility when HitTarget is called.
+	// Tags reported to MyAbility when OnHit is called.
 	UPROPERTY(BlueprintReadWrite, Category = "Ability")
 	FGameplayTagContainer HitEventTags;
 
 	// Tags reported through ReportAbilityEvent when this actor finishes (see Finish()). Normally
-	// the owning Ability's identity tag plus Event.Finish (see UAbilitySlot::ComposeEventTags) - set
-	// this directly for a bespoke override.
+	// the owning Ability's identity tag plus Event.Finish (see ComposeEventTags) - set this
+	// directly for a bespoke override.
 	UPROPERTY(BlueprintReadWrite, Category = "Ability")
 	FGameplayTagContainer FinishEventTags;
 
@@ -78,10 +91,27 @@ public:
 	// to attach extra behavior to just that instance, without going through the tag system.
 
 	UPROPERTY(BlueprintAssignable, Category = "Ability")
-	FOnAbilityEventDelegate OnHit;
+	FOnAbilityEventDelegate OnHitDelegate;
 
 	UPROPERTY(BlueprintAssignable, Category = "Ability")
 	FOnAbilityEventDelegate OnFinish;
+
+	// -- Targeting --
+
+	// Radius used by Target_Single's nearest-match search. Internal only - not exposed to
+	// Blueprint or the Details panel.
+	float TargetAcceptanceRadius = 10.f;
+
+	// Finds the closest AUnitBase to Location (within TargetAcceptanceRadius) matching
+	// TargetSelection. Pure target-finder - does not apply an effect or report an event; pair
+	// with ApplyEffect for that.
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	AUnitBase* Target_Single(ETargetSelection TargetSelection, FVector Location);
+
+	// Finds every AUnitBase within Radius of Location matching TargetSelection. Pure
+	// target-finder - does not apply an effect or report an event; pair with ApplyEffect for that.
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	TArray<AUnitBase*> Target_AOE(ETargetSelection TargetSelection, FVector Location, float Radius);
 
 	// -- Functions --
 
@@ -97,21 +127,29 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	void ReportAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload);
 
+	// Builds the tag set reported for one event: this ability's identity tag (AbilityTag, e.g.
+	// "Ability.Fireball") plus the shared, ability-agnostic event-category tag ("Event." + Suffix,
+	// e.g. "Event.TargetHit"). Reporting both as independent facets (rather than one composed
+	// "Ability.Fireball.TargetHit" tag) lets a talent's RequiredTags AND them together - e.g.
+	// {Event.Crit} to react to any ability's crit, or {Ability.Fireball, Event.Crit} for Fireball's
+	// only.
+	FGameplayTagContainer ComposeEventTags(const TCHAR* Suffix) const;
+
 	// Builds a payload for Target/Location and reports HitEventTags - the shared "this hit
 	// something" entry point for both AProjectile (called from HandleComponentBeginOverlap) and
 	// AAbilityActor (called manually, e.g. from an animation notify on a melee swing, or from
-	// OnTick for interval damage - the system doesn't distinguish why HitTarget was called).
+	// OnTick for interval damage - the system doesn't distinguish why OnHit was called).
 	// Purely a report - pair with ApplyEffect if the hit should also deliver a GameplayEffect.
 	// BlueprintNativeEvent so a Blueprint subclass (e.g. Projectile_Fireball) can override it to
-	// run its own bespoke logic (call Parent: HitTarget to still get the native report).
-	// Auto-composes HitEventTags from the owning Ability's AbilityTag + Event.TargetHit unless a
+	// run its own bespoke logic (call Parent: OnHit to still get the native report).
+	// Auto-composes HitEventTags from this ability's own AbilityTag + Event.TargetHit unless a
 	// bespoke set is already set.
 	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
-	void HitTarget(AUnitBase* Target, FVector Location);
-	virtual void HitTarget_Implementation(AUnitBase* Target, FVector Location);
+	void OnHit(AUnitBase* Target, FVector Location);
+	virtual void OnHit_Implementation(AUnitBase* Target, FVector Location);
 
-	// Forwards to MyAbility->ApplyEffect - lets AProjectile/AAbilityActor apply a GameplayEffect
-	// to a target without reaching through MyAbility themselves.
+	// Applies Effect to Target's EffectHandler. No reporting - just the effect application, so
+	// callers can pair it with their own reporting logic (e.g. OnHit's native report, above).
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	void ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect);
 
@@ -129,4 +167,10 @@ protected:
 	// of OnEnd firing before talents/OnFinish listeners get a chance to react. Callers must still
 	// check bHasFinished themselves first - this does not guard against being called twice.
 	FAbilityEventPayload NotifyFinish();
+
+private:
+	// Shared selection test for Target_Single/Target_AOE: does Unit match TargetSelection?
+	// PlayerUnit/EnemyUnit are absolute type checks (IsA), not relative to MyCaster - an
+	// EnemyUnit-selection ability never matches another AEnemyUnit regardless of who cast it.
+	static bool MatchesSelection(const AUnitBase* Unit, ETargetSelection TargetSelection);
 };

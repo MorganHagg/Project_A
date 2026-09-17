@@ -71,7 +71,7 @@ void AProjectile::HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedCom
 
 	FVector OverlapLocation = bFromSweep ? FVector(SweepResult.ImpactPoint) : GetActorLocation();
 
-	HitTarget(HitUnit, OverlapLocation);
+	OnHit(HitUnit, OverlapLocation);
 
 	AlreadyHitActors.Add(OtherActor);
 

@@ -1,6 +1,11 @@
 #include "Ability.h"
 #include "AbilitySlot.h"
 #include "Components/StaticMeshComponent.h"
+#include "Engine/OverlapResult.h"
+#include "../Unit/UnitBase.h"
+#include "../Unit/PlayerUnit.h"
+#include "../Unit/EnemyUnit.h"
+#include "../Component/EffectHandler.h"
 
 AAbility::AAbility()
 {
@@ -50,7 +55,93 @@ void AAbility::ReportAbilityEvent(FGameplayTagContainer EventTags, FAbilityEvent
 	}
 }
 
-void AAbility::HitTarget_Implementation(AUnitBase* Target, FVector Location)
+FGameplayTagContainer AAbility::ComposeEventTags(const TCHAR* Suffix) const
+{
+	if (!AbilityTag.IsValid())
+	{
+		return FGameplayTagContainer();
+	}
+
+	FGameplayTagContainer ComposedTags;
+	ComposedTags.AddTag(AbilityTag);
+
+	const FGameplayTag EventTag = FGameplayTag::RequestGameplayTag(FName(*(FString(TEXT("Event.")) + Suffix)));
+	if (EventTag.IsValid())
+	{
+		ComposedTags.AddTag(EventTag);
+	}
+
+	return ComposedTags;
+}
+
+bool AAbility::MatchesSelection(const AUnitBase* Unit, ETargetSelection TargetSelection)
+{
+	switch (TargetSelection)
+	{
+	case ETargetSelection::PlayerUnit:
+		return Unit->IsA<APlayerUnit>();
+	case ETargetSelection::EnemyUnit:
+		return Unit->IsA<AEnemyUnit>();
+	case ETargetSelection::All:
+	default:
+		return true;
+	}
+}
+
+AUnitBase* AAbility::Target_Single(ETargetSelection TargetSelection, FVector Location)
+{
+	TArray<FOverlapResult> Overlaps;
+	FCollisionShape Sphere = FCollisionShape::MakeSphere(TargetAcceptanceRadius);
+	FCollisionQueryParams Params;
+
+	AUnitBase* Target = nullptr;
+	float ClosestDistSq = 0.f;
+
+	if (GetWorld() && GetWorld()->OverlapMultiByChannel(Overlaps, Location, FQuat::Identity, ECC_Pawn, Sphere, Params))
+	{
+		for (FOverlapResult& Overlap : Overlaps)
+		{
+			AUnitBase* Unit = Cast<AUnitBase>(Overlap.GetActor());
+			if (!Unit || !MatchesSelection(Unit, TargetSelection))
+			{
+				continue;
+			}
+
+			const float DistSq = FVector::DistSquared(Unit->GetActorLocation(), Location);
+			if (!Target || DistSq < ClosestDistSq)
+			{
+				Target = Unit;
+				ClosestDistSq = DistSq;
+			}
+		}
+	}
+
+	return Target;
+}
+
+TArray<AUnitBase*> AAbility::Target_AOE(ETargetSelection TargetSelection, FVector Location, float Radius)
+{
+	TArray<AUnitBase*> FoundUnits;
+	TArray<FOverlapResult> Overlaps;
+	FCollisionShape Sphere = FCollisionShape::MakeSphere(Radius);
+	FCollisionQueryParams Params;
+
+	if (GetWorld() && GetWorld()->OverlapMultiByChannel(Overlaps, Location, FQuat::Identity, ECC_Pawn, Sphere, Params))
+	{
+		for (FOverlapResult& Overlap : Overlaps)
+		{
+			AUnitBase* Unit = Cast<AUnitBase>(Overlap.GetActor());
+			if (Unit && MatchesSelection(Unit, TargetSelection))
+			{
+				FoundUnits.Add(Unit);
+			}
+		}
+	}
+
+	return FoundUnits;
+}
+
+void AAbility::OnHit_Implementation(AUnitBase* Target, FVector Location)
 {
 	FAbilityEventPayload Payload;
 	Payload.Ability = MyAbility;
@@ -58,20 +149,20 @@ void AAbility::HitTarget_Implementation(AUnitBase* Target, FVector Location)
 	Payload.Target = Target;
 	Payload.Location = Location;
 
-	if (HitEventTags.IsEmpty() && MyAbility)
+	if (HitEventTags.IsEmpty())
 	{
-		HitEventTags = MyAbility->ComposeEventTags(TEXT("TargetHit"));
+		HitEventTags = ComposeEventTags(TEXT("TargetHit"));
 	}
 
 	ReportAbilityEvent(HitEventTags, Payload);
-	OnHit.Broadcast(Payload);
+	OnHitDelegate.Broadcast(Payload);
 }
 
 void AAbility::ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect)
 {
-	if (MyAbility)
+	if (UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>())
 	{
-		MyAbility->ApplyEffect(Target, Effect);
+		EffectHandler->AddEffect(Effect);
 	}
 }
 

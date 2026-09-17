@@ -81,14 +81,16 @@ void AAbilityActor::HandleOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 		Payload.OverlappedProduct = Product;
 	}
 
-	// Auto-generate from the owning Ability's AbilityTag unless a bespoke tag set was already set
+	// Auto-generate from this ability's own AbilityTag unless a bespoke tag set was already set
 	// (e.g. on the Blueprint's class defaults) - that override is kept for cases that need it.
-	if (OverlapEventTags.IsEmpty() && MyAbility)
+	if (OverlapEventTags.IsEmpty())
 	{
-		OverlapEventTags = MyAbility->ComposeEventTags(TEXT("Overlap"));
+		OverlapEventTags = ComposeEventTags(TEXT("Overlap"));
 	}
 
 	ReportAbilityEvent(OverlapEventTags, Payload);
+
+	OnOverlap(Payload.Target, Payload.OverlappedProduct, Payload.Location);
 }
 
 TArray<AUnitBase*> AAbilityActor::GetOverlappingUnits(bool bIsHelpful)
