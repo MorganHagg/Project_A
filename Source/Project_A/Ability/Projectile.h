@@ -1,24 +1,22 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "AbilityProduct.h"
+#include "Ability.h"
 #include "../Misc/IntervalTicker.h"
 #include "../Interfaces/AbilityLifecycle.h"
 #include "Projectile.generated.h"
 
-class UAbility;
+class UAbilitySlot;
 class ACharacter;
 class UEffectHandler;
 class AUnitBase;
 
-// Delegates used internally by UAbility::Execute_Projectile's latent action - unrelated to talent delegation.
 DECLARE_DELEGATE_OneParam(FOnProjectileHit, FVector);
-DECLARE_DELEGATE_OneParam(FOnProjectileFinished, FVector);
 
-// Abstract: never spawned directly - Execute_Projectile always takes a TSubclassOf<AProjectile>
-// naming a concrete Blueprint subclass, and marking this Abstract keeps the base class itself out
-// of that picker (same pattern as AAbilityProduct).
+// Abstract: never spawned directly - AbilitySlot::ActivateAbility's generic dispatch always
+// spawns via ProductClass, naming a concrete Blueprint subclass, and marking this Abstract keeps
+// the base class itself out of that picker (same pattern as AAbility).
 UCLASS(Abstract)
-class PROJECT_A_API AProjectile : public AAbilityProduct, public IAbilityLifecycle
+class PROJECT_A_API AProjectile : public AAbility, public IAbilityLifecycle
 {
 	GENERATED_BODY()
 
@@ -51,18 +49,33 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 	int32 PenetrationCount = 0;
 
+	// How far this projectile travels (from its spawn point, in the direction GetSpawnTransform's
+	// rotation faced) before finishing on its own, if nothing stops it first.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
+	float MaxDistance = 2000.f;
+
 	// -- Flight state --
 
 	FVector Destination;
-	float Speed;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
+	float Speed = 900.f;
 	int TaskID;
 
 	// -- Delegates --
 
 	FOnProjectileHit OnPenetrateHit;   // fired per penetrating hit — apply effects
-	FOnProjectileFinished OnFinished;  // fired exactly once — resolves the latent action
 
 	// -- Functions --
+
+	// Where/how this projectile places itself when spawned - queried once on the still-deferred
+	// instance (before FinishSpawning/BeginPlay/OnActivate), so a Blueprint override can decide
+	// spawn placement (e.g. "5m in front of the caster") using MyCaster, already set by then. Must
+	// be overridden per concrete Blueprint (Projectile_Fireball, etc.) - the native default crashes
+	// immediately, naming the offending class, rather than silently spawning at the origin. Named
+	// GetSpawnTransform, not GetTransform, to avoid shadowing the existing AActor::GetTransform().
+	// Declared here rather than on AAbility - see the note in Ability.h.
+	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
+	FTransform GetSpawnTransform();
 
 	void Travel(float DeltaTime);
 
@@ -70,9 +83,9 @@ public:
 	void HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
-	// Unhide AAbilityProduct::Finish() - Finish(FVector) below has a different signature and
+	// Unhide AAbility::Finish() - Finish(FVector) below has a different signature and
 	// would otherwise shadow it.
-	using AAbilityProduct::Finish;
+	using AAbility::Finish;
 
 	// Notifies (reports FinishEventTags, broadcasts OnFinish) before firing OnEnd, then destroys -
 	// same ordering as AAbilityActor::Finish(). Snaps to the given hit location first (the actual
@@ -80,7 +93,7 @@ public:
 	// Super::Finish(), since that would destroy before OnEnd could fire.
 	void Finish(FVector HitLocation);
 
-	UAbility* GetAbility();
+	UAbilitySlot* GetAbility();
 
 protected:
 	UPROPERTY()

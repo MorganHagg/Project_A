@@ -1,17 +1,17 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "AbilityProduct.h"
+#include "Ability.h"
 #include "../Misc/IntervalTicker.h"
 #include "../Interfaces/AbilityLifecycle.h"
 #include "AbilityActor.generated.h"
 
-class UAbility;
+class UAbilitySlot;
 class ACharacter;
 class UEffectHandler;
 class AUnitBase;
 
 UCLASS()
-class PROJECT_A_API AAbilityActor : public AAbilityProduct, public IAbilityLifecycle
+class PROJECT_A_API AAbilityActor : public AAbility, public IAbilityLifecycle
 {
 	GENERATED_BODY()
 
@@ -43,6 +43,16 @@ public:
 	FGameplayTagContainer OverlapEventTags;
 
 	// -- Functions --
+
+	// Where/how this actor places itself when spawned - queried once on the still-deferred
+	// instance (before FinishSpawning/BeginPlay/OnActivate), so a Blueprint override can decide
+	// spawn placement using MyCaster, already set by then. Must be overridden per concrete
+	// Blueprint (AA_Firewall, etc.) - the native default crashes immediately, naming the offending
+	// class, rather than silently spawning at the origin. Named GetSpawnTransform, not
+	// GetTransform, to avoid shadowing the existing AActor::GetTransform(). Declared here rather
+	// than on AAbility - see the note in Ability.h.
+	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
+	FTransform GetSpawnTransform();
 
 	// Notifies (reports FinishEventTags, broadcasts OnFinish) before firing OnEnd, so talents/
 	// OnFinish listeners reacting to the finish can still take effect before OnEnd runs - then

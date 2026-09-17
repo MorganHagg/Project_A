@@ -5,7 +5,7 @@
 #include "../Misc/AttributeSet.h"
 #include "UnitDataBase.generated.h"
 
-class UAbility;
+class UAbilityDataAsset;
 class USkeletalMesh;
 
 UCLASS()
@@ -24,7 +24,7 @@ public:
 	TSubclassOf<UAnimInstance> AnimationBlueprint;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TArray<TSubclassOf<UAbility>> DefaultAbilities;
+	TArray<UAbilityDataAsset*> DefaultAbilities;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TMap<EAttributeType, float> DefaultAttributes;

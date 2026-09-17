@@ -2,7 +2,7 @@
 
 #include "Project_A/Unit/PlayerUnit.h"
 #include "Project_A/Component/AbilitySystem.h"
-#include "Project_A/Ability/Ability.h"
+#include "Project_A/Ability/AbilitySlot.h"
 
 void UTalentBase::BindToPlayerUnit(APlayerUnit* PlayerUnit)
 {
@@ -29,7 +29,7 @@ void UTalentBase::HandleAbilityEvent(FGameplayTagContainer EventTags, FAbilityEv
 	}
 }
 
-UAbility* UTalentBase::GetAbility(TSubclassOf<UAbility> AbilityClass) const
+UAbilitySlot* UTalentBase::GetAbility(TSubclassOf<UAbilitySlot> AbilityClass) const
 {
 	if (!AbilityClass)
 	{
@@ -50,7 +50,7 @@ UAbility* UTalentBase::GetAbility(TSubclassOf<UAbility> AbilityClass) const
 		return nullptr;
 	}
 
-	for (UAbility* Ability : AbilitySystem->GrantedAbilities)
+	for (UAbilitySlot* Ability : AbilitySystem->GrantedAbilities)
 	{
 		if (Ability && Ability->GetClass() == AbilityClass)
 		{

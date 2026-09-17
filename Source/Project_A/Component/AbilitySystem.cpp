@@ -1,7 +1,8 @@
 #include "AbilitySystem.h"
-#include "../Ability/Ability.h"
+#include "../Ability/AbilitySlot.h"
 #include "../Unit/UnitBase.h"
 #include "../DataAsset/UnitDataBase.h"
+#include "../DataAsset/AbilityDataAsset.h"
 
 UAbilitySystem::UAbilitySystem()
 {
@@ -29,20 +30,26 @@ void UAbilitySystem::InstantiateAbilities(const UUnitDataBase* UnitData)
 		return;
 	}
 
-	for (TSubclassOf<UAbility> AbilityClass : UnitData->DefaultAbilities)
+	for (UAbilityDataAsset* AbilityData : UnitData->DefaultAbilities)
 	{
-		if (!AbilityClass)
+		if (!AbilityData)
 		{
 			continue;
 		}
 
-		UAbility* NewAbility = NewObject<UAbility>(this, AbilityClass);
+		// One generic class now - identity/behavior come entirely from the copied DataAsset
+		// values and ProductClass, not from a per-ability subclass.
+		UAbilitySlot* NewAbility = NewObject<UAbilitySlot>(this);
+		NewAbility->CoolDown = AbilityData->CoolDown;
+		NewAbility->Cost = AbilityData->Cost;
+		NewAbility->MagnitudeMultiplier = AbilityData->MagnitudeMultiplier;
+		NewAbility->ProductClass = AbilityData->ProductClass;
 		NewAbility->SetupAbility(MyOwner);
 		GrantedAbilities.Add(NewAbility);
 	}
 }
 
-UAbility* UAbilitySystem::InitiateAbility(int32 Slot)
+UAbilitySlot* UAbilitySystem::InitiateAbility(int32 Slot)
 {
 	if (GrantedAbilities.IsValidIndex(Slot) &&
 		GrantedAbilities[Slot] &&
@@ -61,7 +68,7 @@ UAbility* UAbilitySystem::InitiateAbility(int32 Slot)
 	return nullptr;
 }
 
-void UAbilitySystem::SetActiveAbility(UAbility* NewActiveAbility)
+void UAbilitySystem::SetActiveAbility(UAbilitySlot* NewActiveAbility)
 {
 	if (NewActiveAbility)
 	{
@@ -83,23 +90,3 @@ void UAbilitySystem::EndActiveAbility()
 	}
 }
 
-bool UAbilitySystem::SwapAbility(TSubclassOf<UAbility> OldAbilityClass, TSubclassOf<UAbility> NewAbilityClass)
-{
-	if (!NewAbilityClass)
-	{
-		UE_LOG(LogTemp, Error, TEXT("NewAbilityClass is null!"));
-		return false;
-	}
-
-	for (UAbility*& Ability : GrantedAbilities)
-	{
-		if (Ability && Ability->GetClass() == OldAbilityClass)
-		{
-			Ability = NewObject<UAbility>(this, NewAbilityClass);
-			Ability->SetupAbility(MyOwner);
-			return true;
-		}
-	}
-
-	return false;
-}

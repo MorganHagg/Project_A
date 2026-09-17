@@ -3,9 +3,9 @@
 #include "../Misc/GameplayEffect.h"
 #include "AbilityEventPayload.generated.h"
 
-class UAbility;
+class UAbilitySlot;
 class AUnitBase;
-class AAbilityProduct;
+class AAbility;
 
 // Common payload sent with every ability-side delegation (AbilityActor/Projectile -> Ability -> PlayerUnit -> Talent).
 // Each event only populates the fields relevant to it; the rest are left at their default (e.g. Target = nullptr).
@@ -18,7 +18,7 @@ struct FAbilityEventPayload
 	// what the caller passed in, so it's read-only in Blueprint - setting it manually would be
 	// pointless, since it's overwritten before the payload goes anywhere.
 	UPROPERTY(BlueprintReadOnly, Category = "Ability")
-	UAbility* Ability = nullptr;
+	UAbilitySlot* Ability = nullptr;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Ability")
 	AUnitBase* Target = nullptr;
@@ -27,13 +27,13 @@ struct FAbilityEventPayload
 	// from either producer so a listening talent can manipulate it directly (e.g. redirect a
 	// projectile, or a pet's attack/death) - Cast to AProjectile/AAbilityActor for the concrete API.
 	UPROPERTY(BlueprintReadWrite, Category = "Ability")
-	AAbilityProduct* AbilityProduct = nullptr;
+	AAbility* AbilityProduct = nullptr;
 
 	// The other AbilityProduct involved when this event came from an overlap (e.g. a Projectile
 	// that overlapped this AbilityActor). AbilityProduct above always refers to the reporting
 	// instance itself - this is the other one. Populated by AAbilityActor::HandleOverlap.
 	UPROPERTY(BlueprintReadWrite, Category = "Ability")
-	AAbilityProduct* OverlappedProduct = nullptr;
+	AAbility* OverlappedProduct = nullptr;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Ability")
 	FVector Location = FVector::ZeroVector;
@@ -48,5 +48,5 @@ struct FAbilityEventPayload
 // Per-instance hook, separate from the tag-based ReportAbilityEvent chain. Lets code/Blueprint
 // that already holds a reference to one specific AbilityProduct (AProjectile, AAbilityActor)
 // attach extra behavior to just that instance without going through the tag system. Declared
-// once on AAbilityProduct as OnHit/OnFinish, inherited by both concrete types.
+// once on AAbility as OnHit/OnFinish, inherited by both concrete types.
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAbilityEventDelegate, FAbilityEventPayload, Payload);

@@ -3,7 +3,7 @@
 #include "Components/ActorComponent.h"
 #include "AbilitySystem.generated.h"
 
-class UAbility;
+class UAbilitySlot;
 class AUnitBase;
 class UUnitDataBase;
 
@@ -31,26 +31,23 @@ public:
     // -- Config --
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Instanced)
-    TArray<UAbility*> GrantedAbilities;
+    TArray<UAbilitySlot*> GrantedAbilities;
 
     // -- State --
 
     UPROPERTY(BlueprintReadOnly)
-    UAbility* ActiveAbility = nullptr;
+    UAbilitySlot* ActiveAbility = nullptr;
 
     // -- Functions --
 
     void InstantiateAbilities(const UUnitDataBase* UnitData);
 
-    UAbility* InitiateAbility(int32 Slot);
+    UAbilitySlot* InitiateAbility(int32 Slot);
 
     UFUNCTION(BlueprintCallable)
-    void SetActiveAbility(UAbility* NewActiveAbility);
+    void SetActiveAbility(UAbilitySlot* NewActiveAbility);
 
     UFUNCTION(BlueprintCallable)
     void EndActiveAbility();
-
-    UFUNCTION(BlueprintCallable)
-    bool SwapAbility(TSubclassOf<UAbility> OldAbilityClass, TSubclassOf<UAbility> NewAbilityClass);
 
 };

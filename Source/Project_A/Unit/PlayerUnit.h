@@ -13,7 +13,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerReceiveDamage, float, Amoun
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerReceiveHeal, float, Amount);
 
 // Sole delegation point for talents. Abilities report tagged events here (see
-// UAbility::ReportAbilityEvent); every listening talent receives every event
+// UAbilitySlot::ReportAbilityEvent); every listening talent receives every event
 // and filters by its own RequiredTags (see UTalentBase::HandleAbilityEvent).
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityEvent, FGameplayTagContainer, EventTags, FAbilityEventPayload, Payload);
 

@@ -44,5 +44,5 @@ public:
 	// and returns nullptr if MyPlayerUnit isn't bound yet, has no AbilitySystem, or doesn't have
 	// an ability of that class.
 	UFUNCTION(BlueprintCallable, Category = "Talent")
-	UAbility* GetAbility(TSubclassOf<UAbility> AbilityClass) const;
+	UAbilitySlot* GetAbility(TSubclassOf<UAbilitySlot> AbilityClass) const;
 };

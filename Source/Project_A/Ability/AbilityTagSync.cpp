@@ -1,13 +1,13 @@
-// Editor-only dev tool: scans /Game/Abilities for every UAbility Blueprint class and registers
+// Editor-only dev tool: scans /Game/Abilities for every UAbilitySlot Blueprint class and registers
 // each one's identity tag (Ability.<Name>), so DefaultGameplayTags.ini doesn't have to be
 // hand-edited every time a new ability is authored. The shared, ability-agnostic event-category
-// tags (Event.Cast/Finish/TargetHit/Overlap/Crit - see UAbility::ComposeEventTags) are fixed and
+// tags (Event.Cast/Finish/TargetHit/Overlap/Crit - see UAbilitySlot::ComposeEventTags) are fixed and
 // don't multiply per ability, so they're maintained by hand in DefaultGameplayTags.ini instead.
-// Deliberately kept out of Ability.h/.cpp so UAbility itself has no dependency on the editor-only
+// Deliberately kept out of AbilitySlot.h/.cpp so UAbilitySlot itself has no dependency on the editor-only
 // GameplayTagsEditor/AssetRegistry modules.
 #if WITH_EDITOR
 
-#include "Ability.h"
+#include "AbilitySlot.h"
 #include "HAL/IConsoleManager.h"
 #include "GameplayTagsEditorModule.h"
 #include "UObject/UObjectGlobals.h"
@@ -17,7 +17,7 @@
 
 namespace
 {
-	void SyncOneAbility(const UAbility* AbilityCDO, IGameplayTagsEditorModule& TagsEditor)
+	void SyncOneAbility(const UAbilitySlot* AbilityCDO, IGameplayTagsEditorModule& TagsEditor)
 	{
 		const FName AbilityName = AbilityCDO->GetAbilityName();
 		if (AbilityName == FName("NO_NAME_ABILITY"))
@@ -63,12 +63,12 @@ namespace
 			GeneratedClassPath = FPackageName::ExportTextPathToObjectPath(GeneratedClassPath);
 
 			UClass* AbilityClass = LoadObject<UClass>(nullptr, *GeneratedClassPath);
-			if (!AbilityClass || !AbilityClass->IsChildOf(UAbility::StaticClass()))
+			if (!AbilityClass || !AbilityClass->IsChildOf(UAbilitySlot::StaticClass()))
 			{
 				continue;
 			}
 
-			SyncOneAbility(GetDefault<UAbility>(AbilityClass), TagsEditor);
+			SyncOneAbility(GetDefault<UAbilitySlot>(AbilityClass), TagsEditor);
 			++SyncedCount;
 		}
 
@@ -77,7 +77,7 @@ namespace
 
 	static FAutoConsoleCommand SyncAbilityTagsCommand(
 		TEXT("Abilities.SyncTags"),
-		TEXT("Scans /Game/Abilities for every UAbility Blueprint class and registers each one's Ability.<Name> identity tag."),
+		TEXT("Scans /Game/Abilities for every UAbilitySlot Blueprint class and registers each one's Ability.<Name> identity tag."),
 		FConsoleCommandWithArgsDelegate::CreateStatic(&SyncAbilityTags));
 }
 

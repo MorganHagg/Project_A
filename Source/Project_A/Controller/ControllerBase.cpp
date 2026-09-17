@@ -1,6 +1,6 @@
 #include "ControllerBase.h"
 #include "EnhancedInputComponent.h"
-#include "../Ability/Ability.h"
+#include "../Ability/AbilitySlot.h"
 #include "../Unit/PlayerUnit.h"
 #include "../Component/AbilitySystem.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -180,7 +180,7 @@ void AControllerBase::ApplyModify()
         return;
     }
 
-    if (UAbility* ModifyAbility = AbilitySystem->GrantedAbilities[ActiveHoldBaseSlot + 2])
+    if (UAbilitySlot* ModifyAbility = AbilitySystem->GrantedAbilities[ActiveHoldBaseSlot + 2])
     {
         ModifyAbility->ActivateAbility();
         if (ModifyAbility->bModifyEndsAbility)

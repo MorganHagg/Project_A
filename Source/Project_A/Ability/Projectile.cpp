@@ -1,6 +1,6 @@
 #include "Projectile.h"
 #include "../Unit/UnitBase.h"
-#include "Ability.h"
+#include "AbilitySlot.h"
 #include "Gameframework/Character.h"
 #include "Components/StaticMeshComponent.h"
 
@@ -8,11 +8,25 @@ AProjectile::AProjectile()
 {
 }
 
+FTransform AProjectile::GetSpawnTransform_Implementation()
+{
+	checkf(false, TEXT("%s must override GetSpawnTransform()"), *GetClass()->GetName());
+	return FTransform::Identity;
+}
+
 void AProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 	Ticker.IntervalTimer = Ticker.Interval;
 	MeshComponent->OnComponentBeginOverlap.AddDynamic(this, &AProjectile::HandleComponentBeginOverlap);
+
+	// GetActorLocation/GetActorForwardVector already reflect GetSpawnTransform's result by now
+	// (FinishSpawning placed the actor before BeginPlay ran). Travel()/Finish() are otherwise
+	// unchanged - Destination stays a plain mutable field for the rest of the flight, so anything
+	// holding a live reference (e.g. a talent grabbing this projectile off the Cast payload) can
+	// redirect it mid-flight simply by writing a new Destination.
+	Destination = GetActorLocation() + GetActorForwardVector() * MaxDistance;
+
 	IAbilityLifecycle::Execute_OnActivate(this);
 }
 
@@ -78,7 +92,6 @@ void AProjectile::Finish(FVector HitLocation)
 		return;
 	}
 
-	OnFinished.ExecuteIfBound(HitLocation);
 	SetActorLocation(HitLocation, false);
 
 	const FAbilityEventPayload Payload = NotifyFinish();
@@ -88,7 +101,7 @@ void AProjectile::Finish(FVector HitLocation)
 	Destroy();
 }
 
-UAbility* AProjectile::GetAbility()
+UAbilitySlot* AProjectile::GetAbility()
 {
 	return MyAbility;
 }

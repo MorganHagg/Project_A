@@ -2,7 +2,7 @@
 
 
 #include "AbilityActor.h"
-#include "Ability.h"
+#include "AbilitySlot.h"
 #include "../Unit/UnitBase.h"
 #include "../Unit/PlayerUnit.h"
 #include "../Unit/EnemyUnit.h"
@@ -12,6 +12,12 @@
 // Sets default values
 AAbilityActor::AAbilityActor()
 {
+}
+
+FTransform AAbilityActor::GetSpawnTransform_Implementation()
+{
+	checkf(false, TEXT("%s must override GetSpawnTransform()"), *GetClass()->GetName());
+	return FTransform::Identity;
 }
 
 void AAbilityActor::BeginPlay()
@@ -70,7 +76,7 @@ void AAbilityActor::HandleOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 	{
 		Payload.Target = Unit;
 	}
-	else if (AAbilityProduct* Product = Cast<AAbilityProduct>(OtherActor))
+	else if (AAbility* Product = Cast<AAbility>(OtherActor))
 	{
 		Payload.OverlappedProduct = Product;
 	}

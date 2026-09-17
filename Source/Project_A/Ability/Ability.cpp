@@ -1,268 +1,103 @@
-﻿#include "Ability.h"
-#include "../Unit/UnitBase.h"
-#include "../Unit/PlayerUnit.h"
-#include "../Unit/EnemyUnit.h"
-#include "Gameframework/CharacterMovementComponent.h"
-#include "Kismet/GameplayStatics.h"
-#include "Engine/OverlapResult.h"
-#include "Projectile.h"
-#include "AbilityActor.h"
-#include "../Misc/GameplayEffect.h"
-#include "../Component/EffectHandler.h"
+#include "Ability.h"
+#include "AbilitySlot.h"
+#include "Components/StaticMeshComponent.h"
 
-UAbility::UAbility()
+AAbility::AAbility()
 {
-	
+	PrimaryActorTick.bCanEverTick = true;
+	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
+	RootComponent = MeshComponent;
+
+	// No mass / no physics - query-only collision, overlap rather than block.
+	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	MeshComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+	MeshComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	MeshComponent->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Overlap);
+	MeshComponent->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+	MeshComponent->SetGenerateOverlapEvents(true);
 }
 
-float UAbility::GetCoolDown()
+void AAbility::BeginPlay()
 {
-	return CoolDown;
-}
+	Super::BeginPlay();
 
-float UAbility::GetCost()
-{
-	return Cost;
-}
-
-float UAbility::GetMagnitude()
-{
-	return MagnitudeMultiplier;
-}
-
-void UAbility::SetupAbility(AUnitBase* NewCaster)
-{
-	MyCaster = NewCaster;
-	World = MyCaster->GetWorld();
-
-	// Checks
-	check(MyCaster);
-	check(World);
 	checkf(AbilityName != FName("NO_NAME_ABILITY"),
 		TEXT("%s has no AbilityName set - every ability must be given a unique name."), *GetClass()->GetName());
 
 	AbilityTag = FGameplayTag::RequestGameplayTag(FName(*(FString(TEXT("Ability.")) + AbilityName.ToString())));
 }
 
-void UAbility::ActivateAbility()
+void AAbility::SetMyAbility(UAbilitySlot* Ability)
 {
-	bHasEnded = false;
-
-	FAbilityEventPayload CastPayload;
-	CastPayload.Location = MyCaster ? MyCaster->GetActorLocation() : FVector::ZeroVector;
-	ReportAbilityEvent(ComposeEventTags(TEXT("Cast")), CastPayload);
-
-	IAbilityLifecycle::Execute_OnActivate(this);
+	MyAbility = Ability;
 }
 
-void UAbility::TickAbility(float DeltaTime)
+void AAbility::SetMyCaster(ACharacter* Caster)
 {
-	if (Ticker.ShouldTick(DeltaTime))
-		IAbilityLifecycle::Execute_OnTick(this);
+	MyCaster = Caster;
 }
 
-
-void UAbility::EndAbility()
+void AAbility::ReportAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload)
 {
-	if (bHasEnded) return;
-	bHasEnded = true;
-
-	const FVector EndLocation = MyCaster ? MyCaster->GetActorLocation() : FVector::ZeroVector;
-	IAbilityLifecycle::Execute_OnEnd(this, EndLocation);
-
-	FAbilityEventPayload FinishPayload;
-	FinishPayload.Location = EndLocation;
-	ReportAbilityEvent(ComposeEventTags(TEXT("Finish")), FinishPayload);
-}
-
-void UAbility::KillAbility()
-{
-	MyCaster = nullptr;
-}
-
-// ============================================================================
-// Execute library
-// ============================================================================
-bool UAbility::MatchesSelection(const AUnitBase* Unit, ETargetSelection TargetSelection)
-{
-	switch (TargetSelection)
+	Payload.Ability = MyAbility;
+	if (Payload.AbilityProduct == nullptr)
 	{
-	case ETargetSelection::PlayerUnit:
-		return Unit->IsA<APlayerUnit>();
-	case ETargetSelection::EnemyUnit:
-		return Unit->IsA<AEnemyUnit>();
-	case ETargetSelection::All:
-	default:
-		return true;
+		Payload.AbilityProduct = this;
+	}
+	if (MyAbility)
+	{
+		MyAbility->ReportAbilityEvent(EventTags, Payload);
 	}
 }
 
-AUnitBase* UAbility::Target_Single(ETargetSelection TargetSelection, FVector Location)
+void AAbility::HitTarget_Implementation(AUnitBase* Target, FVector Location)
 {
-	TArray<FOverlapResult> Overlaps;
-	FCollisionShape Sphere = FCollisionShape::MakeSphere(TargetAcceptanceRadius);
-	FCollisionQueryParams Params;
+	FAbilityEventPayload Payload;
+	Payload.Ability = MyAbility;
+	Payload.AbilityProduct = this;
+	Payload.Target = Target;
+	Payload.Location = Location;
 
-	AUnitBase* Target = nullptr;
-	float ClosestDistSq = 0.f;
-
-	if (World && World->OverlapMultiByChannel(Overlaps, Location, FQuat::Identity, ECC_Pawn, Sphere, Params))
+	if (HitEventTags.IsEmpty() && MyAbility)
 	{
-		for (FOverlapResult& Overlap : Overlaps)
-		{
-			AUnitBase* Unit = Cast<AUnitBase>(Overlap.GetActor());
-			if (!Unit || !MatchesSelection(Unit, TargetSelection))
-			{
-				continue;
-			}
-
-			const float DistSq = FVector::DistSquared(Unit->GetActorLocation(), Location);
-			if (!Target || DistSq < ClosestDistSq)
-			{
-				Target = Unit;
-				ClosestDistSq = DistSq;
-			}
-		}
+		HitEventTags = MyAbility->ComposeEventTags(TEXT("TargetHit"));
 	}
 
-	return Target;
+	ReportAbilityEvent(HitEventTags, Payload);
+	OnHit.Broadcast(Payload);
 }
 
-void UAbility::ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect)
+void AAbility::ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect)
 {
-	if (UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>())
+	if (MyAbility)
 	{
-		EffectHandler->AddEffect(Effect);
+		MyAbility->ApplyEffect(Target, Effect);
 	}
 }
 
-TArray<AUnitBase*> UAbility::Target_AOE(ETargetSelection TargetSelection, FVector Location, float Radius)
+void AAbility::Finish()
 {
-	TArray<AUnitBase*> FoundUnits;
-	TArray<FOverlapResult> Overlaps;
-	FCollisionShape Sphere = FCollisionShape::MakeSphere(Radius);
-	FCollisionQueryParams Params;
-
-	if (World && World->OverlapMultiByChannel(Overlaps, Location, FQuat::Identity, ECC_Pawn, Sphere, Params))
-	{
-		for (FOverlapResult& Overlap : Overlaps)
-		{
-			AUnitBase* Unit = Cast<AUnitBase>(Overlap.GetActor());
-			if (Unit && MatchesSelection(Unit, TargetSelection))
-			{
-				FoundUnits.Add(Unit);
-			}
-		}
-	}
-
-	return FoundUnits;
-}
-
-void UAbility::Execute_Projectile(
-	FLatentActionInfo LatentInfo, TSubclassOf<AProjectile> NewProjectile,
-	FVector Target, float Speed, int32 PenetrationCount, FVector& OutLocation)
-{
-	if (Speed == 0.f)
-		UE_LOG(LogTemp, Warning, TEXT("Projectile has 0 speed"));
-
-	if (!NewProjectile)
+	if (bHasFinished)
 	{
 		return;
 	}
 
-	// Deferred spawn: MyCaster must be set on the projectile before BeginPlay (and the collision
-	// registration that comes with it) runs, or HandleComponentBeginOverlap's OtherActor == MyCaster
-	// check races against a still-null MyCaster - since the projectile spawns exactly at
-	// MyCaster->GetActorLocation(), an initial overlap against the caster's own collision can fire
-	// before SetMyCaster would otherwise have been called, making the projectile "hit" its own caster.
-	FTransform SpawnTransform(MyCaster->GetActorRotation(), MyCaster->GetActorLocation());
-	AProjectile* Projectile = World->SpawnActorDeferred<AProjectile>(NewProjectile, SpawnTransform);
-	if (!Projectile)
-	{
-		return;
-	}
+	NotifyFinish();
 
-	Projectile->SetMyAbility(this);
-	Projectile->SetMyCaster(MyCaster);
-	Projectile->Destination = Target;
-	Projectile->Speed = Speed;
-	Projectile->PenetrationCount = PenetrationCount;
-	Projectile->MeshComponent->IgnoreActorWhenMoving(MyCaster, true);
-
-	if (Projectile->HitEventTags.IsEmpty())
-	{
-		Projectile->HitEventTags = ComposeEventTags(TEXT("TargetHit"));
-	}
-	if (Projectile->FinishEventTags.IsEmpty())
-	{
-		Projectile->FinishEventTags = ComposeEventTags(TEXT("Finish"));
-	}
-
-	Projectile->FinishSpawning(SpawnTransform);
-
-	FLatentActionManager& LAM = World->GetLatentActionManager();
-	FEffect_ProjectileAction* ProjectileAction = new FEffect_ProjectileAction(LatentInfo, OutLocation);
-	static int32 ProjectileActionUUIDCounter = LatentInfo.UUID;
-	int32 UniqueUUID = ProjectileActionUUIDCounter++;
-
-	LAM.AddNewAction(LatentInfo.CallbackTarget, UniqueUUID, ProjectileAction);
-
-	Projectile->OnFinished.BindLambda([ProjectileAction](FVector HitLocation)
-{
-	ProjectileAction->Finish(HitLocation);
-});
+	Destroy();
 }
 
-AAbilityActor* UAbility::Execute_Summon(TSubclassOf<AAbilityActor> NewActor, FTransform Transform)
+FAbilityEventPayload AAbility::NotifyFinish()
 {
-	if (!NewActor || !World)
-	{
-		return nullptr;
-	}
+	bHasFinished = true;
 
-	AAbilityActor* AbilityActor = World->SpawnActor<AAbilityActor>(
-		NewActor,
-		Transform
-	);
+	FAbilityEventPayload Payload;
+	Payload.Ability = MyAbility;
+	Payload.AbilityProduct = this;
+	Payload.Location = GetActorLocation();
 
-	if (AbilityActor)
-	{
-		AbilityActor->SetMyAbility(this); 
-		AbilityActor->SetMyCaster(MyCaster);
+	ReportAbilityEvent(FinishEventTags, Payload);
+	OnFinish.Broadcast(Payload);
 
-		if (AbilityActor->FinishEventTags.IsEmpty())
-		{
-			AbilityActor->FinishEventTags = ComposeEventTags(TEXT("Finish"));
-		}
-	}
-	return AbilityActor;
-}
-
-
-void UAbility::ReportAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload)
-{
-	Payload.Ability = this;
-	if (APlayerUnit* PlayerUnit = Cast<APlayerUnit>(MyCaster))
-	{
-		PlayerUnit->BroadcastAbilityEvent(EventTags, Payload);
-	}
-}
-
-FGameplayTagContainer UAbility::ComposeEventTags(const TCHAR* Suffix) const
-{
-	if (!AbilityTag.IsValid())
-	{
-		return FGameplayTagContainer();
-	}
-
-	FGameplayTagContainer Tags;
-	Tags.AddTag(AbilityTag);
-
-	const FGameplayTag EventTag = FGameplayTag::RequestGameplayTag(FName(*(FString(TEXT("Event.")) + Suffix)));
-	if (EventTag.IsValid())
-	{
-		Tags.AddTag(EventTag);
-	}
-
-	return Tags;
+	return Payload;
 }
