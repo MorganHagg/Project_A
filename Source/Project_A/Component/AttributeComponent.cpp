@@ -32,11 +32,11 @@ void UAttributeComponent::InstantiateAttributes(const UUnitDataBase* UnitData)
 			SetAttribute(EAttributeType::Speed, Pair.Value);
 			continue;
 		}
-		Attributes.Add(Pair.Key, Pair.Value);
+		StoreAttribute(Pair.Key, Pair.Value);
 	}
 
 	// UUnitDataBase only configures a single Health value; use it as the starting max as well.
-	Attributes.Add(EAttributeType::MaxHealth, Attributes.FindRef(EAttributeType::Health));
+	StoreAttribute(EAttributeType::MaxHealth, Attributes.FindRef(EAttributeType::Health));
 }
 
 float UAttributeComponent::GetAttribute(EAttributeType Type) const
@@ -60,7 +60,7 @@ void UAttributeComponent::SetAttribute(EAttributeType Type, float Value)
 	if (Type == EAttributeType::MaxHealth)
 	{
 		const float Delta = Value - Attributes.FindRef(EAttributeType::MaxHealth);
-		Attributes.Add(EAttributeType::MaxHealth, Value);
+		StoreAttribute(EAttributeType::MaxHealth, Value);
 		SetHealthValue(Attributes.FindRef(EAttributeType::Health) + Delta);
 		return;
 	}
@@ -69,11 +69,12 @@ void UAttributeComponent::SetAttribute(EAttributeType Type, float Value)
 		if (UCharacterMovementComponent* MovementComponent = GetMovementComponent())
 		{
 			MovementComponent->MaxWalkSpeed = Value;
+			OnAttributeChanged.Broadcast(EAttributeType::Speed, MovementComponent->MaxWalkSpeed);
 		}
 		return;
 	}
 
-	Attributes.Add(Type, Value);
+	StoreAttribute(Type, Value);
 }
 
 void UAttributeComponent::ModifyAttribute(EAttributeType Type, float Amount)
@@ -85,7 +86,7 @@ void UAttributeComponent::ModifyAttribute(EAttributeType Type, float Amount)
 	}
 	if (Type == EAttributeType::MaxHealth)
 	{
-		Attributes.Add(EAttributeType::MaxHealth, Attributes.FindRef(EAttributeType::MaxHealth) + Amount);
+		StoreAttribute(EAttributeType::MaxHealth, Attributes.FindRef(EAttributeType::MaxHealth) + Amount);
 		SetHealthValue(Attributes.FindRef(EAttributeType::Health) + Amount);
 		return;
 	}
@@ -94,11 +95,18 @@ void UAttributeComponent::ModifyAttribute(EAttributeType Type, float Amount)
 		if (UCharacterMovementComponent* MovementComponent = GetMovementComponent())
 		{
 			MovementComponent->MaxWalkSpeed += Amount;
+			OnAttributeChanged.Broadcast(EAttributeType::Speed, MovementComponent->MaxWalkSpeed);
 		}
 		return;
 	}
 
-	Attributes.Add(Type, Attributes.FindRef(Type) + Amount);
+	StoreAttribute(Type, Attributes.FindRef(Type) + Amount);
+}
+
+void UAttributeComponent::StoreAttribute(EAttributeType Type, float Value)
+{
+	Attributes.Add(Type, Value);
+	OnAttributeChanged.Broadcast(Type, Value);
 }
 
 UCharacterMovementComponent* UAttributeComponent::GetMovementComponent() const
@@ -116,7 +124,7 @@ void UAttributeComponent::SetHealthValue(float NewValue)
 
 	const float MaxHealth = Attributes.FindRef(EAttributeType::MaxHealth);
 	const float ClampedValue = FMath::Clamp(NewValue, 0.f, MaxHealth);
-	Attributes.Add(EAttributeType::Health, ClampedValue);
+	StoreAttribute(EAttributeType::Health, ClampedValue);
 
 	if (ClampedValue <= 0.f)
 	{

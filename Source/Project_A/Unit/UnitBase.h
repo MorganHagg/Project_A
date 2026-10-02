@@ -9,6 +9,7 @@ class UAbilitySystem;
 class UEffectHandler;
 class UBehaviorTree;
 class UAttributeComponent;
+class UWidgetComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitReceiveDamage, float, Amount);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitReceiveHeal, float, Amount);
@@ -42,6 +43,15 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
 	UAttributeComponent* AttributeComponent;
+
+	// Screen-space health bar above the unit. Its widget class comes from UnitData's
+	// HealthBarWidgetClass in SetupUnit - no bar is shown if that is empty.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
+	UWidgetComponent* HealthBarComponent;
+
+	// Gap between the top of the capsule and the health bar.
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	float HealthBarHeightOffset = 20.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UUnitDataBase* UnitData;

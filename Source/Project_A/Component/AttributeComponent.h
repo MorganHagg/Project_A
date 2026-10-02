@@ -7,6 +7,8 @@
 class UUnitDataBase;
 class UCharacterMovementComponent;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAttributeChanged, EAttributeType, Attribute, float, NewValue);
+
 UCLASS(Blueprintable, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJECT_A_API UAttributeComponent : public UActorComponent
 {
@@ -34,11 +36,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Attributes")
 	bool IsDead() const { return bIsDead; }
 
+	// Broadcast whenever an attribute's value is written (Speed included), with its new value.
+	UPROPERTY(BlueprintAssignable, Category = "Attributes")
+	FOnAttributeChanged OnAttributeChanged;
+
 protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Attributes")
 	void OnDeath();
 
 private:
+	// The single write point for stored (non-Speed) attributes - writes and broadcasts OnAttributeChanged.
+	void StoreAttribute(EAttributeType Type, float Value);
+
 	void SetHealthValue(float NewValue);
 	UCharacterMovementComponent* GetMovementComponent() const;
 

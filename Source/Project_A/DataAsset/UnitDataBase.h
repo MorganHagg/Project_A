@@ -7,6 +7,7 @@
 
 class UAbilityDataAsset;
 class USkeletalMesh;
+class UHealthBarWidget;
 
 UCLASS()
 class PROJECT_A_API UUnitDataBase : public UPrimaryDataAsset
@@ -28,4 +29,8 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TMap<EAttributeType, float> DefaultAttributes;
+
+	// Floating health bar shown above this unit (e.g. WBP_HealthBar). Leave empty for no bar.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<UHealthBarWidget> HealthBarWidgetClass;
 };

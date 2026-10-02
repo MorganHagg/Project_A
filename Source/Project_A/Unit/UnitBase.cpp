@@ -6,6 +6,8 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/WidgetComponent.h"
+#include "../UI/HealthBarWidget.h"
 	
 
 AUnitBase::AUnitBase()
@@ -14,6 +16,15 @@ AUnitBase::AUnitBase()
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystem>(TEXT("AbilitySystemComponent"));
 	EffectHandlerComponent = CreateDefaultSubobject<UEffectHandler>(TEXT("EffectHandlerComponent"));
 	AttributeComponent = CreateDefaultSubobject<UAttributeComponent>(TEXT("AttributeComponent"));
+
+	// Screen space: always faces the camera at a constant size. Drawn at the widget's desired size,
+	// so WBP_HealthBar's own layout decides how big the bar is.
+	HealthBarComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBarComponent"));
+	HealthBarComponent->SetupAttachment(RootComponent);
+	HealthBarComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	HealthBarComponent->SetDrawAtDesiredSize(true);
+	HealthBarComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	HealthBarComponent->SetGenerateOverlapEvents(false);
 }
 
 void AUnitBase::BeginPlay()
@@ -52,6 +63,18 @@ void AUnitBase::SetupUnit(UUnitDataBase* SpawnData)
 	GetMesh()->SetRelativeLocationAndRotation(
 		FVector(0.f, 0.f, -GetCapsuleComponent()->GetScaledCapsuleHalfHeight()),
 		FRotator(0.f, -90.f, 0.f));
+
+	// Health bar - placed after the capsule resize above, and after InstantiateAttributes so the
+	// bar starts at the unit's real Health / MaxHealth.
+	HealthBarComponent->SetRelativeLocation(
+		FVector(0.f, 0.f, GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() + HealthBarHeightOffset));
+	HealthBarComponent->SetWidgetClass(SpawnData->HealthBarWidgetClass);
+	// SetWidgetClass only creates the widget itself once play has begun - InitWidget covers the rest.
+	HealthBarComponent->InitWidget();
+	if (UHealthBarWidget* HealthBar = Cast<UHealthBarWidget>(HealthBarComponent->GetUserWidgetObject()))
+	{
+		HealthBar->SetOwnerUnit(this);
+	}
 }
 
 void AUnitBase::HandleDeath()
@@ -62,6 +85,8 @@ void AUnitBase::HandleDeath()
 	GetCharacterMovement()->DisableMovement();
 
 	AbilitySystemComponent->EndActiveAbility();
+
+	HealthBarComponent->SetVisibility(false);
 }
 
 void AUnitBase::ReceiveDamage(float Amount, EAbilityType AbilityType)
@@ -71,7 +96,9 @@ void AUnitBase::ReceiveDamage(float Amount, EAbilityType AbilityType)
 		return;
 	}
 
-	const float MitigatedAmount = MitigateDamage(Amount, AbilityType);
+	// Rounded to whole damage so Health stays whole - otherwise mitigation leaves fractional
+	// remainders (e.g. 0.4 Health) that look like 0 on the health bar but aren't dead.
+	const float MitigatedAmount = FMath::RoundToFloat(MitigateDamage(Amount, AbilityType));
 	AttributeComponent->ModifyAttribute(EAttributeType::Health, -MitigatedAmount);
 	OnReceiveDamage.Broadcast(MitigatedAmount);
 }
