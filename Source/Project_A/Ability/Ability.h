@@ -70,6 +70,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Ability")
 	FGameplayTag AbilityTag;
 
+	// Builds the identity tag "Ability.<InAbilityName>" - shared by BeginPlay and
+	// UAbilitySystem::InstantiateAbilities (which tags each slot with its ProductClass's identity).
+	static FGameplayTag ComposeAbilityTag(FName InAbilityName, bool bErrorIfNotFound = true);
+
 	// -- Context --
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -150,17 +154,17 @@ public:
 	// something" entry point for both AProjectile (called from HandleComponentBeginOverlap) and
 	// AAbilityActor (called manually, e.g. from an animation notify on a melee swing, or from
 	// OnTick for interval damage - the system doesn't distinguish why OnHit was called).
-	// Purely a report - pair with ApplyEffect if the hit should also deliver a GameplayEffect.
-	// BlueprintNativeEvent so a Blueprint subclass (e.g. Projectile_Fireball) can override it to
-	// run its own bespoke logic (call Parent: OnHit to still get the native report).
-	// Auto-composes HitEventTags from this ability's own AbilityTag + Event.TargetHit unless a
-	// bespoke set is already set.
-	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
+	// Runs IAbilityLifecycle::OnTargetHit (the ability's own hit logic) first, then reports
+	// HitEventTags and broadcasts OnHitDelegate, so listeners see the hit after its effects. Not
+	// overridable - per-ability logic goes in OnTargetHit, so the talent/delegate notification
+	// can't be skipped. Auto-composes HitEventTags from this ability's own AbilityTag +
+	// Event.TargetHit unless a bespoke set is already set. The first effect applied via ApplyEffect
+	// during OnTargetHit is carried in the payload's AppliedEffect.
+	UFUNCTION(BlueprintCallable, Category = "Ability")
 	void OnHit(AUnitBase* Target, FVector Location);
-	virtual void OnHit_Implementation(AUnitBase* Target, FVector Location);
 
-	// Applies Effect to Target's EffectHandler. No reporting - just the effect application, so
-	// callers can pair it with their own reporting logic (e.g. OnHit's native report, above).
+	// Applies Effect to Target's EffectHandler. Reports nothing itself; when called during OnHit's
+	// OnTargetHit hook, the first such effect is included in the hit's payload.
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	void ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect);
 
@@ -180,6 +184,12 @@ protected:
 	FAbilityEventPayload NotifyFinish();
 
 private:
+	// Set while OnHit runs its OnTargetHit hook, so ApplyEffect knows to record into HitAppliedEffect.
+	bool bResolvingHit = false;
+
+	// First effect applied during the current hit - copied into the TargetHit payload's AppliedEffect.
+	TOptional<FGameplayEffect> HitAppliedEffect;
+
 	// Shared selection test for Target_Single/Target_AOE: does Unit match TargetSelection?
 	// PlayerUnit/EnemyUnit are absolute type checks (IsA), not relative to MyCaster - an
 	// EnemyUnit-selection ability never matches another AEnemyUnit regardless of who cast it.

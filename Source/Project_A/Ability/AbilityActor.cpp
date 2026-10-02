@@ -78,7 +78,7 @@ void AAbilityActor::HandleOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 	}
 	else if (AAbility* Product = Cast<AAbility>(OtherActor))
 	{
-		Payload.OverlappedProduct = Product;
+		Payload.OverlappedAbility = Product;
 	}
 
 	// Auto-generate from this ability's own AbilityTag unless a bespoke tag set was already set
@@ -90,7 +90,7 @@ void AAbilityActor::HandleOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 
 	ReportAbilityEvent(OverlapEventTags, Payload);
 
-	OnOverlap(Payload.Target, Payload.OverlappedProduct, Payload.Location);
+	OnOverlap(Payload.Target, Payload.OverlappedAbility, Payload.Location);
 }
 
 TArray<AUnitBase*> AAbilityActor::GetOverlappingUnits(bool bIsHelpful)

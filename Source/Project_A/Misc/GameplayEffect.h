@@ -20,7 +20,7 @@ struct FGameplayEffect
 	EAttributeType Attribute = EAttributeType::Health;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EEffectOperation Operation = EEffectOperation::Add;
+	EEffectOperation Operation = EEffectOperation::Subtract;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Magnitude = 0.f;

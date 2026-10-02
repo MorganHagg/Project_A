@@ -46,6 +46,18 @@ void UAbilitySystem::InstantiateAbilities(const UUnitDataBase* UnitData)
 		NewAbility->MagnitudeMultiplier = AbilityData->MagnitudeMultiplier;
 		NewAbility->ProductClass = AbilityData->ProductClass;
 		NewAbility->AbilityType = AbilityData->AbilityType;
+		if (NewAbility->ProductClass)
+		{
+			// Identity comes from AbilityName on the Ability class's defaults - the same source
+			// AAbility::BeginPlay uses, so a slot and the Abilities it spawns share one tag.
+			const FName AbilityName = NewAbility->ProductClass->GetDefaultObject<AAbility>()->AbilityName;
+			NewAbility->AbilityTag = AAbility::ComposeAbilityTag(AbilityName, /*bErrorIfNotFound=*/false);
+			if (!NewAbility->AbilityTag.IsValid())
+			{
+				UE_LOG(LogTemp, Error, TEXT("UAbilitySystem::InstantiateAbilities - %s has no registered identity tag for AbilityName '%s' (run Abilities.SyncTags)."),
+					*NewAbility->ProductClass->GetName(), *AbilityName.ToString());
+			}
+		}
 		NewAbility->SetupAbility(MyOwner);
 		GrantedAbilities.Add(NewAbility);
 	}
@@ -105,4 +117,25 @@ void UAbilitySystem::EndActiveAbility()
 bool UAbilitySystem::IsOwnerDead() const
 {
 	return MyOwner && MyOwner->AttributeComponent && MyOwner->AttributeComponent->IsDead();
+}
+
+UAbilitySlot* UAbilitySystem::FindSlot(FGameplayTag AbilityTag) const
+{
+	if (!AbilityTag.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("UAbilitySystem::FindSlot called with an empty tag."));
+		return nullptr;
+	}
+
+	for (UAbilitySlot* Slot : GrantedAbilities)
+	{
+		if (Slot && Slot->AbilityTag == AbilityTag)
+		{
+			return Slot;
+		}
+	}
+
+	UE_LOG(LogTemp, Error, TEXT("UAbilitySystem::FindSlot - %s has no ability tagged %s."),
+		*GetNameSafe(GetOwner()), *AbilityTag.ToString());
+	return nullptr;
 }

@@ -4,6 +4,8 @@
 #include "UObject/Interface.h"
 #include "AbilityLifecycle.generated.h"
 
+class AUnitBase;
+
 UINTERFACE()
 class UAbilityLifecycle : public UInterface
 {
@@ -16,7 +18,14 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
 	void OnActivate();
 	virtual void OnActivate_Implementation() {}
-
+	
+	// Per-ability hit logic (e.g. Fireball applying its damage). Called by AAbility::OnHit before the
+	// hit is reported to talents and OnHitDelegate. Not named OnHit - that would clash with
+	// AAbility::OnHit on every implementing Ability.
+	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
+	void OnTargetHit(AUnitBase* Target, FVector Location);
+	virtual void OnTargetHit_Implementation(AUnitBase* Target, FVector Location) {}
+	
 	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
 	void OnTick();
 	virtual void OnTick_Implementation() {}
@@ -27,4 +36,5 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
 	void OnEnd(FVector Location);
 	virtual void OnEnd_Implementation(FVector Location) {}
+
 };

@@ -6,6 +6,7 @@
 #include "../Unit/PlayerUnit.h"
 #include "../Unit/EnemyUnit.h"
 #include "../Component/EffectHandler.h"
+#include "../Interfaces/AbilityLifecycle.h"
 
 AAbility::AAbility()
 {
@@ -29,7 +30,12 @@ void AAbility::BeginPlay()
 	checkf(AbilityName != FName("NO_NAME_ABILITY"),
 		TEXT("%s has no AbilityName set - every ability must be given a unique name."), *GetClass()->GetName());
 
-	AbilityTag = FGameplayTag::RequestGameplayTag(FName(*(FString(TEXT("Ability.")) + AbilityName.ToString())));
+	AbilityTag = ComposeAbilityTag(AbilityName);
+}
+
+FGameplayTag AAbility::ComposeAbilityTag(FName InAbilityName, bool bErrorIfNotFound)
+{
+	return FGameplayTag::RequestGameplayTag(FName(*(FString(TEXT("Ability.")) + InAbilityName.ToString())), bErrorIfNotFound);
 }
 
 void AAbility::SetMyAbility(UAbilitySlot* Ability)
@@ -44,10 +50,10 @@ void AAbility::SetMyCaster(ACharacter* Caster)
 
 void AAbility::ReportAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload)
 {
-	Payload.Ability = MyAbility;
-	if (Payload.AbilityProduct == nullptr)
+	Payload.AbilitySlot = MyAbility;
+	if (Payload.Ability == nullptr)
 	{
-		Payload.AbilityProduct = this;
+		Payload.Ability = this;
 	}
 	if (MyAbility)
 	{
@@ -141,13 +147,28 @@ TArray<AUnitBase*> AAbility::Target_AOE(ETargetSelection TargetSelection, FVecto
 	return FoundUnits;
 }
 
-void AAbility::OnHit_Implementation(AUnitBase* Target, FVector Location)
+void AAbility::OnHit(AUnitBase* Target, FVector Location)
 {
+	// AAbility itself doesn't implement IAbilityLifecycle - its concrete subclasses (AProjectile,
+	// AAbilityActor) do.
+	// While the hook runs, ApplyEffect records what it applies so the hit's payload can carry it.
+	bResolvingHit = true;
+	HitAppliedEffect.Reset();
+	if (Implements<UAbilityLifecycle>())
+	{
+		IAbilityLifecycle::Execute_OnTargetHit(this, Target, Location);
+	}
+	bResolvingHit = false;
+
 	FAbilityEventPayload Payload;
-	Payload.Ability = MyAbility;
-	Payload.AbilityProduct = this;
+	Payload.AbilitySlot = MyAbility;
+	Payload.Ability = this;
 	Payload.Target = Target;
 	Payload.Location = Location;
+	if (HitAppliedEffect.IsSet())
+	{
+		Payload.AppliedEffect = HitAppliedEffect.GetValue();
+	}
 
 	if (HitEventTags.IsEmpty())
 	{
@@ -160,6 +181,12 @@ void AAbility::OnHit_Implementation(AUnitBase* Target, FVector Location)
 
 void AAbility::ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect)
 {
+	// Only the first effect of a hit is recorded - the payload has room for one.
+	if (bResolvingHit && !HitAppliedEffect.IsSet())
+	{
+		HitAppliedEffect = Effect;
+	}
+
 	if (UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>())
 	{
 		EffectHandler->AddEffect(Effect, MyAbility ? MyAbility->AbilityType : EAbilityType::Magic);
@@ -183,8 +210,8 @@ FAbilityEventPayload AAbility::NotifyFinish()
 	bHasFinished = true;
 
 	FAbilityEventPayload Payload;
-	Payload.Ability = MyAbility;
-	Payload.AbilityProduct = this;
+	Payload.AbilitySlot = MyAbility;
+	Payload.Ability = this;
 	Payload.Location = GetActorLocation();
 
 	ReportAbilityEvent(FinishEventTags, Payload);

@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "GameplayTagContainer.h"
 #include "AbilitySystem.generated.h"
 
 class UAbilitySlot;
@@ -49,6 +50,11 @@ public:
 
     UFUNCTION(BlueprintCallable)
     void EndActiveAbility();
+
+    // Returns the granted slot whose AbilityTag matches exactly (e.g. "Ability.Fireball"), or
+    // nullptr with an error log.
+    UFUNCTION(BlueprintCallable, Category = "Ability")
+    UAbilitySlot* FindSlot(UPARAM(meta = (Categories = "Ability")) FGameplayTag AbilityTag) const;
 
 private:
     bool IsOwnerDead() const;

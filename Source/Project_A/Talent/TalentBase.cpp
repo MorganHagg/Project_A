@@ -29,36 +29,20 @@ void UTalentBase::HandleAbilityEvent(FGameplayTagContainer EventTags, FAbilityEv
 	}
 }
 
-UAbilitySlot* UTalentBase::GetAbility(TSubclassOf<UAbilitySlot> AbilityClass) const
+UAbilitySlot* UTalentBase::GetAbilitySlot(FGameplayTag AbilityTag) const
 {
-	if (!AbilityClass)
-	{
-		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetAbility called with a null AbilityClass."));
-		return nullptr;
-	}
-
 	if (!MyPlayerUnit)
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetAbility called before BindToPlayerUnit."));
+		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetAbilitySlot called before BindToPlayerUnit."));
 		return nullptr;
 	}
 
 	UAbilitySystem* AbilitySystem = MyPlayerUnit->FindComponentByClass<UAbilitySystem>();
 	if (!AbilitySystem)
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetAbility - %s has no AbilitySystem component."), *MyPlayerUnit->GetName());
+		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetAbilitySlot - %s has no AbilitySystem component."), *MyPlayerUnit->GetName());
 		return nullptr;
 	}
 
-	for (UAbilitySlot* Ability : AbilitySystem->GrantedAbilities)
-	{
-		if (Ability && Ability->GetClass() == AbilityClass)
-		{
-			return Ability;
-		}
-	}
-
-	UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetAbility - %s does not have an ability of class %s."),
-		*MyPlayerUnit->GetName(), *AbilityClass->GetName());
-	return nullptr;
+	return AbilitySystem->FindSlot(AbilityTag);
 }

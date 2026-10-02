@@ -61,8 +61,8 @@ public:
 	virtual void Finish() override;
 
 	// Bound to MeshComponent->OnComponentBeginOverlap. Sorts OtherActor into the payload: a unit
-	// goes into Target, another AbilityProduct (e.g. a Projectile passing through) goes into
-	// OverlappedProduct - then reports OverlapEventTags and fires OnOverlap.
+	// goes into Target, another Ability (e.g. a Projectile passing through) goes into
+	// OverlappedAbility - then reports OverlapEventTags and fires OnOverlap.
 	UFUNCTION()
 	void HandleOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
@@ -72,7 +72,7 @@ public:
 	// default logic beyond what HandleOverlap already does) for custom per-instance overlap
 	// behavior, e.g. Firewall's own visual/gameplay reaction to something passing through it.
 	UFUNCTION(BlueprintImplementableEvent, Category = "Ability")
-	void OnOverlap(AUnitBase* Target, AAbility* OverlappedProduct, FVector Location);
+	void OnOverlap(AUnitBase* Target, AAbility* OverlappedAbility, FVector Location);
 
 	// All AUnitBase actors currently overlapping MeshComponent. bIsHelpful selects which side:
 	// true -> APlayerUnit only, false (default) -> AEnemyUnit only.

@@ -40,9 +40,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnAbilityEvent(FAbilityEventPayload Payload);
 
-	// Finds a granted ability of the given class on MyPlayerUnit's AbilitySystem. Logs an error
-	// and returns nullptr if MyPlayerUnit isn't bound yet, has no AbilitySystem, or doesn't have
-	// an ability of that class.
+	// Finds MyPlayerUnit's granted ability slot by identity tag (e.g. "Ability.Fireball"), so the
+	// talent can change its values (Cost, CoolDown, MagnitudeMultiplier). Logs an error and returns
+	// nullptr if MyPlayerUnit isn't bound yet, has no AbilitySystem, or has no slot with that tag.
 	UFUNCTION(BlueprintCallable, Category = "Talent")
-	UAbilitySlot* GetAbility(TSubclassOf<UAbilitySlot> AbilityClass) const;
+	UAbilitySlot* GetAbilitySlot(UPARAM(meta = (Categories = "Ability")) FGameplayTag AbilityTag) const;
 };

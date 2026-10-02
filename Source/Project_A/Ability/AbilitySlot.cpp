@@ -101,7 +101,7 @@ void UAbilitySlot::KillAbility()
 
 void UAbilitySlot::ReportAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload)
 {
-	Payload.Ability = this;
+	Payload.AbilitySlot = this;
 	if (APlayerUnit* PlayerUnit = Cast<APlayerUnit>(MyCaster))
 	{
 		PlayerUnit->BroadcastAbilityEvent(EventTags, Payload);

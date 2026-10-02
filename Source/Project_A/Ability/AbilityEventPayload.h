@@ -14,35 +14,32 @@ struct FAbilityEventPayload
 {
 	GENERATED_BODY()
 
-	// The ability that reported this event. Always stamped by ReportAbilityEvent regardless of
+	// The ability slot that reported this event. Always stamped by ReportAbilityEvent regardless of
 	// what the caller passed in, so it's read-only in Blueprint - setting it manually would be
 	// pointless, since it's overwritten before the payload goes anywhere.
 	UPROPERTY(BlueprintReadOnly, Category = "Ability")
-	UAbilitySlot* Ability = nullptr;
+	UAbilitySlot* AbilitySlot = nullptr;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Ability")
 	AUnitBase* Target = nullptr;
 
-	// The AbilityActor/Projectile that reported this event, if any. Populated for events sourced
-	// from either producer so a listening talent can manipulate it directly (e.g. redirect a
+	// The Ability (AbilityActor/Projectile) that reported this event, if any. Populated for events
+	// sourced from either so a listening talent can manipulate it directly (e.g. redirect a
 	// projectile, or a pet's attack/death) - Cast to AProjectile/AAbilityActor for the concrete API.
 	UPROPERTY(BlueprintReadWrite, Category = "Ability")
-	AAbility* AbilityProduct = nullptr;
+	AAbility* Ability = nullptr;
 
-	// The other AbilityProduct involved when this event came from an overlap (e.g. a Projectile
-	// that overlapped this AbilityActor). AbilityProduct above always refers to the reporting
-	// instance itself - this is the other one. Populated by AAbilityActor::HandleOverlap.
+	// The other Ability involved when this event came from an overlap (e.g. a Projectile that
+	// overlapped this AbilityActor). Ability above always refers to the reporting instance itself -
+	// this is the other one. Populated by AAbilityActor::HandleOverlap.
 	UPROPERTY(BlueprintReadWrite, Category = "Ability")
-	AAbility* OverlappedProduct = nullptr;
+	AAbility* OverlappedAbility = nullptr;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Ability")
 	FVector Location = FVector::ZeroVector;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Ability")
 	FGameplayEffect AppliedEffect;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Ability")
-	float Magnitude = 0.f;
 };
 
 // Per-instance hook, separate from the tag-based ReportAbilityEvent chain. Lets code/Blueprint
