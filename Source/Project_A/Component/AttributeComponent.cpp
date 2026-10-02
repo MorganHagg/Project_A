@@ -1,5 +1,6 @@
 #include "AttributeComponent.h"
 #include "../DataAsset/UnitDataBase.h"
+#include "../Unit/UnitBase.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -108,21 +109,26 @@ UCharacterMovementComponent* UAttributeComponent::GetMovementComponent() const
 
 void UAttributeComponent::SetHealthValue(float NewValue)
 {
+	if (bIsDead)
+	{
+		return;
+	}
+
 	const float MaxHealth = Attributes.FindRef(EAttributeType::MaxHealth);
 	const float ClampedValue = FMath::Clamp(NewValue, 0.f, MaxHealth);
 	Attributes.Add(EAttributeType::Health, ClampedValue);
 
 	if (ClampedValue <= 0.f)
 	{
-		if (!bIsDead)
+		bIsDead = true;
+
+		// Called here rather than from OnDeath_Implementation so a Blueprint override can't skip it.
+		if (AUnitBase* Unit = Cast<AUnitBase>(GetOwner()))
 		{
-			bIsDead = true;
-			OnDeath();
+			Unit->HandleDeath();
 		}
-	}
-	else
-	{
-		bIsDead = false;
+
+		OnDeath();
 	}
 }
 

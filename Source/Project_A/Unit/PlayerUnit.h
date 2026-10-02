@@ -9,9 +9,6 @@ class USpringArmComponent;
 class UCameraComponent;
 class UTalentComponent;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerReceiveDamage, float, Amount);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerReceiveHeal, float, Amount);
-
 // Sole delegation point for talents. Abilities report tagged events here (see
 // UAbilitySlot::ReportAbilityEvent); every listening talent receives every event
 // and filters by its own RequiredTags (see UTalentBase::HandleAbilityEvent).
@@ -38,21 +35,6 @@ public:
 
 
 	void AdjustCamera();
-
-	UPROPERTY(BlueprintAssignable, Category = "Unit")
-	FOnPlayerReceiveDamage OnReceiveDamage;
-
-	UPROPERTY(BlueprintAssignable, Category = "Unit")
-	FOnPlayerReceiveHeal OnReceiveHeal;
-
-	UFUNCTION(BlueprintCallable, Category = "Unit")
-	void ReceiveDamage(float Amount);
-
-	UFUNCTION(BlueprintCallable, Category = "Unit")
-	void ReceiveHeal(float Amount);
-
-	void DelegateOnReceiveDamage(float Amount);
-	void DelegateOnReceiveHeal(float Amount);
 
 	// --------------------------------------------------------------
 	// Talent delegation

@@ -23,6 +23,17 @@ enum class ETargetSelection : uint8
 	All
 };
 
+// Selects which of the target's stats mitigates this ability's damage (see
+// AUnitBase::MitigateDamage): Magic -> MagicResist, Physical -> Armour, True -> none.
+// TrueDamage rather than True - UHT rejects enum entries named true/false in any case.
+UENUM(BlueprintType)
+enum class EAbilityType : uint8
+{
+	Magic,
+	Physical,
+	TrueDamage	UMETA(DisplayName = "True")
+};
+
 // ============================================================================
 // AAbility
 // Shared base for anything a cast produces (AProjectile, AAbilityActor) - the

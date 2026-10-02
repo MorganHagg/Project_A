@@ -3,6 +3,7 @@
 #include "../Unit/UnitBase.h"
 #include "../DataAsset/UnitDataBase.h"
 #include "../DataAsset/AbilityDataAsset.h"
+#include "AttributeComponent.h"
 
 UAbilitySystem::UAbilitySystem()
 {
@@ -44,6 +45,7 @@ void UAbilitySystem::InstantiateAbilities(const UUnitDataBase* UnitData)
 		NewAbility->Cost = AbilityData->Cost;
 		NewAbility->MagnitudeMultiplier = AbilityData->MagnitudeMultiplier;
 		NewAbility->ProductClass = AbilityData->ProductClass;
+		NewAbility->AbilityType = AbilityData->AbilityType;
 		NewAbility->SetupAbility(MyOwner);
 		GrantedAbilities.Add(NewAbility);
 	}
@@ -51,6 +53,11 @@ void UAbilitySystem::InstantiateAbilities(const UUnitDataBase* UnitData)
 
 UAbilitySlot* UAbilitySystem::InitiateAbility(int32 Slot)
 {
+	if (IsOwnerDead())
+	{
+		return nullptr;
+	}
+
 	if (GrantedAbilities.IsValidIndex(Slot) &&
 		GrantedAbilities[Slot] &&
 		MyOwner)
@@ -70,6 +77,11 @@ UAbilitySlot* UAbilitySystem::InitiateAbility(int32 Slot)
 
 void UAbilitySystem::SetActiveAbility(UAbilitySlot* NewActiveAbility)
 {
+	if (IsOwnerDead())
+	{
+		return;
+	}
+
 	if (NewActiveAbility)
 	{
 		ActiveAbility = NewActiveAbility;
@@ -90,3 +102,7 @@ void UAbilitySystem::EndActiveAbility()
 	}
 }
 
+bool UAbilitySystem::IsOwnerDead() const
+{
+	return MyOwner && MyOwner->AttributeComponent && MyOwner->AttributeComponent->IsDead();
+}

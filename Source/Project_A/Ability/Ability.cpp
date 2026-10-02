@@ -162,7 +162,7 @@ void AAbility::ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect)
 {
 	if (UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>())
 	{
-		EffectHandler->AddEffect(Effect);
+		EffectHandler->AddEffect(Effect, MyAbility ? MyAbility->AbilityType : EAbilityType::Magic);
 	}
 }
 

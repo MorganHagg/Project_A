@@ -47,34 +47,6 @@ void APlayerUnit::AdjustCamera()
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 640.f, 0.f);
 }
 
-void APlayerUnit::ReceiveDamage(float Amount)
-{
-	if (AttributeComponent)
-	{
-		AttributeComponent->ModifyAttribute(EAttributeType::Health, -Amount);
-	}
-	DelegateOnReceiveDamage(Amount);
-}
-
-void APlayerUnit::ReceiveHeal(float Amount)
-{
-	if (AttributeComponent)
-	{
-		AttributeComponent->ModifyAttribute(EAttributeType::Health, Amount);
-	}
-	DelegateOnReceiveHeal(Amount);
-}
-
-void APlayerUnit::DelegateOnReceiveDamage(float Amount)
-{
-	OnReceiveDamage.Broadcast(Amount);
-}
-
-void APlayerUnit::DelegateOnReceiveHeal(float Amount)
-{
-	OnReceiveHeal.Broadcast(Amount);
-}
-
 void APlayerUnit::BroadcastAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload)
 {
 	OnAbilityEvent.Broadcast(EventTags, Payload);

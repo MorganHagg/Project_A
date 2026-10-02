@@ -1,6 +1,5 @@
 ﻿#include "EffectHandler.h"
 #include "../Unit/UnitBase.h"
-#include "../Unit/PlayerUnit.h"
 #include "../Component/AttributeComponent.h"
 #include "../Misc/GameplayEffect.h"
 #include "../Misc/AttributeSet.h"
@@ -25,13 +24,21 @@ void UEffectHandler::TickComponent(float DeltaTime, ELevelTick TickType, FActorC
 
 void UEffectHandler::UpdateEffect(float DeltaTime)
 {
+	// Death cancels every active effect - nothing is applied to a dead unit.
+	if (IsTargetDead())
+	{
+		GameplayEffects.Empty();
+		SetComponentTickEnabled(false);
+		return;
+	}
+
 	for (int32 Index = GameplayEffects.Num() - 1; Index >= 0; --Index)
 	{
 		FActiveGameplayEffect& ActiveEffect = GameplayEffects[Index];
 
 		if (ActiveEffect.Ticker.ShouldTick(DeltaTime))
 		{
-			ApplyEffect(ActiveEffect.Effect);
+			ApplyEffect(ActiveEffect.Effect, ActiveEffect.AbilityType);
 		}
 
 		ActiveEffect.DurationTimer -= DeltaTime;
@@ -42,11 +49,16 @@ void UEffectHandler::UpdateEffect(float DeltaTime)
 	}
 }
 
-void UEffectHandler::AddEffect(const FGameplayEffect& Effect)
+void UEffectHandler::AddEffect(const FGameplayEffect& Effect, EAbilityType AbilityType)
 {
+	if (IsTargetDead())
+	{
+		return;
+	}
+
 	if (Effect.Duration <= 0.f)
 	{
-		ApplyEffect(Effect);
+		ApplyEffect(Effect, AbilityType);
 		return;
 	}
 
@@ -54,6 +66,7 @@ void UEffectHandler::AddEffect(const FGameplayEffect& Effect)
 	ActiveEffect.Effect = Effect;
 	ActiveEffect.DurationTimer = Effect.Duration;
 	ActiveEffect.Ticker.Interval = Effect.Interval;
+	ActiveEffect.AbilityType = AbilityType;
 	GameplayEffects.Add(ActiveEffect);
 }
 
@@ -62,10 +75,10 @@ void UEffectHandler::RemoveEffect(const FGameplayEffect& Effect)
 	// TODO: FGameplayEffect has no identifying data yet, so instances can't be matched for removal.
 }
 
-void UEffectHandler::ApplyEffect(const FGameplayEffect& Effect)
+void UEffectHandler::ApplyEffect(const FGameplayEffect& Effect, EAbilityType AbilityType)
 {
-	UE_LOG(LogTemp, Warning, TEXT("I took damage!"))
-	if (!MyTarget || !MyTarget->AttributeComponent)
+	// Also catches a unit killed earlier in the same UpdateEffect pass.
+	if (!MyTarget || !MyTarget->AttributeComponent || IsTargetDead())
 	{
 		return;
 	}
@@ -80,19 +93,21 @@ void UEffectHandler::ApplyEffect(const FGameplayEffect& Effect)
 
 	if (Effect.Attribute == EAttributeType::Health)
 	{
-		if (APlayerUnit* PlayerUnit = Cast<APlayerUnit>(MyTarget))
+		if (SignedMagnitude < 0.f)
 		{
-			if (SignedMagnitude < 0.f)
-			{
-				PlayerUnit->ReceiveDamage(-SignedMagnitude);
-			}
-			else if (SignedMagnitude > 0.f)
-			{
-				PlayerUnit->ReceiveHeal(SignedMagnitude);
-			}
-			return;
+			MyTarget->ReceiveDamage(-SignedMagnitude, AbilityType);
 		}
+		else if (SignedMagnitude > 0.f)
+		{
+			MyTarget->ReceiveHeal(SignedMagnitude);
+		}
+		return;
 	}
 
 	MyTarget->AttributeComponent->ModifyAttribute(Effect.Attribute, SignedMagnitude);
+}
+
+bool UEffectHandler::IsTargetDead() const
+{
+	return MyTarget && MyTarget->AttributeComponent && MyTarget->AttributeComponent->IsDead();
 }

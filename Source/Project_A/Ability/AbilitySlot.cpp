@@ -1,6 +1,7 @@
 #include "AbilitySlot.h"
 #include "../Unit/UnitBase.h"
 #include "../Unit/PlayerUnit.h"
+#include "../Component/AttributeComponent.h"
 #include "Ability.h"
 #include "Projectile.h"
 #include "AbilityActor.h"
@@ -37,6 +38,12 @@ void UAbilitySlot::SetupAbility(AUnitBase* NewCaster)
 
 void UAbilitySlot::ActivateAbility()
 {
+	// Checked here, not only in UAbilitySystem - AControllerBase::ApplyModify activates slots directly.
+	if (MyCaster && MyCaster->AttributeComponent && MyCaster->AttributeComponent->IsDead())
+	{
+		return;
+	}
+
 	// cooldown/cost gating: deferred, out of scope for now - always proceeds when told to.
 	bHasEnded = false;
 

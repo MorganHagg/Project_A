@@ -50,4 +50,6 @@ public:
     UFUNCTION(BlueprintCallable)
     void EndActiveAbility();
 
+private:
+    bool IsOwnerDead() const;
 };

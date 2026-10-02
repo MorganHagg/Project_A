@@ -5,6 +5,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
+#include "GameFramework/CharacterMovementComponent.h"
 	
 
 AUnitBase::AUnitBase()
@@ -51,4 +52,57 @@ void AUnitBase::SetupUnit(UUnitDataBase* SpawnData)
 	GetMesh()->SetRelativeLocationAndRotation(
 		FVector(0.f, 0.f, -GetCapsuleComponent()->GetScaledCapsuleHalfHeight()),
 		FRotator(0.f, -90.f, 0.f));
+}
+
+void AUnitBase::HandleDeath()
+{
+	// Movement is stopped along with collision - without collision, walking movement would drop
+	// through the floor.
+	SetActorEnableCollision(false);
+	GetCharacterMovement()->DisableMovement();
+
+	AbilitySystemComponent->EndActiveAbility();
+}
+
+void AUnitBase::ReceiveDamage(float Amount, EAbilityType AbilityType)
+{
+	if (!AttributeComponent || AttributeComponent->IsDead())
+	{
+		return;
+	}
+
+	const float MitigatedAmount = MitigateDamage(Amount, AbilityType);
+	AttributeComponent->ModifyAttribute(EAttributeType::Health, -MitigatedAmount);
+	OnReceiveDamage.Broadcast(MitigatedAmount);
+}
+
+void AUnitBase::ReceiveHeal(float Amount)
+{
+	if (!AttributeComponent || AttributeComponent->IsDead())
+	{
+		return;
+	}
+
+	AttributeComponent->ModifyAttribute(EAttributeType::Health, Amount);
+	OnReceiveHeal.Broadcast(Amount);
+}
+
+float AUnitBase::MitigateDamage(float Damage, EAbilityType AbilityType) const
+{
+	float Mitigation;
+	switch (AbilityType)
+	{
+	case EAbilityType::Magic:
+		Mitigation = AttributeComponent->GetAttribute(EAttributeType::MagicResist);
+		break;
+	case EAbilityType::Physical:
+		Mitigation = AttributeComponent->GetAttribute(EAttributeType::Armour);
+		break;
+	case EAbilityType::TrueDamage:
+	default:
+		return Damage;
+	}
+
+	const float MitigationPercent = Mitigation / (Mitigation + MitigationConstant);
+	return Damage * (1.f - MitigationPercent);
 }

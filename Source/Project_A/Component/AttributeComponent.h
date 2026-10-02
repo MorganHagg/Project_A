@@ -31,6 +31,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void ModifyAttribute(EAttributeType Type, float Amount);
 
+	UFUNCTION(BlueprintPure, Category = "Attributes")
+	bool IsDead() const { return bIsDead; }
+
 protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Attributes")
 	void OnDeath();

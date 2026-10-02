@@ -21,5 +21,8 @@ public:
 	TObjectPtr<AAIController> AIController;
 
 	virtual void SetupUnit(UUnitDataBase* SpawnData) override;
+
+	// Also stops the AI controller's behavior tree and pathing.
+	virtual void HandleDeath() override;
 	
 };

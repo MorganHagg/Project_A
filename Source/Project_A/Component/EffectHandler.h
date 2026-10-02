@@ -3,6 +3,7 @@
 #include "Components/ActorComponent.h"
 #include "../Misc/GameplayEffect.h"
 #include "../Misc/IntervalTicker.h"
+#include "../Ability/Ability.h"
 #include "EffectHandler.generated.h"
 
 class AUnitBase;
@@ -23,6 +24,10 @@ struct FActiveGameplayEffect
 
 	UPROPERTY()
 	FIntervalTicker Ticker;
+
+	// Damage type of the ability that applied this effect, kept so every interval tick is mitigated the same way.
+	UPROPERTY()
+	EAbilityType AbilityType = EAbilityType::Magic;
 };
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -44,10 +49,13 @@ public:
 	AUnitBase* MyTarget;
 
 	void UpdateEffect(float DeltaTime);
-	void AddEffect(const FGameplayEffect& Effect);
+	void AddEffect(const FGameplayEffect& Effect, EAbilityType AbilityType);
 	void RemoveEffect(const FGameplayEffect& Effect);
-	void ApplyEffect(const FGameplayEffect& Effect);
+	void ApplyEffect(const FGameplayEffect& Effect, EAbilityType AbilityType);
 
 	UPROPERTY()
 	TArray<FActiveGameplayEffect> GameplayEffects;
+
+private:
+	bool IsTargetDead() const;
 };

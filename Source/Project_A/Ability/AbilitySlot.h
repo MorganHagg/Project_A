@@ -5,6 +5,7 @@
 #include "../Misc/IntervalTicker.h"
 #include "../Interfaces/AbilityLifecycle.h"
 #include "AbilityEventPayload.h"
+#include "Ability.h"
 #include "AbilitySlot.generated.h"
 
 // Forward declarations
@@ -63,6 +64,10 @@ public:
 	// UAbilityDataAsset this instance was built from - see UAbilitySystem::InstantiateAbilities.
 	UPROPERTY(BlueprintReadOnly, Category = "Ability")
 	TSubclassOf<AAbility> ProductClass;
+
+	// Damage type of everything this slot's Ability applies. Copied from the UAbilityDataAsset, like ProductClass.
+	UPROPERTY(BlueprintReadOnly, Category = "Ability")
+	EAbilityType AbilityType = EAbilityType::Magic;
 
 	float GetCoolDown();
 	float GetCost();
