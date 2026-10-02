@@ -27,7 +27,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void BindToPlayerUnit(APlayerUnit* PlayerUnit);
 
-	UFUNCTION(BlueprintImplementableEvent)
+	UFUNCTION(BlueprintImplementableEvent, Category = "Talent")
 	void OnSetup();
 
 	UPROPERTY(BlueprintReadWrite)
@@ -37,7 +37,7 @@ public:
 	UFUNCTION()
 	void HandleAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload);
 
-	UFUNCTION(BlueprintImplementableEvent)
+	UFUNCTION(BlueprintImplementableEvent, Category = "Talent")
 	void OnAbilityEvent(FAbilityEventPayload Payload);
 
 	// Finds MyPlayerUnit's granted ability slot by identity tag (e.g. "Ability.Fireball"), so the
