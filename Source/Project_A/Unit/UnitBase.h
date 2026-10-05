@@ -31,7 +31,8 @@ public:
 	virtual void SetupUnit(UUnitDataBase* SpawnData);
 
 	// Called once by UAttributeComponent when Health reaches 0, before its OnDeath event. Shuts
-	// down collision, movement, and the active ability; subclasses extend it (e.g. stopping AI).
+	// down collision, movement, the active ability, and over-time effects; subclasses extend it
+	// (e.g. stopping AI).
 	virtual void HandleDeath();
 	
 	// System Components

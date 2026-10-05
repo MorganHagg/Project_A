@@ -78,12 +78,6 @@ void UAbilitySlot::ActivateAbility()
 	Spawned->FinishSpawning(SpawnTransform);
 }
 
-void UAbilitySlot::TickAbility(float DeltaTime)
-{
-	if (Ticker.ShouldTick(DeltaTime))
-		IAbilityLifecycle::Execute_OnTick(this);
-}
-
 
 void UAbilitySlot::EndAbility()
 {

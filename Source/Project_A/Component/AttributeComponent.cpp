@@ -11,10 +11,9 @@ UAttributeComponent::UAttributeComponent()
 	for (uint8 Index = 0; Index < static_cast<uint8>(EAttributeType::Count); ++Index)
 	{
 		const EAttributeType Type = static_cast<EAttributeType>(Index);
-		if (Type != EAttributeType::Speed)
-		{
-			Attributes.Add(Type, 0.f);
-		}
+		Attributes.Add(Type, 0.f);
+		BaseAttributes.Add(Type, 0.f);
+		PercentModifiers.Add(Type, 1.f);
 	}
 }
 
@@ -25,18 +24,47 @@ void UAttributeComponent::InstantiateAttributes(const UUnitDataBase* UnitData)
 		return;
 	}
 
+	for (const TPair<EAttributeType, float>& Pair : Attributes)
+	{
+		BaseAttributes.Add(Pair.Key, Pair.Value);
+	}
+
+	// A unit whose data doesn't configure Speed keeps its movement component's walk speed.
+	if (const UCharacterMovementComponent* MovementComponent = GetMovementComponent())
+	{
+		BaseAttributes.Add(EAttributeType::Speed, MovementComponent->MaxWalkSpeed);
+	}
+
 	for (const TPair<EAttributeType, float>& Pair : UnitData->DefaultAttributes)
 	{
-		if (Pair.Key == EAttributeType::Speed)
-		{
-			SetAttribute(EAttributeType::Speed, Pair.Value);
-			continue;
-		}
-		StoreAttribute(Pair.Key, Pair.Value);
+		BaseAttributes.Add(Pair.Key, Pair.Value);
 	}
 
 	// UUnitDataBase only configures a single Health value; use it as the starting max as well.
-	StoreAttribute(EAttributeType::MaxHealth, Attributes.FindRef(EAttributeType::Health));
+	const float StartingHealth = BaseAttributes.FindRef(EAttributeType::Health);
+	BaseAttributes.Add(EAttributeType::MaxHealth, StartingHealth);
+
+	for (uint8 Index = 0; Index < static_cast<uint8>(EAttributeType::Count); ++Index)
+	{
+		const EAttributeType Type = static_cast<EAttributeType>(Index);
+		if (Type == EAttributeType::Health)
+		{
+			continue;
+		}
+
+		// Not UpdateFinalValue - starting values are written directly, without moving Health.
+		const float FinalValue = BaseAttributes.FindRef(Type) * PercentModifiers.FindRef(Type);
+		if (Type == EAttributeType::Speed)
+		{
+			if (UCharacterMovementComponent* MovementComponent = GetMovementComponent())
+			{
+				MovementComponent->MaxWalkSpeed = FinalValue;
+			}
+		}
+		StoreAttribute(Type, FinalValue);
+	}
+
+	StoreAttribute(EAttributeType::Health, StartingHealth);
 }
 
 float UAttributeComponent::GetAttribute(EAttributeType Type) const
@@ -57,24 +85,9 @@ void UAttributeComponent::SetAttribute(EAttributeType Type, float Value)
 		SetHealthValue(Value);
 		return;
 	}
-	if (Type == EAttributeType::MaxHealth)
-	{
-		const float Delta = Value - Attributes.FindRef(EAttributeType::MaxHealth);
-		StoreAttribute(EAttributeType::MaxHealth, Value);
-		SetHealthValue(Attributes.FindRef(EAttributeType::Health) + Delta);
-		return;
-	}
-	if (Type == EAttributeType::Speed)
-	{
-		if (UCharacterMovementComponent* MovementComponent = GetMovementComponent())
-		{
-			MovementComponent->MaxWalkSpeed = Value;
-			OnAttributeChanged.Broadcast(EAttributeType::Speed, MovementComponent->MaxWalkSpeed);
-		}
-		return;
-	}
 
-	StoreAttribute(Type, Value);
+	BaseAttributes.Add(Type, Value);
+	UpdateFinalValue(Type);
 }
 
 void UAttributeComponent::ModifyAttribute(EAttributeType Type, float Amount)
@@ -84,23 +97,41 @@ void UAttributeComponent::ModifyAttribute(EAttributeType Type, float Amount)
 		SetHealthValue(Attributes.FindRef(EAttributeType::Health) + Amount);
 		return;
 	}
+
+	BaseAttributes.Add(Type, BaseAttributes.FindRef(Type) + Amount);
+	UpdateFinalValue(Type);
+}
+
+void UAttributeComponent::ModifyAttributePercent(EAttributeType Type, float Percent)
+{
+	// A Health percentage scales MaxHealth; UpdateFinalValue then moves Health by the same bonus.
+	const EAttributeType ModifiedType = Type == EAttributeType::Health ? EAttributeType::MaxHealth : Type;
+
+	PercentModifiers.Add(ModifiedType, PercentModifiers.FindRef(ModifiedType) + Percent / 100.f);
+	UpdateFinalValue(ModifiedType);
+}
+
+void UAttributeComponent::UpdateFinalValue(EAttributeType Type)
+{
+	const float FinalValue = BaseAttributes.FindRef(Type) * PercentModifiers.FindRef(Type);
+
 	if (Type == EAttributeType::MaxHealth)
 	{
-		StoreAttribute(EAttributeType::MaxHealth, Attributes.FindRef(EAttributeType::MaxHealth) + Amount);
-		SetHealthValue(Attributes.FindRef(EAttributeType::Health) + Amount);
+		const float Delta = FinalValue - Attributes.FindRef(EAttributeType::MaxHealth);
+		StoreAttribute(EAttributeType::MaxHealth, FinalValue);
+		SetHealthValue(Attributes.FindRef(EAttributeType::Health) + Delta, /*bCanKill=*/false);
 		return;
 	}
+
 	if (Type == EAttributeType::Speed)
 	{
 		if (UCharacterMovementComponent* MovementComponent = GetMovementComponent())
 		{
-			MovementComponent->MaxWalkSpeed += Amount;
-			OnAttributeChanged.Broadcast(EAttributeType::Speed, MovementComponent->MaxWalkSpeed);
+			MovementComponent->MaxWalkSpeed = FinalValue;
 		}
-		return;
 	}
 
-	StoreAttribute(Type, Attributes.FindRef(Type) + Amount);
+	StoreAttribute(Type, FinalValue);
 }
 
 void UAttributeComponent::StoreAttribute(EAttributeType Type, float Value)
@@ -115,7 +146,7 @@ UCharacterMovementComponent* UAttributeComponent::GetMovementComponent() const
 	return Character ? Character->GetCharacterMovement() : nullptr;
 }
 
-void UAttributeComponent::SetHealthValue(float NewValue)
+void UAttributeComponent::SetHealthValue(float NewValue, bool bCanKill)
 {
 	if (bIsDead)
 	{
@@ -123,7 +154,7 @@ void UAttributeComponent::SetHealthValue(float NewValue)
 	}
 
 	const float MaxHealth = Attributes.FindRef(EAttributeType::MaxHealth);
-	const float ClampedValue = FMath::Clamp(NewValue, 0.f, MaxHealth);
+	const float ClampedValue = FMath::Clamp(NewValue, bCanKill ? 0.f : 1.f, MaxHealth);
 	StoreAttribute(EAttributeType::Health, ClampedValue);
 
 	if (ClampedValue <= 0.f)
@@ -143,4 +174,3 @@ void UAttributeComponent::SetHealthValue(float NewValue)
 void UAttributeComponent::OnDeath_Implementation()
 {
 }
-

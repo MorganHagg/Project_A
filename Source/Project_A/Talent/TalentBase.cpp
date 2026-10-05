@@ -3,6 +3,7 @@
 #include "Project_A/Unit/PlayerUnit.h"
 #include "Project_A/Component/AbilitySystem.h"
 #include "Project_A/Ability/AbilitySlot.h"
+#include "Project_A/Effect/OverTimeEffectSlot.h"
 
 void UTalentBase::BindToPlayerUnit(APlayerUnit* PlayerUnit)
 {
@@ -45,4 +46,22 @@ UAbilitySlot* UTalentBase::GetAbilitySlot(FGameplayTag AbilityTag) const
 	}
 
 	return AbilitySystem->FindSlot(AbilityTag);
+}
+
+UOverTimeEffectSlot* UTalentBase::GetEffectSlot(FGameplayTag EffectTag) const
+{
+	if (!MyPlayerUnit)
+	{
+		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetEffectSlot called before BindToPlayerUnit."));
+		return nullptr;
+	}
+
+	UAbilitySystem* AbilitySystem = MyPlayerUnit->FindComponentByClass<UAbilitySystem>();
+	if (!AbilitySystem)
+	{
+		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetEffectSlot - %s has no AbilitySystem component."), *MyPlayerUnit->GetName());
+		return nullptr;
+	}
+
+	return AbilitySystem->FindEffectSlot(EffectTag);
 }

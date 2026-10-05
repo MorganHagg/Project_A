@@ -3,25 +3,18 @@
 #include "../Unit/UnitBase.h"
 #include "../DataAsset/UnitDataBase.h"
 #include "../DataAsset/AbilityDataAsset.h"
+#include "../DataAsset/OverTimeEffectDataAsset.h"
+#include "../Effect/OverTimeEffectSlot.h"
 #include "AttributeComponent.h"
 
 UAbilitySystem::UAbilitySystem()
 {
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.bStartWithTickEnabled = false;
 }
 
 void UAbilitySystem::BeginPlay()
 {
 	Super::BeginPlay();
 	MyOwner = CastChecked<AUnitBase>(GetOwner());
-}
-
-void UAbilitySystem::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if (ActiveAbility)
-		ActiveAbility->TickAbility(DeltaTime);
 }
 
 void UAbilitySystem::InstantiateAbilities(const UUnitDataBase* UnitData)
@@ -97,7 +90,6 @@ void UAbilitySystem::SetActiveAbility(UAbilitySlot* NewActiveAbility)
 	if (NewActiveAbility)
 	{
 		ActiveAbility = NewActiveAbility;
-		SetComponentTickEnabled(true);
 	}
 	else
 		UE_LOG(LogTemp, Error, TEXT(
@@ -110,7 +102,6 @@ void UAbilitySystem::EndActiveAbility()
 	{
 		ActiveAbility->EndAbility();
 		ActiveAbility = nullptr;
-		SetComponentTickEnabled(false);
 	}
 }
 
@@ -137,5 +128,46 @@ UAbilitySlot* UAbilitySystem::FindSlot(FGameplayTag AbilityTag) const
 
 	UE_LOG(LogTemp, Error, TEXT("UAbilitySystem::FindSlot - %s has no ability tagged %s."),
 		*GetNameSafe(GetOwner()), *AbilityTag.ToString());
+	return nullptr;
+}
+
+void UAbilitySystem::InstantiateOverTimeEffects(const UUnitDataBase* UnitData)
+{
+	if (!UnitData)
+	{
+		return;
+	}
+
+	for (const UOverTimeEffectDataAsset* EffectData : UnitData->DefaultOverTimeEffects)
+	{
+		if (!EffectData)
+		{
+			continue;
+		}
+
+		UOverTimeEffectSlot* NewSlot = NewObject<UOverTimeEffectSlot>(this);
+		NewSlot->SetupSlot(EffectData, MyOwner);
+		GrantedOverTimeEffects.Add(NewSlot);
+	}
+}
+
+UOverTimeEffectSlot* UAbilitySystem::FindEffectSlot(FGameplayTag EffectTag) const
+{
+	if (!EffectTag.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("UAbilitySystem::FindEffectSlot called with an empty tag."));
+		return nullptr;
+	}
+
+	for (UOverTimeEffectSlot* Slot : GrantedOverTimeEffects)
+	{
+		if (Slot && Slot->EffectTag == EffectTag)
+		{
+			return Slot;
+		}
+	}
+
+	UE_LOG(LogTemp, Error, TEXT("UAbilitySystem::FindEffectSlot - %s has no over-time effect tagged %s."),
+		*GetNameSafe(GetOwner()), *EffectTag.ToString());
 	return nullptr;
 }

@@ -1,34 +1,14 @@
-﻿#pragma once
+#pragma once
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "GameplayTagContainer.h"
 #include "../Misc/GameplayEffect.h"
-#include "../Misc/IntervalTicker.h"
 #include "../Ability/Ability.h"
+#include "../Effect/OverTimeEffect.h"
 #include "EffectHandler.generated.h"
 
 class AUnitBase;
-class UStats;
-
-// A GameplayEffect instance that is currently active on a target, with its
-// own duration/interval progress. FGameplayEffect itself stays config-only.
-USTRUCT()
-struct FActiveGameplayEffect
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	FGameplayEffect Effect;
-
-	UPROPERTY()
-	float DurationTimer = 0.f;
-
-	UPROPERTY()
-	FIntervalTicker Ticker;
-
-	// Damage type of the ability that applied this effect, kept so every interval tick is mitigated the same way.
-	UPROPERTY()
-	EAbilityType AbilityType = EAbilityType::Magic;
-};
+class UOverTimeEffectSlot;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJECT_A_API UEffectHandler : public UActorComponent
@@ -48,14 +28,30 @@ public:
 	UPROPERTY()
 	AUnitBase* MyTarget;
 
-	void UpdateEffect(float DeltaTime);
-	void AddEffect(const FGameplayEffect& Effect, EAbilityType AbilityType);
-	void RemoveEffect(const FGameplayEffect& Effect);
+	// Applies one instant change to MyTarget. Ignored once dead.
 	void ApplyEffect(const FGameplayEffect& Effect, EAbilityType AbilityType);
 
-	UPROPERTY()
-	TArray<FActiveGameplayEffect> GameplayEffects;
+	// Applies a new instance of Slot's effect, following Slot's StackLimit / bMultipleCaster.
+	// Ignored once dead.
+	void AddOverTimeEffect(UOverTimeEffectSlot* Slot);
+
+	// Cleanses one effect instance (OnRemoved).
+	UFUNCTION(BlueprintCallable, Category = "Effect")
+	void RemoveOverTimeEffect(UOverTimeEffect* Effect);
+
+	// Cleanses every active instance tagged EffectTag (OnRemoved).
+	UFUNCTION(BlueprintCallable, Category = "Effect")
+	void RemoveOverTimeEffectsByTag(UPARAM(meta = (Categories = "Effect")) FGameplayTag EffectTag);
+
+	// Called by AUnitBase::HandleDeath - ends every active effect (OnUnitDeath) and stops ticking.
+	void HandleUnitDeath();
+
+	// Active over-time effects in application order (oldest first).
+	UPROPERTY(BlueprintReadOnly, Category = "Effect")
+	TArray<UOverTimeEffect*> OverTimeEffects;
 
 private:
+	void ResolveAndRemove(UOverTimeEffect* Effect, EOverTimeEffectEnd Reason);
+
 	bool IsTargetDead() const;
 };

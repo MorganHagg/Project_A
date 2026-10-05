@@ -3,14 +3,19 @@
 #include "AttributeSet.h"
 #include "GameplayEffect.generated.h"
 
+// Percentage operations take whole percentages (Magnitude 10 = 10%) - see
+// UAttributeComponent::ModifyAttributePercent.
 UENUM(BlueprintType)
 enum class EEffectOperation : uint8
 {
-	Subtract,
 	Add,
-	Modify
+	Subtract,
+	AddPercentage,
+	SubtractPercentage
 };
 
+// One instant change to one attribute. Anything lasting over time is a UOverTimeEffect, which
+// applies these as it goes.
 USTRUCT(BlueprintType)
 struct FGameplayEffect
 {
@@ -24,10 +29,4 @@ struct FGameplayEffect
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Magnitude = 0.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Duration = 0.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Interval = 0.f;
 };

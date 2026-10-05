@@ -6,6 +6,8 @@
 #include "../Unit/PlayerUnit.h"
 #include "../Unit/EnemyUnit.h"
 #include "../Component/EffectHandler.h"
+#include "../Component/AbilitySystem.h"
+#include "../Effect/OverTimeEffectSlot.h"
 #include "../Interfaces/AbilityLifecycle.h"
 
 AAbility::AAbility()
@@ -189,7 +191,21 @@ void AAbility::ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect)
 
 	if (UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>())
 	{
-		EffectHandler->AddEffect(Effect, MyAbility ? MyAbility->AbilityType : EAbilityType::Magic);
+		EffectHandler->ApplyEffect(Effect, MyAbility ? MyAbility->AbilityType : EAbilityType::Magic);
+	}
+}
+
+void AAbility::ApplyOverTimeEffect(FGameplayTag EffectTag, AUnitBase* Target)
+{
+	const AUnitBase* Caster = Cast<AUnitBase>(MyCaster);
+	if (!Caster || !Caster->AbilitySystemComponent || !Target)
+	{
+		return;
+	}
+
+	if (UOverTimeEffectSlot* Slot = Caster->AbilitySystemComponent->FindEffectSlot(EffectTag))
+	{
+		Slot->ApplyOverTimeEffect(Target);
 	}
 }
 

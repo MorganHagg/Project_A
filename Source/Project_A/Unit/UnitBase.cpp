@@ -43,6 +43,7 @@ void AUnitBase::SetupUnit(UUnitDataBase* SpawnData)
 	UnitData = SpawnData;
 
 	AbilitySystemComponent->InstantiateAbilities(SpawnData);
+	AbilitySystemComponent->InstantiateOverTimeEffects(SpawnData);
 	AttributeComponent->InstantiateAttributes(SpawnData);
 
 	GetMesh()->SetSkeletalMesh(SpawnData->Mesh);
@@ -85,6 +86,8 @@ void AUnitBase::HandleDeath()
 	GetCharacterMovement()->DisableMovement();
 
 	AbilitySystemComponent->EndActiveAbility();
+
+	EffectHandlerComponent->HandleUnitDeath();
 
 	HealthBarComponent->SetVisibility(false);
 }

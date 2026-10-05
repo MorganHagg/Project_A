@@ -168,6 +168,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	void ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect);
 
+	// Applies the over-time effect tagged EffectTag (e.g. "Effect.Burn") from MyCaster's granted
+	// over-time effects to Target. Logs an error if MyCaster wasn't granted it.
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	void ApplyOverTimeEffect(UPARAM(meta = (Categories = "Effect")) FGameplayTag EffectTag, AUnitBase* Target);
+
 	// Reports FinishEventTags, broadcasts OnFinish, and destroys this actor.
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	virtual void Finish();

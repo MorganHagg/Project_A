@@ -1,8 +1,7 @@
-﻿#include "EffectHandler.h"
+#include "EffectHandler.h"
 #include "../Unit/UnitBase.h"
 #include "../Component/AttributeComponent.h"
-#include "../Misc/GameplayEffect.h"
-#include "../Misc/AttributeSet.h"
+#include "../Effect/OverTimeEffectSlot.h"
 
 UEffectHandler::UEffectHandler()
 {
@@ -19,92 +18,142 @@ void UEffectHandler::BeginPlay()
 void UEffectHandler::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	UpdateEffect(DeltaTime);
-}
 
-void UEffectHandler::UpdateEffect(float DeltaTime)
-{
-	// Death cancels every active effect - nothing is applied to a dead unit.
-	if (IsTargetDead())
+	// Iterates a copy - hooks can add, cleanse, or (by killing the target) end effects mid-loop.
+	const TArray<UOverTimeEffect*> Effects = OverTimeEffects;
+	for (UOverTimeEffect* Effect : Effects)
 	{
-		GameplayEffects.Empty();
-		SetComponentTickEnabled(false);
-		return;
-	}
-
-	for (int32 Index = GameplayEffects.Num() - 1; Index >= 0; --Index)
-	{
-		FActiveGameplayEffect& ActiveEffect = GameplayEffects[Index];
-
-		if (ActiveEffect.Ticker.ShouldTick(DeltaTime))
+		if (Effect && !Effect->IsResolved() && Effect->Advance(DeltaTime))
 		{
-			ApplyEffect(ActiveEffect.Effect, ActiveEffect.AbilityType);
-		}
-
-		ActiveEffect.DurationTimer -= DeltaTime;
-		if (ActiveEffect.DurationTimer <= 0.f)
-		{
-			GameplayEffects.RemoveAt(Index);
+			ResolveAndRemove(Effect, EOverTimeEffectEnd::Ended);
 		}
 	}
-}
-
-void UEffectHandler::AddEffect(const FGameplayEffect& Effect, EAbilityType AbilityType)
-{
-	if (IsTargetDead())
-	{
-		return;
-	}
-
-	if (Effect.Duration <= 0.f)
-	{
-		ApplyEffect(Effect, AbilityType);
-		return;
-	}
-
-	FActiveGameplayEffect ActiveEffect;
-	ActiveEffect.Effect = Effect;
-	ActiveEffect.DurationTimer = Effect.Duration;
-	ActiveEffect.Ticker.Interval = Effect.Interval;
-	ActiveEffect.AbilityType = AbilityType;
-	GameplayEffects.Add(ActiveEffect);
-}
-
-void UEffectHandler::RemoveEffect(const FGameplayEffect& Effect)
-{
-	// TODO: FGameplayEffect has no identifying data yet, so instances can't be matched for removal.
 }
 
 void UEffectHandler::ApplyEffect(const FGameplayEffect& Effect, EAbilityType AbilityType)
 {
-	// Also catches a unit killed earlier in the same UpdateEffect pass.
+	// Also catches a unit killed earlier in the same frame.
 	if (!MyTarget || !MyTarget->AttributeComponent || IsTargetDead())
 	{
 		return;
 	}
 
-	const float SignedMagnitude = Effect.Operation == EEffectOperation::Subtract ? -Effect.Magnitude : Effect.Magnitude;
-
-	if (Effect.Operation == EEffectOperation::Modify)
+	switch (Effect.Operation)
 	{
-		MyTarget->AttributeComponent->SetAttribute(Effect.Attribute, Effect.Magnitude);
+	case EEffectOperation::Add:
+	case EEffectOperation::Subtract:
+	{
+		const float SignedMagnitude = Effect.Operation == EEffectOperation::Subtract ? -Effect.Magnitude : Effect.Magnitude;
+
+		if (Effect.Attribute == EAttributeType::Health)
+		{
+			if (SignedMagnitude < 0.f)
+			{
+				MyTarget->ReceiveDamage(-SignedMagnitude, AbilityType);
+			}
+			else if (SignedMagnitude > 0.f)
+			{
+				MyTarget->ReceiveHeal(SignedMagnitude);
+			}
+			return;
+		}
+
+		MyTarget->AttributeComponent->ModifyAttribute(Effect.Attribute, SignedMagnitude);
+		return;
+	}
+	// Not damage - unmitigated, and doesn't fire OnReceiveDamage/OnReceiveHeal.
+	case EEffectOperation::AddPercentage:
+		MyTarget->AttributeComponent->ModifyAttributePercent(Effect.Attribute, Effect.Magnitude);
+		return;
+	case EEffectOperation::SubtractPercentage:
+		MyTarget->AttributeComponent->ModifyAttributePercent(Effect.Attribute, -Effect.Magnitude);
+		return;
+	}
+}
+
+void UEffectHandler::AddOverTimeEffect(UOverTimeEffectSlot* Slot)
+{
+	if (!Slot || !Slot->EffectClass || !MyTarget || IsTargetDead())
+	{
 		return;
 	}
 
-	if (Effect.Attribute == EAttributeType::Health)
+	// Stacks of the same effect - per caster unless the slot shares them across casters.
+	TArray<UOverTimeEffect*> Matches;
+	for (UOverTimeEffect* Effect : OverTimeEffects)
 	{
-		if (SignedMagnitude < 0.f)
+		if (Effect && !Effect->IsResolved() && Effect->GetEffectTag() == Slot->EffectTag &&
+			(!Slot->bMultipleCaster || Effect->GetCaster() == Slot->MyCaster))
 		{
-			MyTarget->ReceiveDamage(-SignedMagnitude, AbilityType);
+			Matches.Add(Effect);
 		}
-		else if (SignedMagnitude > 0.f)
-		{
-			MyTarget->ReceiveHeal(SignedMagnitude);
-		}
+	}
+
+	if (Slot->StackLimit == 0 && Matches.Num() > 0)
+	{
 		return;
 	}
 
-	MyTarget->AttributeComponent->ModifyAttribute(Effect.Attribute, SignedMagnitude);
+	// At the limit, the oldest stacks fully end (hook, stat revert, removal) before the new one
+	// applies, so their stat changes are gone before the new stack makes its own.
+	if (Slot->StackLimit > 0)
+	{
+		for (int32 Index = 0; Index <= Matches.Num() - Slot->StackLimit; ++Index)
+		{
+			ResolveAndRemove(Matches[Index], EOverTimeEffectEnd::Ended);
+		}
+
+		// An ending hook can kill the target.
+		if (IsTargetDead())
+		{
+			return;
+		}
+	}
+
+	UOverTimeEffect* NewEffect = NewObject<UOverTimeEffect>(this, Slot->EffectClass);
+	OverTimeEffects.Add(NewEffect);
+	NewEffect->Begin(Slot, MyTarget);
+}
+
+void UEffectHandler::RemoveOverTimeEffect(UOverTimeEffect* Effect)
+{
+	if (Effect && OverTimeEffects.Contains(Effect))
+	{
+		ResolveAndRemove(Effect, EOverTimeEffectEnd::Removed);
+	}
+}
+
+void UEffectHandler::RemoveOverTimeEffectsByTag(FGameplayTag EffectTag)
+{
+	const TArray<UOverTimeEffect*> Effects = OverTimeEffects;
+	for (UOverTimeEffect* Effect : Effects)
+	{
+		if (Effect && Effect->GetEffectTag() == EffectTag)
+		{
+			ResolveAndRemove(Effect, EOverTimeEffectEnd::Removed);
+		}
+	}
+}
+
+void UEffectHandler::HandleUnitDeath()
+{
+	const TArray<UOverTimeEffect*> Effects = OverTimeEffects;
+	for (UOverTimeEffect* Effect : Effects)
+	{
+		if (Effect)
+		{
+			Effect->Resolve(EOverTimeEffectEnd::UnitDeath);
+		}
+	}
+
+	OverTimeEffects.Empty();
+	SetComponentTickEnabled(false);
+}
+
+void UEffectHandler::ResolveAndRemove(UOverTimeEffect* Effect, EOverTimeEffectEnd Reason)
+{
+	Effect->Resolve(Reason);
+	OverTimeEffects.Remove(Effect);
 }
 
 bool UEffectHandler::IsTargetDead() const

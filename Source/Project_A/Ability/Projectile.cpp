@@ -17,7 +17,8 @@ FTransform AProjectile::GetSpawnTransform_Implementation()
 void AProjectile::BeginPlay()
 {
 	Super::BeginPlay();
-	Ticker.IntervalTimer = Ticker.Interval;
+	// Runs until Travel() finishes it - no duration.
+	Ticker.Start(0.f);
 	MeshComponent->OnComponentBeginOverlap.AddDynamic(this, &AProjectile::HandleComponentBeginOverlap);
 
 	// GetActorLocation/GetActorForwardVector already reflect GetSpawnTransform's result by now
@@ -35,7 +36,9 @@ void AProjectile::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	Travel(DeltaTime);
 
-	if (Ticker.ShouldTick(DeltaTime))
+	bool bFinished = false;
+	const int32 TicksDue = Ticker.Advance(DeltaTime, bFinished);
+	for (int32 TickIndex = 0; TickIndex < TicksDue && !bHasFinished; ++TickIndex)
 	{
 		IAbilityLifecycle::Execute_OnTick(this);
 	}

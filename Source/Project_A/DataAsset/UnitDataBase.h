@@ -6,6 +6,7 @@
 #include "UnitDataBase.generated.h"
 
 class UAbilityDataAsset;
+class UOverTimeEffectDataAsset;
 class USkeletalMesh;
 class UHealthBarWidget;
 
@@ -26,6 +27,10 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TArray<UAbilityDataAsset*> DefaultAbilities;
+
+	// Over-time effects this unit's abilities can apply (by tag, see AAbility::ApplyOverTimeEffect).
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TArray<UOverTimeEffectDataAsset*> DefaultOverTimeEffects;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TMap<EAttributeType, float> DefaultAttributes;

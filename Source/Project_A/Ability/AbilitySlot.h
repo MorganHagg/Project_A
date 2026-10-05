@@ -2,7 +2,6 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "GameplayTagContainer.h"
-#include "../Misc/IntervalTicker.h"
 #include "../Interfaces/AbilityLifecycle.h"
 #include "AbilityEventPayload.h"
 #include "Ability.h"
@@ -57,9 +56,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float MagnitudeMultiplier = 1.f;
 
-	UPROPERTY(EditAnywhere)
-	FIntervalTicker Ticker;
-
 	// Which Ability (product) class this slot spawns when activated. Copied from the
 	// UAbilityDataAsset this instance was built from - see UAbilitySystem::InstantiateAbilities.
 	UPROPERTY(BlueprintReadOnly, Category = "Ability")
@@ -87,8 +83,6 @@ public:
 
 	// Activates this ability. Calls into OnActivate (Blueprint-implementable).
 	virtual void ActivateAbility();
-
-	void TickAbility(float DeltaTime);
 
 	// Ends this ability. Calls into OnEnd (Blueprint-implementable).
 	UFUNCTION(BlueprintCallable, Category = "Ability")

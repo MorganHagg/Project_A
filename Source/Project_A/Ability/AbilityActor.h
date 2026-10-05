@@ -28,8 +28,8 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float Duration = 0.f;	// 0 = lasts infinite
-	float DurationTimer = 0.f;
 
+	// Fires OnTick every Interval over Duration (see FIntervalTicker) - no extra tick at the end.
 	UPROPERTY(EditAnywhere)
 	FIntervalTicker Ticker;
 

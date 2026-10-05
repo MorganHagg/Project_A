@@ -7,6 +7,7 @@
 #include "TalentBase.generated.h"
 
 class APlayerUnit;
+class UOverTimeEffectSlot;
 
 UCLASS(Blueprintable)
 class PROJECT_A_API UTalentBase : public UObject
@@ -20,7 +21,7 @@ public:
 	// reacts only to Fireball's crits. Left empty, the talent never fires - it isn't a wildcard.
 	// A talent that needs to react to more than one distinct combination should be split into
 	// separate talents, one per combination.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent", meta = (Categories = "Ability,Event"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent", meta = (Categories = "Ability,Effect,Event"))
 	FGameplayTagContainer RequiredTags;
 
 	// Binds this talent to its owning PlayerUnit - the sole delegation point for talents.
@@ -45,4 +46,10 @@ public:
 	// nullptr if MyPlayerUnit isn't bound yet, has no AbilitySystem, or has no slot with that tag.
 	UFUNCTION(BlueprintCallable, Category = "Talent")
 	UAbilitySlot* GetAbilitySlot(UPARAM(meta = (Categories = "Ability")) FGameplayTag AbilityTag) const;
+
+	// Finds MyPlayerUnit's granted over-time effect slot by identity tag (e.g. "Effect.Burn"), so
+	// the talent can change its values (Duration, Interval, StackLimit, bMultipleCaster). Logs an
+	// error and returns nullptr like GetAbilitySlot.
+	UFUNCTION(BlueprintCallable, Category = "Talent")
+	UOverTimeEffectSlot* GetEffectSlot(UPARAM(meta = (Categories = "Effect")) FGameplayTag EffectTag) const;
 };

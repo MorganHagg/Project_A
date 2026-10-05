@@ -6,6 +6,7 @@
 class UAbilitySlot;
 class AUnitBase;
 class AAbility;
+class UOverTimeEffect;
 
 // Common payload sent with every ability-side delegation (AbilityActor/Projectile -> Ability -> PlayerUnit -> Talent).
 // Each event only populates the fields relevant to it; the rest are left at their default (e.g. Target = nullptr).
@@ -40,6 +41,10 @@ struct FAbilityEventPayload
 
 	UPROPERTY(BlueprintReadWrite, Category = "Ability")
 	FGameplayEffect AppliedEffect;
+
+	// The over-time effect instance that reported this event (Effect.* events), if any.
+	UPROPERTY(BlueprintReadWrite, Category = "Ability")
+	UOverTimeEffect* OverTimeEffect = nullptr;
 };
 
 // Per-instance hook, separate from the tag-based ReportAbilityEvent chain. Lets code/Blueprint

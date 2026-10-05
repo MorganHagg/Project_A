@@ -32,7 +32,7 @@ public:
 	// -- Tunables --
 
 	// Gates OnTick (IAbilityLifecycle), not Travel - movement stays frame-accurate every Tick.
-	// Interval = 0 fires OnTick continuously. No Duration equivalent: a projectile's end is
+	// Interval = 0 never fires OnTick. No Duration equivalent: a projectile's end is
 	// already fully determined by distance to Destination inside Travel(), not a timer.
 	UPROPERTY(EditAnywhere)
 	FIntervalTicker Ticker;

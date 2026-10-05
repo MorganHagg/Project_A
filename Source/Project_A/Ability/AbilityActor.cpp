@@ -23,8 +23,7 @@ FTransform AAbilityActor::GetSpawnTransform_Implementation()
 void AAbilityActor::BeginPlay()
 {
 	Super::BeginPlay();
-	DurationTimer = Duration;
-	Ticker.IntervalTimer = Ticker.Interval;
+	Ticker.Start(Duration);
 	MeshComponent->OnComponentBeginOverlap.AddDynamic(this, &AAbilityActor::HandleOverlap);
 	IAbilityLifecycle::Execute_OnActivate(this);
 }
@@ -33,22 +32,17 @@ void AAbilityActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (Duration != 0.f)
-	{
-		DurationTimer -= DeltaTime;
-
-		if (DurationTimer <= 0.f)
-		{
-			// Final tick
-			IAbilityLifecycle::Execute_OnTick(this);
-			Finish();
-			return;
-		}
-	}
-
-	if (Ticker.ShouldTick(DeltaTime))
+	bool bFinished = false;
+	const int32 TicksDue = Ticker.Advance(DeltaTime, bFinished);
+	for (int32 TickIndex = 0; TickIndex < TicksDue && !bHasFinished; ++TickIndex)
 	{
 		IAbilityLifecycle::Execute_OnTick(this);
+	}
+
+	// OnTick may already have finished this actor itself.
+	if (bFinished && !bHasFinished)
+	{
+		Finish();
 	}
 }
 
