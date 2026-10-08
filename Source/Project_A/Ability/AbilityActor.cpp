@@ -25,6 +25,7 @@ void AAbilityActor::BeginPlay()
 	Super::BeginPlay();
 	Ticker.Start(Duration);
 	MeshComponent->OnComponentBeginOverlap.AddDynamic(this, &AAbilityActor::HandleOverlap);
+	ReportCast();
 	IAbilityLifecycle::Execute_OnActivate(this);
 }
 

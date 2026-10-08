@@ -55,7 +55,8 @@ public:
 protected:
 	// Composes AbilityTag from AbilityName, checkf-guarded against NO_NAME_ABILITY. Runs on
 	// FinishSpawning (after GetSpawnTransform has already been queried on the deferred instance,
-	// before OnActivate) - Cast reporting needs AbilityTag valid, GetSpawnTransform doesn't.
+	// before OnActivate) - Cast reporting needs AbilityTag valid, GetSpawnTransform doesn't. Also
+	// composes FinishEventTags (identity + Event.Finish) unless a bespoke set is already set.
 	virtual void BeginPlay() override;
 
 public:
@@ -187,6 +188,11 @@ protected:
 	// of OnEnd firing before talents/OnFinish listeners get a chance to react. Callers must still
 	// check bHasFinished themselves first - this does not guard against being called twice.
 	FAbilityEventPayload NotifyFinish();
+
+	// Reports this ability's identity tag + Event.Cast. Called by AProjectile/AAbilityActor at the
+	// end of their BeginPlay, right before OnActivate - after their own setup (e.g. a projectile's
+	// Destination), so a talent reacting to the cast can still change it.
+	void ReportCast();
 
 private:
 	// Set while OnHit runs its OnTargetHit hook, so ApplyEffect knows to record into HitAppliedEffect.

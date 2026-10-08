@@ -33,6 +33,21 @@ void AAbility::BeginPlay()
 		TEXT("%s has no AbilityName set - every ability must be given a unique name."), *GetClass()->GetName());
 
 	AbilityTag = ComposeAbilityTag(AbilityName);
+
+	if (FinishEventTags.IsEmpty())
+	{
+		FinishEventTags = ComposeEventTags(TEXT("Finish"));
+	}
+}
+
+void AAbility::ReportCast()
+{
+	FAbilityEventPayload Payload;
+	Payload.AbilitySlot = MyAbility;
+	Payload.Ability = this;
+	Payload.Location = GetActorLocation();
+
+	ReportAbilityEvent(ComposeEventTags(TEXT("Cast")), Payload);
 }
 
 FGameplayTag AAbility::ComposeAbilityTag(FName InAbilityName, bool bErrorIfNotFound)

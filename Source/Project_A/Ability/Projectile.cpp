@@ -28,6 +28,7 @@ void AProjectile::BeginPlay()
 	// redirect it mid-flight simply by writing a new Destination.
 	Destination = GetActorLocation() + GetActorForwardVector() * MaxDistance;
 
+	ReportCast();
 	IAbilityLifecycle::Execute_OnActivate(this);
 }
 
