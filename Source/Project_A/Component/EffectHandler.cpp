@@ -135,6 +135,33 @@ void UEffectHandler::RemoveOverTimeEffectsByTag(FGameplayTag EffectTag)
 	}
 }
 
+float UEffectHandler::ModifyIncomingDamage(float Amount, EAbilityType AbilityType)
+{
+	// Iterates a copy - an effect's override can add or cleanse effects.
+	const TArray<UOverTimeEffect*> Effects = OverTimeEffects;
+	for (UOverTimeEffect* Effect : Effects)
+	{
+		if (Effect && !Effect->IsResolved())
+		{
+			Amount = Effect->ModifyIncomingDamage(Amount, AbilityType);
+		}
+	}
+	return Amount;
+}
+
+float UEffectHandler::ModifyIncomingHeal(float Amount)
+{
+	const TArray<UOverTimeEffect*> Effects = OverTimeEffects;
+	for (UOverTimeEffect* Effect : Effects)
+	{
+		if (Effect && !Effect->IsResolved())
+		{
+			Amount = Effect->ModifyIncomingHeal(Amount);
+		}
+	}
+	return Amount;
+}
+
 void UEffectHandler::HandleUnitDeath()
 {
 	const TArray<UOverTimeEffect*> Effects = OverTimeEffects;

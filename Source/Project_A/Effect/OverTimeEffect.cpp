@@ -48,6 +48,16 @@ void UOverTimeEffect::ApplyEffect(EEffectOperation Operation, EAttributeType Att
 	}
 }
 
+float UOverTimeEffect::ModifyIncomingDamage_Implementation(float Amount, EAbilityType AbilityType)
+{
+	return Amount;
+}
+
+float UOverTimeEffect::ModifyIncomingHeal_Implementation(float Amount)
+{
+	return Amount;
+}
+
 void UOverTimeEffect::Begin(UOverTimeEffectSlot* Slot, AUnitBase* Target)
 {
 	MySlot = Slot;
@@ -57,7 +67,16 @@ void UOverTimeEffect::Begin(UOverTimeEffectSlot* Slot, AUnitBase* Target)
 	Ticker.Interval = Slot ? Slot->Interval : 0.f;
 	Ticker.Start(Slot ? Slot->Duration : 0.f);
 
-	OnApplied();
+	if (Ticker.Interval <= 0.f)
+	{
+		ApplySlotEffect();
+	}
+
+	// The slot's Effect may already have killed the target, which resolves this effect.
+	if (!bResolved)
+	{
+		OnApplied();
+	}
 
 	// OnApplied may already have killed the target, which resolves this effect.
 	if (!bResolved)
@@ -74,7 +93,11 @@ bool UOverTimeEffect::Advance(float DeltaTime)
 	// A tick can end this effect (e.g. by killing its target) - stop as soon as it does.
 	for (int32 TickIndex = 0; TickIndex < TicksDue && !bResolved; ++TickIndex)
 	{
-		OnTick();
+		ApplySlotEffect();
+		if (!bResolved)
+		{
+			OnTick();
+		}
 		if (!bResolved)
 		{
 			ReportEvent(TEXT("Tick"));
@@ -164,6 +187,14 @@ void UOverTimeEffect::RevertModifyStat()
 
 	ModifiedStats.Empty();
 	bModifiedStat = false;
+}
+
+void UOverTimeEffect::ApplySlotEffect()
+{
+	if (MySlot && MySlot->Effect.Magnitude != 0.f)
+	{
+		ApplyEffect(MySlot->Effect.Operation, MySlot->Effect.Attribute, MySlot->Effect.Magnitude, MySlot->AbilityType);
+	}
 }
 
 UEffectHandler* UOverTimeEffect::GetHandler() const

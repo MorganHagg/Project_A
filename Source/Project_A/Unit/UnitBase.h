@@ -67,12 +67,14 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Unit")
 	FOnUnitReceiveHeal OnReceiveHeal;
 
-	// Mitigates Amount by AbilityType (see MitigateDamage), subtracts it from Health, and broadcasts
-	// OnReceiveDamage. Ignored once dead.
+	// Mitigates Amount by AbilityType (see MitigateDamage), lets active over-time effects change it
+	// (UOverTimeEffect::ModifyIncomingDamage), clamps it at 0, subtracts it from Health, and
+	// broadcasts OnReceiveDamage. Ignored once dead.
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	void ReceiveDamage(float Amount, EAbilityType AbilityType);
 
-	// Adds Amount to Health and broadcasts OnReceiveHeal. Ignored once dead.
+	// Lets active over-time effects change Amount (UOverTimeEffect::ModifyIncomingHeal), clamps it at
+	// 0, adds it to Health, and broadcasts OnReceiveHeal. Ignored once dead.
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	void ReceiveHeal(float Amount);
 

@@ -101,9 +101,15 @@ void AUnitBase::ReceiveDamage(float Amount, EAbilityType AbilityType)
 
 	// Rounded to whole damage so Health stays whole - otherwise mitigation leaves fractional
 	// remainders (e.g. 0.4 Health) that look like 0 on the health bar but aren't dead.
-	const float MitigatedAmount = FMath::RoundToFloat(MitigateDamage(Amount, AbilityType));
-	AttributeComponent->ModifyAttribute(EAttributeType::Health, -MitigatedAmount);
-	OnReceiveDamage.Broadcast(MitigatedAmount);
+	float FinalAmount = MitigateDamage(Amount, AbilityType);
+	if (EffectHandlerComponent)
+	{
+		FinalAmount = EffectHandlerComponent->ModifyIncomingDamage(FinalAmount, AbilityType);
+	}
+	FinalAmount = FMath::RoundToFloat(FMath::Max(FinalAmount, 0.f));
+
+	AttributeComponent->ModifyAttribute(EAttributeType::Health, -FinalAmount);
+	OnReceiveDamage.Broadcast(FinalAmount);
 }
 
 void AUnitBase::ReceiveHeal(float Amount)
@@ -113,8 +119,15 @@ void AUnitBase::ReceiveHeal(float Amount)
 		return;
 	}
 
-	AttributeComponent->ModifyAttribute(EAttributeType::Health, Amount);
-	OnReceiveHeal.Broadcast(Amount);
+	float FinalAmount = Amount;
+	if (EffectHandlerComponent)
+	{
+		FinalAmount = EffectHandlerComponent->ModifyIncomingHeal(FinalAmount);
+	}
+	FinalAmount = FMath::Max(FinalAmount, 0.f);
+
+	AttributeComponent->ModifyAttribute(EAttributeType::Health, FinalAmount);
+	OnReceiveHeal.Broadcast(FinalAmount);
 }
 
 float AUnitBase::MitigateDamage(float Damage, EAbilityType AbilityType) const

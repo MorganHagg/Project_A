@@ -9,11 +9,13 @@ void UOverTimeEffectSlot::SetupSlot(const UOverTimeEffectDataAsset* Data, AUnitB
 	check(Data);
 
 	MyCaster = Caster;
-	EffectClass = Data->EffectClass;
+	EffectClass = Data->EffectClass ? Data->EffectClass : TSubclassOf<UOverTimeEffect>(UOverTimeEffect::StaticClass());
 	Duration = Data->Duration;
 	Interval = Data->Interval;
 	StackLimit = Data->StackLimit;
 	bMultipleCaster = Data->bMultipleCaster;
+	Effect = Data->Effect;
+	AbilityType = Data->AbilityType;
 
 	EffectTag = ComposeEffectTag(Data->EffectName, /*bErrorIfNotFound=*/false);
 	if (!EffectTag.IsValid())

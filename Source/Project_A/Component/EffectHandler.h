@@ -43,6 +43,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Effect")
 	void RemoveOverTimeEffectsByTag(UPARAM(meta = (Categories = "Effect")) FGameplayTag EffectTag);
 
+	// Passes Amount through every active effect's ModifyIncomingDamage / ModifyIncomingHeal, oldest
+	// first, and returns the result. Called by AUnitBase::ReceiveDamage / ReceiveHeal.
+	float ModifyIncomingDamage(float Amount, EAbilityType AbilityType);
+	float ModifyIncomingHeal(float Amount);
+
 	// Called by AUnitBase::HandleDeath - ends every active effect (OnUnitDeath) and stops ticking.
 	void HandleUnitDeath();
 

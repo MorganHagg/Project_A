@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "GameplayTagContainer.h"
+#include "../Ability/Ability.h"
 #include "OverTimeEffectSlot.generated.h"
 
 class AUnitBase;
@@ -55,4 +56,10 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, Category = "Effect")
 	bool bMultipleCaster = true;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Effect")
+	FGameplayEffect Effect;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Effect")
+	EAbilityType AbilityType = EAbilityType::Magic;
 };
