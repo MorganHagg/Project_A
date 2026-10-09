@@ -3,7 +3,6 @@
 #include "../Misc/GameplayEffect.h"
 #include "AbilityEventPayload.generated.h"
 
-class UAbilitySlot;
 class AUnitBase;
 class AAbility;
 class UOverTimeEffect;
@@ -14,12 +13,6 @@ USTRUCT(BlueprintType)
 struct FAbilityEventPayload
 {
 	GENERATED_BODY()
-
-	// The ability slot that reported this event. Always stamped by ReportAbilityEvent regardless of
-	// what the caller passed in, so it's read-only in Blueprint - setting it manually would be
-	// pointless, since it's overwritten before the payload goes anywhere.
-	UPROPERTY(BlueprintReadOnly, Category = "Ability")
-	UAbilitySlot* AbilitySlot = nullptr;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Ability")
 	AUnitBase* Target = nullptr;

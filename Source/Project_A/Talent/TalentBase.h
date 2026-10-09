@@ -42,7 +42,7 @@ public:
 	void OnAbilityEvent(FAbilityEventPayload Payload);
 
 	// Finds MyPlayerUnit's granted ability slot by identity tag (e.g. "Ability.Fireball"), so the
-	// talent can change its values (Cost, CoolDown, MagnitudeMultiplier). Logs an error and returns
+	// talent can change its values (Cost, CoolDown). Logs an error and returns
 	// nullptr if MyPlayerUnit isn't bound yet, has no AbilitySystem, or has no slot with that tag.
 	UFUNCTION(BlueprintCallable, Category = "Talent")
 	UAbilitySlot* GetAbilitySlot(UPARAM(meta = (Categories = "Ability")) FGameplayTag AbilityTag) const;

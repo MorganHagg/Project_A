@@ -15,7 +15,6 @@ void UOverTimeEffectSlot::SetupSlot(const UOverTimeEffectDataAsset* Data, AUnitB
 	StackLimit = Data->StackLimit;
 	bMultipleCaster = Data->bMultipleCaster;
 	Effect = Data->Effect;
-	AbilityType = Data->AbilityType;
 
 	EffectTag = ComposeEffectTag(Data->EffectName, /*bErrorIfNotFound=*/false);
 	if (!EffectTag.IsValid())

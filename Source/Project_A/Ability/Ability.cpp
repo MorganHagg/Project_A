@@ -43,7 +43,6 @@ void AAbility::BeginPlay()
 void AAbility::ReportCast()
 {
 	FAbilityEventPayload Payload;
-	Payload.AbilitySlot = MyAbility;
 	Payload.Ability = this;
 	Payload.Location = GetActorLocation();
 
@@ -67,7 +66,6 @@ void AAbility::SetMyCaster(ACharacter* Caster)
 
 void AAbility::ReportAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload)
 {
-	Payload.AbilitySlot = MyAbility;
 	if (Payload.Ability == nullptr)
 	{
 		Payload.Ability = this;
@@ -178,7 +176,6 @@ void AAbility::OnHit(AUnitBase* Target, FVector Location)
 	bResolvingHit = false;
 
 	FAbilityEventPayload Payload;
-	Payload.AbilitySlot = MyAbility;
 	Payload.Ability = this;
 	Payload.Target = Target;
 	Payload.Location = Location;
@@ -206,7 +203,7 @@ void AAbility::ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect)
 
 	if (UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>())
 	{
-		EffectHandler->ApplyEffect(Effect, MyAbility ? MyAbility->AbilityType : EAbilityType::Magic);
+		EffectHandler->ApplyEffect(Effect);
 	}
 }
 
@@ -241,7 +238,6 @@ FAbilityEventPayload AAbility::NotifyFinish()
 	bHasFinished = true;
 
 	FAbilityEventPayload Payload;
-	Payload.AbilitySlot = MyAbility;
 	Payload.Ability = this;
 	Payload.Location = GetActorLocation();
 

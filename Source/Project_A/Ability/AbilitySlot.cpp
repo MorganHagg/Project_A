@@ -11,21 +11,6 @@ UAbilitySlot::UAbilitySlot()
 
 }
 
-float UAbilitySlot::GetCoolDown()
-{
-	return CoolDown;
-}
-
-float UAbilitySlot::GetCost()
-{
-	return Cost;
-}
-
-float UAbilitySlot::GetMagnitude()
-{
-	return MagnitudeMultiplier;
-}
-
 void UAbilitySlot::SetupAbility(AUnitBase* NewCaster)
 {
 	MyCaster = NewCaster;
@@ -95,7 +80,6 @@ void UAbilitySlot::KillAbility()
 
 void UAbilitySlot::ReportAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload)
 {
-	Payload.AbilitySlot = this;
 	if (APlayerUnit* PlayerUnit = Cast<APlayerUnit>(MyCaster))
 	{
 		PlayerUnit->BroadcastAbilityEvent(EventTags, Payload);

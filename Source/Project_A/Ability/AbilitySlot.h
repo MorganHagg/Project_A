@@ -34,11 +34,7 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	AUnitBase* MyCaster;
 
-	UPROPERTY(BlueprintReadOnly)
-	APlayerController* MyController;
-
 	UWorld* World;
-	FActorSpawnParameters SpawnParams;
 
 	// --------------------------------------------------------------
 	// Tunables
@@ -53,9 +49,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float Cost = 0.f;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float MagnitudeMultiplier = 1.f;
-
 	// Which Ability (product) class this slot spawns when activated. Copied from the
 	// UAbilityDataAsset this instance was built from - see UAbilitySystem::InstantiateAbilities.
 	UPROPERTY(BlueprintReadOnly, Category = "Ability")
@@ -65,14 +58,6 @@ public:
 	// UAbilitySystem::InstantiateAbilities; used by talents to find the slot (UAbilitySystem::FindSlot).
 	UPROPERTY(BlueprintReadOnly, Category = "Ability")
 	FGameplayTag AbilityTag;
-
-	// Damage type of everything this slot's Ability applies. Copied from the UAbilityDataAsset, like ProductClass.
-	UPROPERTY(BlueprintReadOnly, Category = "Ability")
-	EAbilityType AbilityType = EAbilityType::Magic;
-
-	float GetCoolDown();
-	float GetCost();
-	float GetMagnitude();
 
 	// --------------------------------------------------------------
 	// Lifecycle

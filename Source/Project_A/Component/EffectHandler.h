@@ -3,7 +3,6 @@
 #include "Components/ActorComponent.h"
 #include "GameplayTagContainer.h"
 #include "../Misc/GameplayEffect.h"
-#include "../Ability/Ability.h"
 #include "../Effect/OverTimeEffect.h"
 #include "EffectHandler.generated.h"
 
@@ -29,7 +28,7 @@ public:
 	AUnitBase* MyTarget;
 
 	// Applies one instant change to MyTarget. Ignored once dead.
-	void ApplyEffect(const FGameplayEffect& Effect, EAbilityType AbilityType);
+	void ApplyEffect(const FGameplayEffect& Effect);
 
 	// Applies a new instance of Slot's effect, following Slot's StackLimit / bMultipleCaster.
 	// Ignored once dead.

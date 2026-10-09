@@ -2,7 +2,7 @@
 #include "CoreMinimal.h"
 #include "Gameframework/Character.h"
 #include "../DataAsset/UnitDataBase.h"
-#include "../Ability/Ability.h"
+#include "../Misc/GameplayEffect.h"
 #include "UnitBase.generated.h"
 
 class UAbilitySystem;

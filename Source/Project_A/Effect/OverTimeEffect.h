@@ -4,7 +4,6 @@
 #include "GameplayTagContainer.h"
 #include "../Misc/GameplayEffect.h"
 #include "../Misc/IntervalTicker.h"
-#include "../Ability/Ability.h"
 #include "OverTimeEffect.generated.h"
 
 class AUnitBase;
@@ -18,25 +17,6 @@ enum class EOverTimeEffectEnd : uint8
 	Ended,
 	Removed,
 	UnitDeath
-};
-
-// One stat change made through UOverTimeEffect::ApplyEffect, kept so it can be undone.
-USTRUCT()
-struct FModifiedStat
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	EEffectOperation Operation = EEffectOperation::Add;
-
-	UPROPERTY()
-	EAttributeType Attribute = EAttributeType::Health;
-
-	UPROPERTY()
-	float Amount = 0.f;
-
-	UPROPERTY()
-	EAbilityType AbilityType = EAbilityType::Magic;
 };
 
 // ============================================================================
@@ -76,10 +56,10 @@ public:
 	// -- Applying --
 
 	// Applies one instant change to MyTarget. Add/Subtract on Health damages (mitigated by
-	// AbilityType) or heals and stays. Every other combination is a stat change (see ModifyStat),
-	// undone automatically when this effect stops.
+	// Effect.AbilityType) or heals and stays. Every other combination is a stat change (see
+	// ModifyStat), undone automatically when this effect stops.
 	UFUNCTION(BlueprintCallable, Category = "Effect")
-	void ApplyEffect(EEffectOperation Operation, EAttributeType Attribute, float Amount, EAbilityType AbilityType);
+	void ApplyEffect(const FGameplayEffect& Effect);
 
 	// True once a stat change has been made that RevertModifyStat will undo.
 	UPROPERTY(BlueprintReadOnly, Category = "Effect")
@@ -133,7 +113,7 @@ public:
 
 protected:
 	// Applies a stat change and records it in ModifiedStats for RevertModifyStat.
-	void ModifyStat(EEffectOperation Operation, EAttributeType Attribute, float Amount, EAbilityType AbilityType);
+	void ModifyStat(const FGameplayEffect& Effect);
 
 	// Undoes every recorded stat change, newest first.
 	void RevertModifyStat();
@@ -141,14 +121,16 @@ protected:
 private:
 	UEffectHandler* GetHandler() const;
 
-	// Applies MySlot's Effect through ApplyEffect. Runs outside the hooks so an override can't skip it.
-	void ApplySlotEffect();
+	// Applies MySlot's Effect through ApplyEffect and returns what it applied (Magnitude 0 = nothing).
+	// Runs outside the hooks so an override can't skip it.
+	FGameplayEffect ApplySlotEffect();
 
-	// Reports {EffectTag, Event.<EventName>} to the caster's PlayerUnit, for talents.
-	void ReportEvent(const TCHAR* EventName);
+	// Reports {EffectTag, Event.<EventName>} to the caster's PlayerUnit, for talents. AppliedEffect is
+	// the slot Effect this event applied, if any.
+	void ReportEvent(const TCHAR* EventName, const FGameplayEffect& AppliedEffect = FGameplayEffect());
 
 	UPROPERTY()
-	TArray<FModifiedStat> ModifiedStats;
+	TArray<FGameplayEffect> ModifiedStats;
 
 	// Weak: the caster can die or be destroyed while this effect runs.
 	TWeakObjectPtr<AUnitBase> MyCaster;

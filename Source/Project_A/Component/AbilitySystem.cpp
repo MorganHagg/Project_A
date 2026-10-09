@@ -36,9 +36,7 @@ void UAbilitySystem::InstantiateAbilities(const UUnitDataBase* UnitData)
 		UAbilitySlot* NewAbility = NewObject<UAbilitySlot>(this);
 		NewAbility->CoolDown = AbilityData->CoolDown;
 		NewAbility->Cost = AbilityData->Cost;
-		NewAbility->MagnitudeMultiplier = AbilityData->MagnitudeMultiplier;
 		NewAbility->ProductClass = AbilityData->ProductClass;
-		NewAbility->AbilityType = AbilityData->AbilityType;
 		if (NewAbility->ProductClass)
 		{
 			// Identity comes from AbilityName on the Ability class's defaults - the same source

@@ -2,7 +2,7 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "GameplayTagContainer.h"
-#include "../Ability/Ability.h"
+#include "../Misc/GameplayEffect.h"
 #include "OverTimeEffectSlot.generated.h"
 
 class AUnitBase;
@@ -59,7 +59,4 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, Category = "Effect")
 	FGameplayEffect Effect;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Effect")
-	EAbilityType AbilityType = EAbilityType::Magic;
 };

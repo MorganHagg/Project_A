@@ -27,24 +27,20 @@ FGameplayTag UOverTimeEffect::GetEffectTag() const
 	return MySlot ? MySlot->EffectTag : FGameplayTag();
 }
 
-void UOverTimeEffect::ApplyEffect(EEffectOperation Operation, EAttributeType Attribute, float Amount, EAbilityType AbilityType)
+void UOverTimeEffect::ApplyEffect(const FGameplayEffect& Effect)
 {
-	const bool bIsHealthChange = Attribute == EAttributeType::Health &&
-		(Operation == EEffectOperation::Add || Operation == EEffectOperation::Subtract);
+	const bool bIsHealthChange = Effect.Attribute == EAttributeType::Health &&
+		(Effect.Operation == EEffectOperation::Add || Effect.Operation == EEffectOperation::Subtract);
 
 	if (!bIsHealthChange)
 	{
-		ModifyStat(Operation, Attribute, Amount, AbilityType);
+		ModifyStat(Effect);
 		return;
 	}
 
 	if (UEffectHandler* Handler = GetHandler())
 	{
-		FGameplayEffect Effect;
-		Effect.Attribute = Attribute;
-		Effect.Operation = Operation;
-		Effect.Magnitude = Amount;
-		Handler->ApplyEffect(Effect, AbilityType);
+		Handler->ApplyEffect(Effect);
 	}
 }
 
@@ -67,9 +63,10 @@ void UOverTimeEffect::Begin(UOverTimeEffectSlot* Slot, AUnitBase* Target)
 	Ticker.Interval = Slot ? Slot->Interval : 0.f;
 	Ticker.Start(Slot ? Slot->Duration : 0.f);
 
+	FGameplayEffect AppliedEffect;
 	if (Ticker.Interval <= 0.f)
 	{
-		ApplySlotEffect();
+		AppliedEffect = ApplySlotEffect();
 	}
 
 	// The slot's Effect may already have killed the target, which resolves this effect.
@@ -81,7 +78,7 @@ void UOverTimeEffect::Begin(UOverTimeEffectSlot* Slot, AUnitBase* Target)
 	// OnApplied may already have killed the target, which resolves this effect.
 	if (!bResolved)
 	{
-		ReportEvent(TEXT("Applied"));
+		ReportEvent(TEXT("Applied"), AppliedEffect);
 	}
 }
 
@@ -93,14 +90,14 @@ bool UOverTimeEffect::Advance(float DeltaTime)
 	// A tick can end this effect (e.g. by killing its target) - stop as soon as it does.
 	for (int32 TickIndex = 0; TickIndex < TicksDue && !bResolved; ++TickIndex)
 	{
-		ApplySlotEffect();
+		const FGameplayEffect AppliedEffect = ApplySlotEffect();
 		if (!bResolved)
 		{
 			OnTick();
 		}
 		if (!bResolved)
 		{
-			ReportEvent(TEXT("Tick"));
+			ReportEvent(TEXT("Tick"), AppliedEffect);
 		}
 	}
 
@@ -140,7 +137,7 @@ void UOverTimeEffect::Resolve(EOverTimeEffectEnd Reason)
 	ReportEvent(EventName);
 }
 
-void UOverTimeEffect::ModifyStat(EEffectOperation Operation, EAttributeType Attribute, float Amount, EAbilityType AbilityType)
+void UOverTimeEffect::ModifyStat(const FGameplayEffect& Effect)
 {
 	UEffectHandler* Handler = GetHandler();
 	if (!Handler)
@@ -148,17 +145,9 @@ void UOverTimeEffect::ModifyStat(EEffectOperation Operation, EAttributeType Attr
 		return;
 	}
 
-	FGameplayEffect Effect;
-	Effect.Attribute = Attribute;
-	Effect.Operation = Operation;
-	Effect.Magnitude = Amount;
-	Handler->ApplyEffect(Effect, AbilityType);
+	Handler->ApplyEffect(Effect);
 
-	FModifiedStat& ModifiedStat = ModifiedStats.AddDefaulted_GetRef();
-	ModifiedStat.Operation = Operation;
-	ModifiedStat.Attribute = Attribute;
-	ModifiedStat.Amount = Amount;
-	ModifiedStat.AbilityType = AbilityType;
+	ModifiedStats.Add(Effect);
 	bModifiedStat = true;
 }
 
@@ -169,19 +158,15 @@ void UOverTimeEffect::RevertModifyStat()
 	{
 		for (int32 Index = ModifiedStats.Num() - 1; Index >= 0; --Index)
 		{
-			const FModifiedStat& ModifiedStat = ModifiedStats[Index];
-
-			FGameplayEffect Inverse;
-			Inverse.Attribute = ModifiedStat.Attribute;
-			Inverse.Magnitude = ModifiedStat.Amount;
-			switch (ModifiedStat.Operation)
+			FGameplayEffect Inverse = ModifiedStats[Index];
+			switch (Inverse.Operation)
 			{
 			case EEffectOperation::Add:					Inverse.Operation = EEffectOperation::Subtract;				break;
 			case EEffectOperation::Subtract:			Inverse.Operation = EEffectOperation::Add;					break;
 			case EEffectOperation::AddPercentage:		Inverse.Operation = EEffectOperation::SubtractPercentage;	break;
 			case EEffectOperation::SubtractPercentage:	Inverse.Operation = EEffectOperation::AddPercentage;		break;
 			}
-			Handler->ApplyEffect(Inverse, ModifiedStat.AbilityType);
+			Handler->ApplyEffect(Inverse);
 		}
 	}
 
@@ -189,12 +174,17 @@ void UOverTimeEffect::RevertModifyStat()
 	bModifiedStat = false;
 }
 
-void UOverTimeEffect::ApplySlotEffect()
+FGameplayEffect UOverTimeEffect::ApplySlotEffect()
 {
-	if (MySlot && MySlot->Effect.Magnitude != 0.f)
+	if (!MySlot || MySlot->Effect.Magnitude == 0.f)
 	{
-		ApplyEffect(MySlot->Effect.Operation, MySlot->Effect.Attribute, MySlot->Effect.Magnitude, MySlot->AbilityType);
+		return FGameplayEffect();
 	}
+
+	// Copied before applying - the slot can be changed by a talent reacting to the result.
+	const FGameplayEffect Effect = MySlot->Effect;
+	ApplyEffect(Effect);
+	return Effect;
 }
 
 UEffectHandler* UOverTimeEffect::GetHandler() const
@@ -202,7 +192,7 @@ UEffectHandler* UOverTimeEffect::GetHandler() const
 	return Cast<UEffectHandler>(GetOuter());
 }
 
-void UOverTimeEffect::ReportEvent(const TCHAR* EventName)
+void UOverTimeEffect::ReportEvent(const TCHAR* EventName, const FGameplayEffect& AppliedEffect)
 {
 	// Talents only listen on the PlayerUnit - effects from any other caster report nothing.
 	APlayerUnit* PlayerUnit = Cast<APlayerUnit>(MyCaster.Get());
@@ -226,6 +216,7 @@ void UOverTimeEffect::ReportEvent(const TCHAR* EventName)
 	FAbilityEventPayload Payload;
 	Payload.Target = MyTarget;
 	Payload.OverTimeEffect = this;
+	Payload.AppliedEffect = AppliedEffect;
 
 	PlayerUnit->BroadcastAbilityEvent(EventTags, Payload);
 }

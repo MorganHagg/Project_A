@@ -1,7 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "../Ability/Ability.h"
+#include "../Misc/GameplayEffect.h"
 #include "OverTimeEffectDataAsset.generated.h"
 
 class UOverTimeEffect;
@@ -39,10 +39,6 @@ public:
 	// tick. Stat changes are undone when the effect stops; damage/heal stays. Magnitude 0 = nothing.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FGameplayEffect Effect;
-
-	// Mitigation for Effect's damage (see AUnitBase::MitigateDamage).
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	EAbilityType AbilityType = EAbilityType::Magic;
 
 	// Optional Blueprint subclass for behaviour Effect can't describe. Empty = the generic UOverTimeEffect.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)

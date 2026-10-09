@@ -30,7 +30,7 @@ void UEffectHandler::TickComponent(float DeltaTime, ELevelTick TickType, FActorC
 	}
 }
 
-void UEffectHandler::ApplyEffect(const FGameplayEffect& Effect, EAbilityType AbilityType)
+void UEffectHandler::ApplyEffect(const FGameplayEffect& Effect)
 {
 	// Also catches a unit killed earlier in the same frame.
 	if (!MyTarget || !MyTarget->AttributeComponent || IsTargetDead())
@@ -49,7 +49,7 @@ void UEffectHandler::ApplyEffect(const FGameplayEffect& Effect, EAbilityType Abi
 		{
 			if (SignedMagnitude < 0.f)
 			{
-				MyTarget->ReceiveDamage(-SignedMagnitude, AbilityType);
+				MyTarget->ReceiveDamage(-SignedMagnitude, Effect.AbilityType);
 			}
 			else if (SignedMagnitude > 0.f)
 			{
