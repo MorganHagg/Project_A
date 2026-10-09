@@ -195,15 +195,18 @@ void AAbility::OnHit(AUnitBase* Target, FVector Location)
 
 void AAbility::ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect)
 {
+	UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>();
+	if (!EffectHandler)
+	{
+		return;
+	}
+
+	const FGameplayEffect Applied = EffectHandler->ApplyEffect(Effect);
+
 	// Only the first effect of a hit is recorded - the payload has room for one.
 	if (bResolvingHit && !HitAppliedEffect.IsSet())
 	{
-		HitAppliedEffect = Effect;
-	}
-
-	if (UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>())
-	{
-		EffectHandler->ApplyEffect(Effect);
+		HitAppliedEffect = Applied;
 	}
 }
 

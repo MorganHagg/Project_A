@@ -69,14 +69,14 @@ public:
 
 	// Mitigates Amount by AbilityType (see MitigateDamage), lets active over-time effects change it
 	// (UOverTimeEffect::ModifyIncomingDamage), clamps it at 0, subtracts it from Health, and
-	// broadcasts OnReceiveDamage. Ignored once dead.
+	// broadcasts OnReceiveDamage. Returns the damage taken (0 once dead).
 	UFUNCTION(BlueprintCallable, Category = "Unit")
-	void ReceiveDamage(float Amount, EAbilityType AbilityType);
+	float ReceiveDamage(float Amount, EAbilityType AbilityType);
 
 	// Lets active over-time effects change Amount (UOverTimeEffect::ModifyIncomingHeal), clamps it at
-	// 0, adds it to Health, and broadcasts OnReceiveHeal. Ignored once dead.
+	// 0, adds it to Health, and broadcasts OnReceiveHeal. Returns the amount healed (0 once dead).
 	UFUNCTION(BlueprintCallable, Category = "Unit")
-	void ReceiveHeal(float Amount);
+	float ReceiveHeal(float Amount);
 
 private:
 	// Returns Damage reduced by this unit's mitigation stat for AbilityType (MagicResist for Magic,

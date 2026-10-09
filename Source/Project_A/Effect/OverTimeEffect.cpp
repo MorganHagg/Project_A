@@ -27,21 +27,21 @@ FGameplayTag UOverTimeEffect::GetEffectTag() const
 	return MySlot ? MySlot->EffectTag : FGameplayTag();
 }
 
-void UOverTimeEffect::ApplyEffect(const FGameplayEffect& Effect)
+FGameplayEffect UOverTimeEffect::ApplyEffect(const FGameplayEffect& Effect)
 {
 	const bool bIsHealthChange = Effect.Attribute == EAttributeType::Health &&
 		(Effect.Operation == EEffectOperation::Add || Effect.Operation == EEffectOperation::Subtract);
 
 	if (!bIsHealthChange)
 	{
-		ModifyStat(Effect);
-		return;
+		return ModifyStat(Effect);
 	}
 
 	if (UEffectHandler* Handler = GetHandler())
 	{
-		Handler->ApplyEffect(Effect);
+		return Handler->ApplyEffect(Effect);
 	}
+	return FGameplayEffect();
 }
 
 float UOverTimeEffect::ModifyIncomingDamage_Implementation(float Amount, EAbilityType AbilityType)
@@ -137,18 +137,19 @@ void UOverTimeEffect::Resolve(EOverTimeEffectEnd Reason)
 	ReportEvent(EventName);
 }
 
-void UOverTimeEffect::ModifyStat(const FGameplayEffect& Effect)
+FGameplayEffect UOverTimeEffect::ModifyStat(const FGameplayEffect& Effect)
 {
 	UEffectHandler* Handler = GetHandler();
 	if (!Handler)
 	{
-		return;
+		return FGameplayEffect();
 	}
 
-	Handler->ApplyEffect(Effect);
+	const FGameplayEffect Applied = Handler->ApplyEffect(Effect);
 
 	ModifiedStats.Add(Effect);
 	bModifiedStat = true;
+	return Applied;
 }
 
 void UOverTimeEffect::RevertModifyStat()
@@ -183,8 +184,7 @@ FGameplayEffect UOverTimeEffect::ApplySlotEffect()
 
 	// Copied before applying - the slot can be changed by a talent reacting to the result.
 	const FGameplayEffect Effect = MySlot->Effect;
-	ApplyEffect(Effect);
-	return Effect;
+	return ApplyEffect(Effect);
 }
 
 UEffectHandler* UOverTimeEffect::GetHandler() const

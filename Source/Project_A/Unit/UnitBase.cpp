@@ -92,11 +92,11 @@ void AUnitBase::HandleDeath()
 	HealthBarComponent->SetVisibility(false);
 }
 
-void AUnitBase::ReceiveDamage(float Amount, EAbilityType AbilityType)
+float AUnitBase::ReceiveDamage(float Amount, EAbilityType AbilityType)
 {
 	if (!AttributeComponent || AttributeComponent->IsDead())
 	{
-		return;
+		return 0.f;
 	}
 
 	// Rounded to whole damage so Health stays whole - otherwise mitigation leaves fractional
@@ -110,13 +110,14 @@ void AUnitBase::ReceiveDamage(float Amount, EAbilityType AbilityType)
 
 	AttributeComponent->ModifyAttribute(EAttributeType::Health, -FinalAmount);
 	OnReceiveDamage.Broadcast(FinalAmount);
+	return FinalAmount;
 }
 
-void AUnitBase::ReceiveHeal(float Amount)
+float AUnitBase::ReceiveHeal(float Amount)
 {
 	if (!AttributeComponent || AttributeComponent->IsDead())
 	{
-		return;
+		return 0.f;
 	}
 
 	float FinalAmount = Amount;
@@ -128,6 +129,7 @@ void AUnitBase::ReceiveHeal(float Amount)
 
 	AttributeComponent->ModifyAttribute(EAttributeType::Health, FinalAmount);
 	OnReceiveHeal.Broadcast(FinalAmount);
+	return FinalAmount;
 }
 
 float AUnitBase::MitigateDamage(float Damage, EAbilityType AbilityType) const

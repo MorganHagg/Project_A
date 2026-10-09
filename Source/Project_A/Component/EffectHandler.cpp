@@ -30,12 +30,15 @@ void UEffectHandler::TickComponent(float DeltaTime, ELevelTick TickType, FActorC
 	}
 }
 
-void UEffectHandler::ApplyEffect(const FGameplayEffect& Effect)
+FGameplayEffect UEffectHandler::ApplyEffect(const FGameplayEffect& Effect)
 {
+	FGameplayEffect Applied = Effect;
+
 	// Also catches a unit killed earlier in the same frame.
 	if (!MyTarget || !MyTarget->AttributeComponent || IsTargetDead())
 	{
-		return;
+		Applied.Magnitude = 0.f;
+		return Applied;
 	}
 
 	switch (Effect.Operation)
@@ -49,26 +52,28 @@ void UEffectHandler::ApplyEffect(const FGameplayEffect& Effect)
 		{
 			if (SignedMagnitude < 0.f)
 			{
-				MyTarget->ReceiveDamage(-SignedMagnitude, Effect.AbilityType);
+				Applied.Magnitude = MyTarget->ReceiveDamage(-SignedMagnitude, Effect.AbilityType);
 			}
 			else if (SignedMagnitude > 0.f)
 			{
-				MyTarget->ReceiveHeal(SignedMagnitude);
+				Applied.Magnitude = MyTarget->ReceiveHeal(SignedMagnitude);
 			}
-			return;
+			return Applied;
 		}
 
 		MyTarget->AttributeComponent->ModifyAttribute(Effect.Attribute, SignedMagnitude);
-		return;
+		return Applied;
 	}
 	// Not damage - unmitigated, and doesn't fire OnReceiveDamage/OnReceiveHeal.
 	case EEffectOperation::AddPercentage:
 		MyTarget->AttributeComponent->ModifyAttributePercent(Effect.Attribute, Effect.Magnitude);
-		return;
+		return Applied;
 	case EEffectOperation::SubtractPercentage:
 		MyTarget->AttributeComponent->ModifyAttributePercent(Effect.Attribute, -Effect.Magnitude);
-		return;
+		return Applied;
 	}
+
+	return Applied;
 }
 
 void UEffectHandler::AddOverTimeEffect(UOverTimeEffectSlot* Slot)

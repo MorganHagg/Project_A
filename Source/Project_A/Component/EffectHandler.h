@@ -27,8 +27,9 @@ public:
 	UPROPERTY()
 	AUnitBase* MyTarget;
 
-	// Applies one instant change to MyTarget. Ignored once dead.
-	void ApplyEffect(const FGameplayEffect& Effect);
+	// Applies one instant change to MyTarget and returns what was applied: for damage/heal, Magnitude
+	// is the final amount (after mitigation and incoming modifiers). Ignored once dead (Magnitude 0).
+	FGameplayEffect ApplyEffect(const FGameplayEffect& Effect);
 
 	// Applies a new instance of Slot's effect, following Slot's StackLimit / bMultipleCaster.
 	// Ignored once dead.

@@ -57,9 +57,10 @@ public:
 
 	// Applies one instant change to MyTarget. Add/Subtract on Health damages (mitigated by
 	// Effect.AbilityType) or heals and stays. Every other combination is a stat change (see
-	// ModifyStat), undone automatically when this effect stops.
+	// ModifyStat), undone automatically when this effect stops. Returns what was applied - for
+	// damage/heal, the final amount (see UEffectHandler::ApplyEffect).
 	UFUNCTION(BlueprintCallable, Category = "Effect")
-	void ApplyEffect(const FGameplayEffect& Effect);
+	FGameplayEffect ApplyEffect(const FGameplayEffect& Effect);
 
 	// True once a stat change has been made that RevertModifyStat will undo.
 	UPROPERTY(BlueprintReadOnly, Category = "Effect")
@@ -113,7 +114,7 @@ public:
 
 protected:
 	// Applies a stat change and records it in ModifiedStats for RevertModifyStat.
-	void ModifyStat(const FGameplayEffect& Effect);
+	FGameplayEffect ModifyStat(const FGameplayEffect& Effect);
 
 	// Undoes every recorded stat change, newest first.
 	void RevertModifyStat();
