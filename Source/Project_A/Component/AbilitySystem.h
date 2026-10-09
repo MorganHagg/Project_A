@@ -54,6 +54,11 @@ public:
     UFUNCTION(BlueprintCallable)
     void EndActiveAbility();
 
+    // The hold was released: fires a charging ability (see UAbilitySlot::ReleaseAbility), then ends
+    // it. EndActiveAbility ends without firing (Modify, death).
+    UFUNCTION(BlueprintCallable)
+    void ReleaseActiveAbility();
+
     // Returns the granted slot whose AbilityTag matches exactly (e.g. "Ability.Fireball"), or
     // nullptr with an error log.
     UFUNCTION(BlueprintCallable, Category = "Ability")

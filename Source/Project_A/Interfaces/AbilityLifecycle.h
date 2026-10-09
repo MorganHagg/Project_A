@@ -30,6 +30,13 @@ public:
 	void OnTick();
 	virtual void OnTick_Implementation() {}
 
+	// The hold that spawned this ability ended (released, ended by Modify, or the caster died).
+	// Called by UAbilitySlot::EndAbility. AAbilityActor/AProjectile default to finishing; override
+	// to keep living instead (e.g. a wall that stops growing).
+	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
+	void OnHoldEnded();
+	virtual void OnHoldEnded_Implementation() {}
+
 	// Location is where the ability/product ended - passed through from Finish()/EndAbility() so
 	// Blueprint doesn't need to query it separately (it may no longer be meaningful by the time
 	// this fires, e.g. after MyCaster is cleared).

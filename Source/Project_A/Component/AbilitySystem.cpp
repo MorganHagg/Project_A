@@ -36,6 +36,8 @@ void UAbilitySystem::InstantiateAbilities(const UUnitDataBase* UnitData)
 		UAbilitySlot* NewAbility = NewObject<UAbilitySlot>(this);
 		NewAbility->CoolDown = AbilityData->CoolDown;
 		NewAbility->Cost = AbilityData->Cost;
+		NewAbility->bActivateOnRelease = AbilityData->bActivateOnRelease;
+		NewAbility->MaxChargeTime = AbilityData->MaxChargeTime;
 		NewAbility->ProductClass = AbilityData->ProductClass;
 		if (NewAbility->ProductClass)
 		{
@@ -88,6 +90,7 @@ void UAbilitySystem::SetActiveAbility(UAbilitySlot* NewActiveAbility)
 	if (NewActiveAbility)
 	{
 		ActiveAbility = NewActiveAbility;
+		ActiveAbility->StartCharging();
 	}
 	else
 		UE_LOG(LogTemp, Error, TEXT(
@@ -99,6 +102,15 @@ void UAbilitySystem::EndActiveAbility()
 	if (ActiveAbility)
 	{
 		ActiveAbility->EndAbility();
+		ActiveAbility = nullptr;
+	}
+}
+
+void UAbilitySystem::ReleaseActiveAbility()
+{
+	if (ActiveAbility)
+	{
+		ActiveAbility->ReleaseAbility();
 		ActiveAbility = nullptr;
 	}
 }

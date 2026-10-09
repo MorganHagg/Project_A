@@ -105,6 +105,11 @@ void AProjectile::Finish(FVector HitLocation)
 	Destroy();
 }
 
+void AProjectile::OnHoldEnded_Implementation()
+{
+	Finish(GetActorLocation());
+}
+
 UAbilitySlot* AProjectile::GetAbility()
 {
 	return MyAbility;

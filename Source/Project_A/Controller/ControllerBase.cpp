@@ -182,7 +182,10 @@ void AControllerBase::ApplyModify()
 
     if (UAbilitySlot* ModifyAbility = AbilitySystem->GrantedAbilities[ActiveHoldBaseSlot + 2])
     {
-        ModifyAbility->ActivateAbility();
+        // The Modify ability gets the hold's live Ability (if any) before the hold ends, so it can act
+        // on it (e.g. push a Firewall).
+        AAbility* HeldAbility = AbilitySystem->ActiveAbility ? AbilitySystem->ActiveAbility->GetSpawnedAbility() : nullptr;
+        ModifyAbility->ActivateAbility(HeldAbility);
         if (ModifyAbility->bModifyEndsAbility)
         {
             AbilitySystem->EndActiveAbility();
@@ -209,7 +212,7 @@ void AControllerBase::OnAbilityInputReleased(const FInputActionInstance& Instanc
     {
         if (ActiveHoldBaseSlot == BaseSlot)
         {
-            AbilitySystem->EndActiveAbility();
+            AbilitySystem->ReleaseActiveAbility();
             ActiveHoldBaseSlot = -1;
         }
         // Else: already ended by a Modify tap while held.

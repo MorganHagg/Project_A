@@ -79,6 +79,18 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	ACharacter* MyCaster;
 
+	// Seconds the hold charged (capped at the slot's MaxChargeTime). Spawned on release
+	// (bActivateOnRelease): set before BeginPlay, so OnActivate can read it. Spawned on press: set when
+	// the hold ends, before OnHoldEnded - while held, read the live value from
+	// MyAbility->GetChargeTime(). 0 for abilities not spawned by a hold.
+	UPROPERTY(BlueprintReadOnly, Category = "Ability")
+	float ChargeTime = 0.f;
+
+	// For a Modify ability: the held ability that was alive when Modify fired (e.g. the Firewall to
+	// push), so OnActivate can act on it. Null otherwise. Set before BeginPlay, like ChargeTime.
+	UPROPERTY(BlueprintReadOnly, Category = "Ability")
+	AAbility* ModifiedAbility = nullptr;
+
 	// -- Event tags --
 
 	// Tags reported to MyAbility when OnHit is called.
@@ -154,7 +166,8 @@ public:
 	void OnHit(AUnitBase* Target, FVector Location);
 
 	// Applies Effect to Target's EffectHandler. Reports nothing itself; when called during OnHit's
-	// OnTargetHit hook, the first such effect is included in the hit's payload.
+	// OnTargetHit hook, the first such effect is included in the hit's payload, with the amount
+	// actually dealt/healed (after mitigation and incoming modifiers).
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	void ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect);
 

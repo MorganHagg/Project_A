@@ -49,6 +49,13 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float Cost = 0.f;
 
+	// See UAbilityDataAsset::bActivateOnRelease / MaxChargeTime.
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	bool bActivateOnRelease = false;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float MaxChargeTime = 0.f;
+
 	// Which Ability (product) class this slot spawns when activated. Copied from the
 	// UAbilityDataAsset this instance was built from - see UAbilitySystem::InstantiateAbilities.
 	UPROPERTY(BlueprintReadOnly, Category = "Ability")
@@ -66,12 +73,34 @@ public:
 	// Sets up the ability for later use
 	void SetupAbility(AUnitBase* NewCaster);
 
-	// Activates this ability. Calls into OnActivate (Blueprint-implementable).
-	virtual void ActivateAbility();
+	// Activates this ability: spawns its Ability, unless bActivateOnRelease (then it spawns on release).
+	// InModifiedAbility is set on the spawned Ability's ModifiedAbility (see AControllerBase::ApplyModify).
+	virtual void ActivateAbility(AAbility* InModifiedAbility = nullptr);
 
-	// Ends this ability. Calls into OnEnd (Blueprint-implementable).
+	// Starts charging - called when this slot becomes the active hold (UAbilitySystem::SetActiveAbility).
+	// Every hold charges; bActivateOnRelease only decides when the Ability spawns.
+	void StartCharging();
+
+	// The hold was released: ends the hold, then with bActivateOnRelease spawns the Ability with the
+	// charge time. Otherwise the same as EndAbility.
+	void ReleaseAbility();
+
+	// Ends this ability: stops charging, writes the final charge time to the live Ability from the last
+	// activation (AAbility::ChargeTime) and runs its OnHoldEnded (by default it finishes), then calls
+	// into OnEnd (Blueprint-implementable). A bActivateOnRelease charge is dropped without firing.
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	virtual void EndAbility();
+
+	// The live Ability spawned by the last activation, or null.
+	UFUNCTION(BlueprintPure, Category = "Ability")
+	AAbility* GetSpawnedAbility() const { return SpawnedAbility.Get(); }
+
+	UFUNCTION(BlueprintPure, Category = "Ability")
+	bool IsCharging() const { return bIsCharging; }
+
+	// Seconds the current hold has charged, capped at MaxChargeTime. 0 when not charging.
+	UFUNCTION(BlueprintPure, Category = "Ability")
+	float GetChargeTime() const;
 
 	// Called if an ability is no longer needed
 	void KillAbility();
@@ -79,6 +108,18 @@ public:
 protected:
 	UPROPERTY()
 	bool bHasEnded = false;	// Small guard against double end
+
+	// The Ability spawned by the last ActivateAbility. Weak: it destroys itself when it finishes.
+	TWeakObjectPtr<AAbility> SpawnedAbility;
+
+private:
+	// Spawns ProductClass with its ChargeTime and ModifiedAbility set, and returns it.
+	AAbility* SpawnAbility(float ChargeTime, AAbility* InModifiedAbility = nullptr);
+
+	bool IsCasterDead() const;
+
+	bool bIsCharging = false;
+	float ChargeStartTime = 0.f;
 
 public:
 	// --------------------------------------------------------------

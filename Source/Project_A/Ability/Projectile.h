@@ -93,6 +93,9 @@ public:
 	// Super::Finish(), since that would destroy before OnEnd could fire.
 	void Finish(FVector HitLocation);
 
+	// Default: finishes where it is. Override in Blueprint to keep flying after the hold ends.
+	virtual void OnHoldEnded_Implementation() override;
+
 	UAbilitySlot* GetAbility();
 
 protected:

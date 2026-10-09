@@ -60,6 +60,9 @@ public:
 	// could fire; duplicates only the guard check, not the notify/destroy logic.
 	virtual void Finish() override;
 
+	// Default: finishes. Override in Blueprint to keep living after the hold ends.
+	virtual void OnHoldEnded_Implementation() override;
+
 	// Bound to MeshComponent->OnComponentBeginOverlap. Sorts OtherActor into the payload: a unit
 	// goes into Target, another Ability (e.g. a Projectile passing through) goes into
 	// OverlappedAbility - then reports OverlapEventTags and fires OnOverlap.
