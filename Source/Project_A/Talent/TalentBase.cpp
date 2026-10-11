@@ -1,9 +1,9 @@
 ﻿#include "TalentBase.h"
 
 #include "Project_A/Unit/PlayerUnit.h"
-#include "Project_A/Component/AbilitySystem.h"
-#include "Project_A/Ability/AbilitySlot.h"
-#include "Project_A/Effect/OverTimeEffectSlot.h"
+#include "Project_A/Component/AbilityComponent.h"
+#include "Project_A/Ability/GrantedAbility.h"
+#include "Project_A/Effect/GrantedOverTimeEffect.h"
 
 void UTalentBase::BindToPlayerUnit(APlayerUnit* PlayerUnit)
 {
@@ -30,38 +30,38 @@ void UTalentBase::HandleAbilityEvent(FGameplayTagContainer EventTags, FAbilityEv
 	}
 }
 
-UAbilitySlot* UTalentBase::GetAbilitySlot(FGameplayTag AbilityTag) const
+UGrantedAbility* UTalentBase::GetGrantedAbility(FGameplayTag AbilityTag) const
 {
 	if (!MyPlayerUnit)
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetAbilitySlot called before BindToPlayerUnit."));
+		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetGrantedAbility called before BindToPlayerUnit."));
 		return nullptr;
 	}
 
-	UAbilitySystem* AbilitySystem = MyPlayerUnit->FindComponentByClass<UAbilitySystem>();
-	if (!AbilitySystem)
+	UAbilityComponent* AbilityComponent = MyPlayerUnit->FindComponentByClass<UAbilityComponent>();
+	if (!AbilityComponent)
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetAbilitySlot - %s has no AbilitySystem component."), *MyPlayerUnit->GetName());
+		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetGrantedAbility - %s has no AbilityComponent."), *MyPlayerUnit->GetName());
 		return nullptr;
 	}
 
-	return AbilitySystem->FindSlot(AbilityTag);
+	return AbilityComponent->FindGrantedAbility(AbilityTag);
 }
 
-UOverTimeEffectSlot* UTalentBase::GetEffectSlot(FGameplayTag EffectTag) const
+UGrantedOverTimeEffect* UTalentBase::GetGrantedOverTimeEffect(FGameplayTag EffectTag) const
 {
 	if (!MyPlayerUnit)
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetEffectSlot called before BindToPlayerUnit."));
+		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetGrantedOverTimeEffect called before BindToPlayerUnit."));
 		return nullptr;
 	}
 
-	UAbilitySystem* AbilitySystem = MyPlayerUnit->FindComponentByClass<UAbilitySystem>();
-	if (!AbilitySystem)
+	UAbilityComponent* AbilityComponent = MyPlayerUnit->FindComponentByClass<UAbilityComponent>();
+	if (!AbilityComponent)
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetEffectSlot - %s has no AbilitySystem component."), *MyPlayerUnit->GetName());
+		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetGrantedOverTimeEffect - %s has no AbilityComponent."), *MyPlayerUnit->GetName());
 		return nullptr;
 	}
 
-	return AbilitySystem->FindEffectSlot(EffectTag);
+	return AbilityComponent->FindGrantedOverTimeEffect(EffectTag);
 }

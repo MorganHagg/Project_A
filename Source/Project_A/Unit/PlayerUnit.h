@@ -10,7 +10,7 @@ class UCameraComponent;
 class UTalentComponent;
 
 // Sole delegation point for talents. Abilities report tagged events here (see
-// UAbilitySlot::ReportAbilityEvent); every listening talent receives every event
+// UGrantedAbility::ReportAbilityEvent); every listening talent receives every event
 // and filters by its own RequiredTags (see UTalentBase::HandleAbilityEvent).
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityEvent, FGameplayTagContainer, EventTags, FAbilityEventPayload, Payload);
 

@@ -2,14 +2,14 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "GameplayTagContainer.h"
-#include "../Misc/GameplayEffect.h"
+#include "../Misc/AttributeEffect.h"
 #include "AbilityEventPayload.h"
 #include "Ability.generated.h"
 
-class UAbilitySlot;
+class UGrantedAbility;
 class ACharacter;
 class AUnitBase;
-struct FGameplayEffect;
+struct FAttributeEffect;
 
 // ============================================================================
 // Enums
@@ -25,7 +25,7 @@ enum class ETargetSelection : uint8
 
 // ============================================================================
 // AAbility
-// Shared base for anything a cast produces (AProjectile, AAbilityActor) - the
+// Shared base for anything a cast produces (AProjectile, APersistentAbility) - the
 // actual action: a fireball, a firewall, a summoned pet. Holds the parts that
 // are identical between subclasses: caster/ability/effect context, tagged
 // event reporting, and a generic "this finished" event. Movement, collision,
@@ -61,7 +61,7 @@ public:
 	FGameplayTag AbilityTag;
 
 	// Builds the identity tag "Ability.<InAbilityName>" - shared by BeginPlay and
-	// UAbilitySystem::InstantiateAbilities (which tags each slot with its ProductClass's identity).
+	// UAbilityComponent::InstantiateAbilities (which tags each granted ability with its AbilityClass's identity).
 	static FGameplayTag ComposeAbilityTag(FName InAbilityName, bool bErrorIfNotFound = true);
 
 	// -- Context --
@@ -70,19 +70,19 @@ public:
 	UStaticMeshComponent* MeshComponent;
 
 	UFUNCTION()
-	void SetMyAbility(UAbilitySlot* Ability);
+	void SetMyGrantedAbility(UGrantedAbility* GrantedAbility);
 	UPROPERTY(BlueprintReadOnly)
-	UAbilitySlot* MyAbility;
+	UGrantedAbility* MyGrantedAbility;
 
 	UFUNCTION()
 	void SetMyCaster(ACharacter* Caster);
 	UPROPERTY(BlueprintReadOnly)
 	ACharacter* MyCaster;
 
-	// Seconds the hold charged (capped at the slot's MaxChargeTime). Spawned on release
+	// Seconds the hold charged (capped at the granted ability's MaxChargeTime). Spawned on release
 	// (bActivateOnRelease): set before BeginPlay, so OnActivate can read it. Spawned on press: set when
 	// the hold ends, before OnHoldEnded - while held, read the live value from
-	// MyAbility->GetChargeTime(). 0 for abilities not spawned by a hold.
+	// MyGrantedAbility->GetChargeTime(). 0 for abilities not spawned by a hold.
 	UPROPERTY(BlueprintReadOnly, Category = "Ability")
 	float ChargeTime = 0.f;
 
@@ -93,7 +93,7 @@ public:
 
 	// -- Event tags --
 
-	// Tags reported to MyAbility when OnHit is called.
+	// Tags reported to MyGrantedAbility when OnHit is called.
 	UPROPERTY(BlueprintReadWrite, Category = "Ability")
 	FGameplayTagContainer HitEventTags;
 
@@ -133,11 +133,11 @@ public:
 	// -- Functions --
 
 	// Note: GetSpawnTransform (the spawn-placement hook) is declared separately on AProjectile and
-	// AAbilityActor, not here - a shared declaration on this grandparent class hit a reproducible
+	// APersistentAbility, not here - a shared declaration on this grandparent class hit a reproducible
 	// Unreal 5.8 Blueprint compiler bug where the override reference fails to resolve on reload for
 	// any Blueprint two native levels down that also implements IAbilityLifecycle (confirmed via a
 	// clean rebuild + brand-new test assets, both still failing; a direct child of AAbility alone
-	// was unaffected). AbilitySlot::ActivateAbility Casts to the concrete type to call it instead.
+	// was unaffected). UGrantedAbility::ActivateAbility Casts to the concrete type to call it instead.
 
 	// Reports a tagged event (with contextual Payload) to this actor's owning Ability,
 	// which forwards it up to the caster's PlayerUnit.
@@ -154,7 +154,7 @@ public:
 
 	// Builds a payload for Target/Location and reports HitEventTags - the shared "this hit
 	// something" entry point for both AProjectile (called from HandleComponentBeginOverlap) and
-	// AAbilityActor (called manually, e.g. from an animation notify on a melee swing, or from
+	// APersistentAbility (called manually, e.g. from an animation notify on a melee swing, or from
 	// OnTick for interval damage - the system doesn't distinguish why OnHit was called).
 	// Runs IAbilityLifecycle::OnTargetHit (the ability's own hit logic) first, then reports
 	// HitEventTags and broadcasts OnHitDelegate, so listeners see the hit after its effects. Not
@@ -165,11 +165,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	void OnHit(AUnitBase* Target, FVector Location);
 
-	// Applies Effect to Target's EffectHandler. Reports nothing itself; when called during OnHit's
+	// Applies Effect to Target's EffectComponent. Reports nothing itself; when called during OnHit's
 	// OnTargetHit hook, the first such effect is included in the hit's payload, with the amount
 	// actually dealt/healed (after mitigation and incoming modifiers).
 	UFUNCTION(BlueprintCallable, Category = "Ability")
-	void ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect);
+	void ApplyEffect(AUnitBase* Target, const FAttributeEffect& Effect);
 
 	// Applies the over-time effect tagged EffectTag (e.g. "Effect.Burn") from MyCaster's granted
 	// over-time effects to Target. Logs an error if MyCaster wasn't granted it.
@@ -186,12 +186,12 @@ protected:
 
 	// Sets bHasFinished, builds the finish payload, reports FinishEventTags, and broadcasts
 	// OnFinish - everything Finish() does except actually destroying the actor. Split out so
-	// AAbilityActor::Finish() can insert its OnEnd hook between notifying and destroying, instead
+	// APersistentAbility::Finish() can insert its OnEnd hook between notifying and destroying, instead
 	// of OnEnd firing before talents/OnFinish listeners get a chance to react. Callers must still
 	// check bHasFinished themselves first - this does not guard against being called twice.
 	FAbilityEventPayload NotifyFinish();
 
-	// Reports this ability's identity tag + Event.Cast. Called by AProjectile/AAbilityActor at the
+	// Reports this ability's identity tag + Event.Cast. Called by AProjectile/APersistentAbility at the
 	// end of their BeginPlay, right before OnActivate - after their own setup (e.g. a projectile's
 	// Destination), so a talent reacting to the cast can still change it.
 	void ReportCast();
@@ -201,7 +201,7 @@ private:
 	bool bResolvingHit = false;
 
 	// First effect applied during the current hit - copied into the TargetHit payload's AppliedEffect.
-	TOptional<FGameplayEffect> HitAppliedEffect;
+	TOptional<FAttributeEffect> HitAppliedEffect;
 
 	// Shared selection test for Target_Single/Target_AOE: does Unit match TargetSelection?
 	// PlayerUnit/EnemyUnit are absolute type checks (IsA), not relative to MyCaster - an

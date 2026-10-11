@@ -2,7 +2,7 @@
 #include "CoreMinimal.h"
 #include "IntervalTicker.generated.h"
 
-// Shared tick timing for everything that ticks on an interval over a duration (AAbilityActor,
+// Shared tick timing for everything that ticks on an interval over a duration (APersistentAbility,
 // AProjectile, UOverTimeEffect). The first tick happens one Interval after Start, and a run of
 // Duration ticks exactly floor(Duration / Interval) times - a tick landing exactly on the end
 // still fires, nothing fires after the last whole interval. Ticks are counted from elapsed time

@@ -1,13 +1,13 @@
 #pragma once
 #include "Runtime/Core/Public/CoreMinimal.h"
-#include "AttributeSet.h"
-#include "GameplayEffect.generated.h"
+#include "AttributeType.h"
+#include "AttributeEffect.generated.h"
 
 // Selects which of the target's stats mitigates an effect's damage (see
 // AUnitBase::MitigateDamage): Magic -> MagicResist, Physical -> Armour, True -> none.
 // TrueDamage rather than True - UHT rejects enum entries named true/false in any case.
 UENUM(BlueprintType)
-enum class EAbilityType : uint8
+enum class EDamageType : uint8
 {
 	Magic,
 	Physical,
@@ -28,7 +28,7 @@ enum class EEffectOperation : uint8
 // One instant change to one attribute. Anything lasting over time is a UOverTimeEffect, which
 // applies these as it goes.
 USTRUCT(BlueprintType)
-struct FGameplayEffect
+struct FAttributeEffect
 {
 	GENERATED_BODY()
 
@@ -43,5 +43,5 @@ struct FGameplayEffect
 
 	// Mitigation for this effect's damage (only used by Subtract on Health).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EAbilityType AbilityType = EAbilityType::Magic;
+	EDamageType DamageType = EDamageType::Magic;
 };

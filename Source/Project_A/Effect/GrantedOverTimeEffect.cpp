@@ -1,10 +1,10 @@
-#include "OverTimeEffectSlot.h"
+#include "GrantedOverTimeEffect.h"
 #include "OverTimeEffect.h"
-#include "../DataAsset/OverTimeEffectDataAsset.h"
+#include "../DataAsset/OverTimeEffectData.h"
 #include "../Unit/UnitBase.h"
-#include "../Component/EffectHandler.h"
+#include "../Component/EffectComponent.h"
 
-void UOverTimeEffectSlot::SetupSlot(const UOverTimeEffectDataAsset* Data, AUnitBase* Caster)
+void UGrantedOverTimeEffect::SetupEffect(const UOverTimeEffectData* Data, AUnitBase* Caster)
 {
 	check(Data);
 
@@ -19,20 +19,20 @@ void UOverTimeEffectSlot::SetupSlot(const UOverTimeEffectDataAsset* Data, AUnitB
 	EffectTag = ComposeEffectTag(Data->EffectName, /*bErrorIfNotFound=*/false);
 	if (!EffectTag.IsValid())
 	{
-		UE_LOG(LogTemp, Error, TEXT("UOverTimeEffectSlot::SetupSlot - %s has no registered identity tag for EffectName '%s' (run Abilities.SyncTags)."),
+		UE_LOG(LogTemp, Error, TEXT("UGrantedOverTimeEffect::SetupEffect - %s has no registered identity tag for EffectName '%s' (run Abilities.SyncTags)."),
 			*Data->GetName(), *Data->EffectName.ToString());
 	}
 }
 
-FGameplayTag UOverTimeEffectSlot::ComposeEffectTag(FName InEffectName, bool bErrorIfNotFound)
+FGameplayTag UGrantedOverTimeEffect::ComposeEffectTag(FName InEffectName, bool bErrorIfNotFound)
 {
 	return FGameplayTag::RequestGameplayTag(FName(*(FString(TEXT("Effect.")) + InEffectName.ToString())), bErrorIfNotFound);
 }
 
-void UOverTimeEffectSlot::ApplyOverTimeEffect(AUnitBase* Target)
+void UGrantedOverTimeEffect::ApplyOverTimeEffect(AUnitBase* Target)
 {
-	if (Target && Target->EffectHandlerComponent)
+	if (Target && Target->EffectComponent)
 	{
-		Target->EffectHandlerComponent->AddOverTimeEffect(this);
+		Target->EffectComponent->AddOverTimeEffect(this);
 	}
 }

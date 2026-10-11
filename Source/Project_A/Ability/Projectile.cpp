@@ -1,6 +1,6 @@
 #include "Projectile.h"
 #include "../Unit/UnitBase.h"
-#include "AbilitySlot.h"
+#include "GrantedAbility.h"
 #include "Gameframework/Character.h"
 #include "Components/StaticMeshComponent.h"
 
@@ -110,7 +110,7 @@ void AProjectile::OnHoldEnded_Implementation()
 	Finish(GetActorLocation());
 }
 
-UAbilitySlot* AProjectile::GetAbility()
+UGrantedAbility* AProjectile::GetGrantedAbility()
 {
-	return MyAbility;
+	return MyGrantedAbility;
 }

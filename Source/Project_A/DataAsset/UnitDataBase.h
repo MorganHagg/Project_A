@@ -2,11 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "../Misc/AttributeSet.h"
+#include "../Misc/AttributeType.h"
 #include "UnitDataBase.generated.h"
 
-class UAbilityDataAsset;
-class UOverTimeEffectDataAsset;
+class UAbilityData;
+class UOverTimeEffectData;
 class USkeletalMesh;
 class UHealthBarWidget;
 
@@ -26,11 +26,11 @@ public:
 	TSubclassOf<UAnimInstance> AnimationBlueprint;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TArray<UAbilityDataAsset*> DefaultAbilities;
+	TArray<UAbilityData*> DefaultAbilities;
 
 	// Over-time effects this unit's abilities can apply (by tag, see AAbility::ApplyOverTimeEffect).
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TArray<UOverTimeEffectDataAsset*> DefaultOverTimeEffects;
+	TArray<UOverTimeEffectData*> DefaultOverTimeEffects;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TMap<EAttributeType, float> DefaultAttributes;

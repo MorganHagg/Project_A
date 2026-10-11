@@ -1,8 +1,8 @@
 #include "ControllerBase.h"
 #include "EnhancedInputComponent.h"
-#include "../Ability/AbilitySlot.h"
+#include "../Ability/GrantedAbility.h"
 #include "../Unit/PlayerUnit.h"
-#include "../Component/AbilitySystem.h"
+#include "../Component/AbilityComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 
@@ -67,7 +67,7 @@ void AControllerBase::SetupInputComponent()
 
 bool AControllerBase::ResolveAbilitySlot(const FInputActionInstance& Instance, int32& OutBaseSlot)
 {
-    if (!PlayerUnit || !PlayerUnit->AbilitySystemComponent)
+    if (!PlayerUnit || !PlayerUnit->AbilityComponent)
         return false;
 
     const UInputAction* Action = Instance.GetSourceAction();
@@ -156,7 +156,7 @@ void AControllerBase::OnHoldThresholdMet(int32 BaseSlot)
 
 void AControllerBase::ActivateHold(int32 BaseSlot)
 {
-    if (!PlayerUnit || !PlayerUnit->AbilitySystemComponent)
+    if (!PlayerUnit || !PlayerUnit->AbilityComponent)
         return;
 
     if (FAbilityPressState* State = PressedSlots.Find(BaseSlot))
@@ -165,30 +165,30 @@ void AControllerBase::ActivateHold(int32 BaseSlot)
         State->bHoldThresholdMet = true;
     }
 
-    UAbilitySystem* AbilitySystem = PlayerUnit->AbilitySystemComponent;
-    AbilitySystem->SetActiveAbility(AbilitySystem->InitiateAbility(BaseSlot + 1));
+    UAbilityComponent* AbilityComponent = PlayerUnit->AbilityComponent;
+    AbilityComponent->SetActiveAbility(AbilityComponent->InitiateAbility(BaseSlot + 1));
     ActiveHoldBaseSlot = BaseSlot;
 }
 
 void AControllerBase::ApplyModify()
 {
-    UAbilitySystem* AbilitySystem = PlayerUnit->AbilitySystemComponent;
+    UAbilityComponent* AbilityComponent = PlayerUnit->AbilityComponent;
 
-    if (!AbilitySystem->GrantedAbilities.IsValidIndex(ActiveHoldBaseSlot + 2))
+    if (!AbilityComponent->GrantedAbilities.IsValidIndex(ActiveHoldBaseSlot + 2))
     {
         UE_LOG(LogTemp, Error, TEXT("GrantedAbilities has no slot %d"), ActiveHoldBaseSlot + 2);
         return;
     }
 
-    if (UAbilitySlot* ModifyAbility = AbilitySystem->GrantedAbilities[ActiveHoldBaseSlot + 2])
+    if (UGrantedAbility* ModifyAbility = AbilityComponent->GrantedAbilities[ActiveHoldBaseSlot + 2])
     {
         // The Modify ability gets the hold's live Ability (if any) before the hold ends, so it can act
         // on it (e.g. push a Firewall).
-        AAbility* HeldAbility = AbilitySystem->ActiveAbility ? AbilitySystem->ActiveAbility->GetSpawnedAbility() : nullptr;
+        AAbility* HeldAbility = AbilityComponent->ActiveAbility ? AbilityComponent->ActiveAbility->GetSpawnedAbility() : nullptr;
         ModifyAbility->ActivateAbility(HeldAbility);
         if (ModifyAbility->bModifyEndsAbility)
         {
-            AbilitySystem->EndActiveAbility();
+            AbilityComponent->EndActiveAbility();
             ActiveHoldBaseSlot = -1;
         }
     }
@@ -206,19 +206,19 @@ void AControllerBase::OnAbilityInputReleased(const FInputActionInstance& Instanc
 
     GetWorldTimerManager().ClearTimer(State.HoldTimerHandle);
 
-    UAbilitySystem* AbilitySystem = PlayerUnit->AbilitySystemComponent;
+    UAbilityComponent* AbilityComponent = PlayerUnit->AbilityComponent;
 
     if (State.bHoldThresholdMet)
     {
         if (ActiveHoldBaseSlot == BaseSlot)
         {
-            AbilitySystem->ReleaseActiveAbility();
+            AbilityComponent->ReleaseActiveAbility();
             ActiveHoldBaseSlot = -1;
         }
         // Else: already ended by a Modify tap while held.
     }
     else
     {
-        AbilitySystem->InitiateAbility(BaseSlot);
+        AbilityComponent->InitiateAbility(BaseSlot);
     }
 }

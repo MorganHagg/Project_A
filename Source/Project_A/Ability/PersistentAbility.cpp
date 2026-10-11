@@ -1,8 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "AbilityActor.h"
-#include "AbilitySlot.h"
+#include "PersistentAbility.h"
+#include "GrantedAbility.h"
 #include "../Unit/UnitBase.h"
 #include "../Unit/PlayerUnit.h"
 #include "../Unit/EnemyUnit.h"
@@ -10,26 +10,26 @@
 
 
 // Sets default values
-AAbilityActor::AAbilityActor()
+APersistentAbility::APersistentAbility()
 {
 }
 
-FTransform AAbilityActor::GetSpawnTransform_Implementation()
+FTransform APersistentAbility::GetSpawnTransform_Implementation()
 {
 	checkf(false, TEXT("%s must override GetSpawnTransform()"), *GetClass()->GetName());
 	return FTransform::Identity;
 }
 
-void AAbilityActor::BeginPlay()
+void APersistentAbility::BeginPlay()
 {
 	Super::BeginPlay();
 	Ticker.Start(Duration);
-	MeshComponent->OnComponentBeginOverlap.AddDynamic(this, &AAbilityActor::HandleOverlap);
+	MeshComponent->OnComponentBeginOverlap.AddDynamic(this, &APersistentAbility::HandleOverlap);
 	ReportCast();
 	IAbilityLifecycle::Execute_OnActivate(this);
 }
 
-void AAbilityActor::Tick(float DeltaTime)
+void APersistentAbility::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
@@ -47,7 +47,7 @@ void AAbilityActor::Tick(float DeltaTime)
 	}
 }
 
-void AAbilityActor::Finish()
+void APersistentAbility::Finish()
 {
 	if (bHasFinished)
 	{
@@ -61,12 +61,12 @@ void AAbilityActor::Finish()
 	Destroy();
 }
 
-void AAbilityActor::OnHoldEnded_Implementation()
+void APersistentAbility::OnHoldEnded_Implementation()
 {
 	Finish();
 }
 
-void AAbilityActor::HandleOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+void APersistentAbility::HandleOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	FAbilityEventPayload Payload;
@@ -93,7 +93,7 @@ void AAbilityActor::HandleOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 	OnOverlap(Payload.Target, Payload.OverlappedAbility, Payload.Location);
 }
 
-TArray<AUnitBase*> AAbilityActor::GetOverlappingUnits(bool bIsHelpful)
+TArray<AUnitBase*> APersistentAbility::GetOverlappingUnits(bool bIsHelpful)
 {
 	TArray<AUnitBase*> Units;
 

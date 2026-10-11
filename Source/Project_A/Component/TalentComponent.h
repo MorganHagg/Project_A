@@ -6,7 +6,7 @@
 #include "TalentComponent.generated.h"
 
 class UTalentData;
-class UAbilitySystem;
+class UAbilityComponent;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJECT_A_API UTalentComponent : public UActorComponent
@@ -29,5 +29,5 @@ public:
 	bool bContainAcquiredTalents(UTalentData* Talents);
 
 	UPROPERTY()
-	UAbilitySystem* AbilitySystemComponent;
+	UAbilityComponent* AbilityComponent;
 };

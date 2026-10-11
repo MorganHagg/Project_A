@@ -2,33 +2,33 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "GameplayTagContainer.h"
-#include "../Misc/GameplayEffect.h"
-#include "OverTimeEffectSlot.generated.h"
+#include "../Misc/AttributeEffect.h"
+#include "GrantedOverTimeEffect.generated.h"
 
 class AUnitBase;
 class UOverTimeEffect;
-class UOverTimeEffectDataAsset;
+class UOverTimeEffectData;
 
 // ============================================================================
-// UOverTimeEffectSlot
+// UGrantedOverTimeEffect
 // A caster's granted over-time effect: the configuration every application of it uses. Lives in
-// the caster's UAbilitySystem::GrantedOverTimeEffects, built from a UOverTimeEffectDataAsset.
-// Talents find it by tag (UTalentBase::GetEffectSlot) and change its values directly.
+// the caster's UAbilityComponent::GrantedOverTimeEffects, built from a UOverTimeEffectData.
+// Talents find it by tag (UTalentBase::GetGrantedOverTimeEffect) and change its values directly.
 // ============================================================================
 
 UCLASS(BlueprintType)
-class PROJECT_A_API UOverTimeEffectSlot : public UObject
+class PROJECT_A_API UGrantedOverTimeEffect : public UObject
 {
 	GENERATED_BODY()
 
 public:
 	// Copies Data's values and composes EffectTag from its EffectName.
-	void SetupSlot(const UOverTimeEffectDataAsset* Data, AUnitBase* Caster);
+	void SetupEffect(const UOverTimeEffectData* Data, AUnitBase* Caster);
 
 	// Builds the identity tag "Effect.<InEffectName>".
 	static FGameplayTag ComposeEffectTag(FName InEffectName, bool bErrorIfNotFound = true);
 
-	// Applies a new instance of EffectClass to Target, through Target's UEffectHandler.
+	// Applies a new instance of EffectClass to Target, through Target's UEffectComponent.
 	UFUNCTION(BlueprintCallable, Category = "Effect")
 	void ApplyOverTimeEffect(AUnitBase* Target);
 
@@ -43,7 +43,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Effect")
 	AUnitBase* MyCaster = nullptr;
 
-	// -- Tunables (see UOverTimeEffectDataAsset) --
+	// -- Tunables (see UOverTimeEffectData) --
 
 	UPROPERTY(BlueprintReadWrite, Category = "Effect")
 	float Duration = 0.f;
@@ -58,5 +58,5 @@ public:
 	bool bMultipleCaster = true;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Effect")
-	FGameplayEffect Effect;
+	FAttributeEffect Effect;
 };

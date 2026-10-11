@@ -1,6 +1,6 @@
 // Editor-only dev tool: scans /Game/Abilities for every AAbility Blueprint class (e.g.
 // Projectile_Fireball, AA_Firewall) and registers each one's identity tag (Ability.<Name>), and
-// scans the project for every UOverTimeEffectDataAsset and registers its identity tag
+// scans the project for every UOverTimeEffectData and registers its identity tag
 // (Effect.<Name>), so DefaultGameplayTags.ini doesn't have to be hand-edited every time a new
 // ability or over-time effect is authored.
 // The shared, ability-agnostic event-category tags (Event.Cast/Finish/TargetHit/Overlap/Crit,
@@ -12,7 +12,7 @@
 #if WITH_EDITOR
 
 #include "Ability.h"
-#include "../DataAsset/OverTimeEffectDataAsset.h"
+#include "../DataAsset/OverTimeEffectData.h"
 #include "HAL/IConsoleManager.h"
 #include "GameplayTagsEditorModule.h"
 #include "UObject/UObjectGlobals.h"
@@ -83,12 +83,12 @@ namespace
 
 		// Over-time effects: EffectName lives on each data asset, wherever it is.
 		TArray<FAssetData> EffectAssetDatas;
-		AssetRegistry.GetAssetsByClass(UOverTimeEffectDataAsset::StaticClass()->GetClassPathName(), EffectAssetDatas, /*bSearchSubClasses=*/true);
+		AssetRegistry.GetAssetsByClass(UOverTimeEffectData::StaticClass()->GetClassPathName(), EffectAssetDatas, /*bSearchSubClasses=*/true);
 
 		int32 SyncedEffectCount = 0;
 		for (const FAssetData& AssetData : EffectAssetDatas)
 		{
-			const UOverTimeEffectDataAsset* EffectData = Cast<UOverTimeEffectDataAsset>(AssetData.GetAsset());
+			const UOverTimeEffectData* EffectData = Cast<UOverTimeEffectData>(AssetData.GetAsset());
 			if (!EffectData)
 			{
 				continue;

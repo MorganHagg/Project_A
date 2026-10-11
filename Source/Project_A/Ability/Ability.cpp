@@ -1,13 +1,13 @@
 #include "Ability.h"
-#include "AbilitySlot.h"
+#include "GrantedAbility.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/OverlapResult.h"
 #include "../Unit/UnitBase.h"
 #include "../Unit/PlayerUnit.h"
 #include "../Unit/EnemyUnit.h"
-#include "../Component/EffectHandler.h"
-#include "../Component/AbilitySystem.h"
-#include "../Effect/OverTimeEffectSlot.h"
+#include "../Component/EffectComponent.h"
+#include "../Component/AbilityComponent.h"
+#include "../Effect/GrantedOverTimeEffect.h"
 #include "../Interfaces/AbilityLifecycle.h"
 
 AAbility::AAbility()
@@ -54,9 +54,9 @@ FGameplayTag AAbility::ComposeAbilityTag(FName InAbilityName, bool bErrorIfNotFo
 	return FGameplayTag::RequestGameplayTag(FName(*(FString(TEXT("Ability.")) + InAbilityName.ToString())), bErrorIfNotFound);
 }
 
-void AAbility::SetMyAbility(UAbilitySlot* Ability)
+void AAbility::SetMyGrantedAbility(UGrantedAbility* GrantedAbility)
 {
-	MyAbility = Ability;
+	MyGrantedAbility = GrantedAbility;
 }
 
 void AAbility::SetMyCaster(ACharacter* Caster)
@@ -70,9 +70,9 @@ void AAbility::ReportAbilityEvent(FGameplayTagContainer EventTags, FAbilityEvent
 	{
 		Payload.Ability = this;
 	}
-	if (MyAbility)
+	if (MyGrantedAbility)
 	{
-		MyAbility->ReportAbilityEvent(EventTags, Payload);
+		MyGrantedAbility->ReportAbilityEvent(EventTags, Payload);
 	}
 }
 
@@ -165,7 +165,7 @@ TArray<AUnitBase*> AAbility::Target_AOE(ETargetSelection TargetSelection, FVecto
 void AAbility::OnHit(AUnitBase* Target, FVector Location)
 {
 	// AAbility itself doesn't implement IAbilityLifecycle - its concrete subclasses (AProjectile,
-	// AAbilityActor) do.
+	// APersistentAbility) do.
 	// While the hook runs, ApplyEffect records what it applies so the hit's payload can carry it.
 	bResolvingHit = true;
 	HitAppliedEffect.Reset();
@@ -193,15 +193,15 @@ void AAbility::OnHit(AUnitBase* Target, FVector Location)
 	OnHitDelegate.Broadcast(Payload);
 }
 
-void AAbility::ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect)
+void AAbility::ApplyEffect(AUnitBase* Target, const FAttributeEffect& Effect)
 {
-	UEffectHandler* EffectHandler = Target->FindComponentByClass<UEffectHandler>();
-	if (!EffectHandler)
+	UEffectComponent* EffectComponent = Target->FindComponentByClass<UEffectComponent>();
+	if (!EffectComponent)
 	{
 		return;
 	}
 
-	const FGameplayEffect Applied = EffectHandler->ApplyEffect(Effect);
+	const FAttributeEffect Applied = EffectComponent->ApplyEffect(Effect);
 
 	// Only the first effect of a hit is recorded - the payload has room for one.
 	if (bResolvingHit && !HitAppliedEffect.IsSet())
@@ -213,14 +213,14 @@ void AAbility::ApplyEffect(AUnitBase* Target, const FGameplayEffect& Effect)
 void AAbility::ApplyOverTimeEffect(FGameplayTag EffectTag, AUnitBase* Target)
 {
 	const AUnitBase* Caster = Cast<AUnitBase>(MyCaster);
-	if (!Caster || !Caster->AbilitySystemComponent || !Target)
+	if (!Caster || !Caster->AbilityComponent || !Target)
 	{
 		return;
 	}
 
-	if (UOverTimeEffectSlot* Slot = Caster->AbilitySystemComponent->FindEffectSlot(EffectTag))
+	if (UGrantedOverTimeEffect* GrantedEffect = Caster->AbilityComponent->FindGrantedOverTimeEffect(EffectTag))
 	{
-		Slot->ApplyOverTimeEffect(Target);
+		GrantedEffect->ApplyOverTimeEffect(Target);
 	}
 }
 

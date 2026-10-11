@@ -5,27 +5,27 @@
 #include "../Interfaces/AbilityLifecycle.h"
 #include "AbilityEventPayload.h"
 #include "Ability.h"
-#include "AbilitySlot.generated.h"
+#include "GrantedAbility.generated.h"
 
 // Forward declarations
 class AUnitBase;
 class AAbility;
 
 // ============================================================================
-// UAbilitySlot
-// A thin translation layer between AbilitySystem/input and the actual action
+// UGrantedAbility
+// A thin translation layer between AbilityComponent/input and the actual action
 // (Ability). Holds only cast-bookkeeping (cooldown, cost) - fully generic, no
 // per-ability branching or Blueprint subclass. Its job is done once it has
 // spawned the Ability instance for this cast.
 // ============================================================================
 
 UCLASS(Blueprintable)
-class PROJECT_A_API UAbilitySlot : public UObject, public IAbilityLifecycle
+class PROJECT_A_API UGrantedAbility : public UObject, public IAbilityLifecycle
 {
 	GENERATED_BODY()
 
 public:
-	UAbilitySlot();
+	UGrantedAbility();
 
 	// --------------------------------------------------------------
 	// Context
@@ -49,20 +49,20 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float Cost = 0.f;
 
-	// See UAbilityDataAsset::bActivateOnRelease / MaxChargeTime.
+	// See UAbilityData::bActivateOnRelease / MaxChargeTime.
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	bool bActivateOnRelease = false;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float MaxChargeTime = 0.f;
 
-	// Which Ability (product) class this slot spawns when activated. Copied from the
-	// UAbilityDataAsset this instance was built from - see UAbilitySystem::InstantiateAbilities.
+	// Which Ability class this granted ability spawns when activated. Copied from the
+	// UAbilityData this instance was built from - see UAbilityComponent::InstantiateAbilities.
 	UPROPERTY(BlueprintReadOnly, Category = "Ability")
-	TSubclassOf<AAbility> ProductClass;
+	TSubclassOf<AAbility> AbilityClass;
 
-	// This slot's identity: ProductClass's "Ability.<AbilityName>" tag. Set by
-	// UAbilitySystem::InstantiateAbilities; used by talents to find the slot (UAbilitySystem::FindSlot).
+	// This granted ability's identity: AbilityClass's "Ability.<AbilityName>" tag. Set by
+	// UAbilityComponent::InstantiateAbilities; used by talents to find it (UAbilityComponent::FindGrantedAbility).
 	UPROPERTY(BlueprintReadOnly, Category = "Ability")
 	FGameplayTag AbilityTag;
 
@@ -77,7 +77,7 @@ public:
 	// InModifiedAbility is set on the spawned Ability's ModifiedAbility (see AControllerBase::ApplyModify).
 	virtual void ActivateAbility(AAbility* InModifiedAbility = nullptr);
 
-	// Starts charging - called when this slot becomes the active hold (UAbilitySystem::SetActiveAbility).
+	// Starts charging - called when this granted ability becomes the active hold (UAbilityComponent::SetActiveAbility).
 	// Every hold charges; bActivateOnRelease only decides when the Ability spawns.
 	void StartCharging();
 
@@ -113,7 +113,7 @@ protected:
 	TWeakObjectPtr<AAbility> SpawnedAbility;
 
 private:
-	// Spawns ProductClass with its ChargeTime and ModifiedAbility set, and returns it.
+	// Spawns AbilityClass with its ChargeTime and ModifiedAbility set, and returns it.
 	AAbility* SpawnAbility(float ChargeTime, AAbility* InModifiedAbility = nullptr);
 
 	bool IsCasterDead() const;

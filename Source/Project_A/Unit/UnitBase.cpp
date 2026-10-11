@@ -1,6 +1,6 @@
 ﻿#include "UnitBase.h"
-#include "../Component/AbilitySystem.h"
-#include "../Component/EffectHandler.h"
+#include "../Component/AbilityComponent.h"
+#include "../Component/EffectComponent.h"
 #include "../Component/AttributeComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -13,8 +13,8 @@
 AUnitBase::AUnitBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystem>(TEXT("AbilitySystemComponent"));
-	EffectHandlerComponent = CreateDefaultSubobject<UEffectHandler>(TEXT("EffectHandlerComponent"));
+	AbilityComponent = CreateDefaultSubobject<UAbilityComponent>(TEXT("AbilitySystemComponent"));
+	EffectComponent = CreateDefaultSubobject<UEffectComponent>(TEXT("EffectHandlerComponent"));
 	AttributeComponent = CreateDefaultSubobject<UAttributeComponent>(TEXT("AttributeComponent"));
 
 	// Screen space: always faces the camera at a constant size. Drawn at the widget's desired size,
@@ -42,8 +42,8 @@ void AUnitBase::SetupUnit(UUnitDataBase* SpawnData)
 {
 	UnitData = SpawnData;
 
-	AbilitySystemComponent->InstantiateAbilities(SpawnData);
-	AbilitySystemComponent->InstantiateOverTimeEffects(SpawnData);
+	AbilityComponent->InstantiateAbilities(SpawnData);
+	AbilityComponent->InstantiateOverTimeEffects(SpawnData);
 	AttributeComponent->InstantiateAttributes(SpawnData);
 
 	GetMesh()->SetSkeletalMesh(SpawnData->Mesh);
@@ -85,14 +85,14 @@ void AUnitBase::HandleDeath()
 	SetActorEnableCollision(false);
 	GetCharacterMovement()->DisableMovement();
 
-	AbilitySystemComponent->EndActiveAbility();
+	AbilityComponent->EndActiveAbility();
 
-	EffectHandlerComponent->HandleUnitDeath();
+	EffectComponent->HandleUnitDeath();
 
 	HealthBarComponent->SetVisibility(false);
 }
 
-float AUnitBase::ReceiveDamage(float Amount, EAbilityType AbilityType)
+float AUnitBase::ReceiveDamage(float Amount, EDamageType DamageType)
 {
 	if (!AttributeComponent || AttributeComponent->IsDead())
 	{
@@ -101,10 +101,10 @@ float AUnitBase::ReceiveDamage(float Amount, EAbilityType AbilityType)
 
 	// Rounded to whole damage so Health stays whole - otherwise mitigation leaves fractional
 	// remainders (e.g. 0.4 Health) that look like 0 on the health bar but aren't dead.
-	float FinalAmount = MitigateDamage(Amount, AbilityType);
-	if (EffectHandlerComponent)
+	float FinalAmount = MitigateDamage(Amount, DamageType);
+	if (EffectComponent)
 	{
-		FinalAmount = EffectHandlerComponent->ModifyIncomingDamage(FinalAmount, AbilityType);
+		FinalAmount = EffectComponent->ModifyIncomingDamage(FinalAmount, DamageType);
 	}
 	FinalAmount = FMath::RoundToFloat(FMath::Max(FinalAmount, 0.f));
 
@@ -121,9 +121,9 @@ float AUnitBase::ReceiveHeal(float Amount)
 	}
 
 	float FinalAmount = Amount;
-	if (EffectHandlerComponent)
+	if (EffectComponent)
 	{
-		FinalAmount = EffectHandlerComponent->ModifyIncomingHeal(FinalAmount);
+		FinalAmount = EffectComponent->ModifyIncomingHeal(FinalAmount);
 	}
 	FinalAmount = FMath::Max(FinalAmount, 0.f);
 
@@ -132,18 +132,18 @@ float AUnitBase::ReceiveHeal(float Amount)
 	return FinalAmount;
 }
 
-float AUnitBase::MitigateDamage(float Damage, EAbilityType AbilityType) const
+float AUnitBase::MitigateDamage(float Damage, EDamageType DamageType) const
 {
 	float Mitigation;
-	switch (AbilityType)
+	switch (DamageType)
 	{
-	case EAbilityType::Magic:
+	case EDamageType::Magic:
 		Mitigation = AttributeComponent->GetAttribute(EAttributeType::MagicResist);
 		break;
-	case EAbilityType::Physical:
+	case EDamageType::Physical:
 		Mitigation = AttributeComponent->GetAttribute(EAttributeType::Armour);
 		break;
-	case EAbilityType::TrueDamage:
+	case EDamageType::TrueDamage:
 	default:
 		return Damage;
 	}

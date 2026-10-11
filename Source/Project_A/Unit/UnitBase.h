@@ -2,11 +2,11 @@
 #include "CoreMinimal.h"
 #include "Gameframework/Character.h"
 #include "../DataAsset/UnitDataBase.h"
-#include "../Misc/GameplayEffect.h"
+#include "../Misc/AttributeEffect.h"
 #include "UnitBase.generated.h"
 
-class UAbilitySystem;
-class UEffectHandler;
+class UAbilityComponent;
+class UEffectComponent;
 class UBehaviorTree;
 class UAttributeComponent;
 class UWidgetComponent;
@@ -37,10 +37,10 @@ public:
 	
 	// System Components
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
-	UAbilitySystem* AbilitySystemComponent;
+	UAbilityComponent* AbilityComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
-	UEffectHandler* EffectHandlerComponent;
+	UEffectComponent* EffectComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
 	UAttributeComponent* AttributeComponent;
@@ -67,11 +67,11 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Unit")
 	FOnUnitReceiveHeal OnReceiveHeal;
 
-	// Mitigates Amount by AbilityType (see MitigateDamage), lets active over-time effects change it
+	// Mitigates Amount by DamageType (see MitigateDamage), lets active over-time effects change it
 	// (UOverTimeEffect::ModifyIncomingDamage), clamps it at 0, subtracts it from Health, and
 	// broadcasts OnReceiveDamage. Returns the damage taken (0 once dead).
 	UFUNCTION(BlueprintCallable, Category = "Unit")
-	float ReceiveDamage(float Amount, EAbilityType AbilityType);
+	float ReceiveDamage(float Amount, EDamageType DamageType);
 
 	// Lets active over-time effects change Amount (UOverTimeEffect::ModifyIncomingHeal), clamps it at
 	// 0, adds it to Health, and broadcasts OnReceiveHeal. Returns the amount healed (0 once dead).
@@ -79,9 +79,9 @@ public:
 	float ReceiveHeal(float Amount);
 
 private:
-	// Returns Damage reduced by this unit's mitigation stat for AbilityType (MagicResist for Magic,
+	// Returns Damage reduced by this unit's mitigation stat for DamageType (MagicResist for Magic,
 	// Armour for Physical, none for True), using MitigationPercent = Mit / (Mit + MitigationConstant).
-	float MitigateDamage(float Damage, EAbilityType AbilityType) const;
+	float MitigateDamage(float Damage, EDamageType DamageType) const;
 
 	// K in the mitigation formula - the stat value that gives 50% reduction.
 	static constexpr float MitigationConstant = 400.f;

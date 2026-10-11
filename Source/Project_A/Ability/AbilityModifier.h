@@ -28,6 +28,6 @@ protected:
 
 public:
 	// Notifies (reports FinishEventTags, broadcasts OnFinish), fires OnEnd, then destroys - same
-	// ordering as AAbilityActor::Finish().
+	// ordering as APersistentAbility::Finish().
 	virtual void Finish() override;
 };

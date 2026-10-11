@@ -1,6 +1,6 @@
 #pragma once
 #include "Runtime/Core/Public/CoreMinimal.h"
-#include "AttributeSet.generated.h"
+#include "AttributeType.generated.h"
 
 UENUM(BlueprintType)
 enum class EAttributeType : uint8

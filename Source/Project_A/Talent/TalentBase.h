@@ -7,7 +7,7 @@
 #include "TalentBase.generated.h"
 
 class APlayerUnit;
-class UOverTimeEffectSlot;
+class UGrantedOverTimeEffect;
 
 UCLASS(Blueprintable)
 class PROJECT_A_API UTalentBase : public UObject
@@ -41,15 +41,15 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Talent")
 	void OnAbilityEvent(FAbilityEventPayload Payload);
 
-	// Finds MyPlayerUnit's granted ability slot by identity tag (e.g. "Ability.Fireball"), so the
+	// Finds MyPlayerUnit's granted ability by identity tag (e.g. "Ability.Fireball"), so the
 	// talent can change its values (Cost, CoolDown). Logs an error and returns
-	// nullptr if MyPlayerUnit isn't bound yet, has no AbilitySystem, or has no slot with that tag.
+	// nullptr if MyPlayerUnit isn't bound yet, has no AbilityComponent, or has no granted ability with that tag.
 	UFUNCTION(BlueprintCallable, Category = "Talent")
-	UAbilitySlot* GetAbilitySlot(UPARAM(meta = (Categories = "Ability")) FGameplayTag AbilityTag) const;
+	UGrantedAbility* GetGrantedAbility(UPARAM(meta = (Categories = "Ability")) FGameplayTag AbilityTag) const;
 
-	// Finds MyPlayerUnit's granted over-time effect slot by identity tag (e.g. "Effect.Burn"), so
+	// Finds MyPlayerUnit's granted over-time effect by identity tag (e.g. "Effect.Burn"), so
 	// the talent can change its values (Duration, Interval, StackLimit, bMultipleCaster). Logs an
-	// error and returns nullptr like GetAbilitySlot.
+	// error and returns nullptr like GetGrantedAbility.
 	UFUNCTION(BlueprintCallable, Category = "Talent")
-	UOverTimeEffectSlot* GetEffectSlot(UPARAM(meta = (Categories = "Effect")) FGameplayTag EffectTag) const;
+	UGrantedOverTimeEffect* GetGrantedOverTimeEffect(UPARAM(meta = (Categories = "Effect")) FGameplayTag EffectTag) const;
 };

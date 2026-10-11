@@ -3,20 +3,20 @@
 #include "Ability.h"
 #include "../Misc/IntervalTicker.h"
 #include "../Interfaces/AbilityLifecycle.h"
-#include "AbilityActor.generated.h"
+#include "PersistentAbility.generated.h"
 
-class UAbilitySlot;
+class UGrantedAbility;
 class ACharacter;
-class UEffectHandler;
+class UEffectComponent;
 class AUnitBase;
 
 UCLASS()
-class PROJECT_A_API AAbilityActor : public AAbility, public IAbilityLifecycle
+class PROJECT_A_API APersistentAbility : public AAbility, public IAbilityLifecycle
 {
 	GENERATED_BODY()
 
 public:
-	AAbilityActor();
+	APersistentAbility();
 
 protected:
 	virtual void BeginPlay() override;
@@ -38,8 +38,8 @@ public:
 
 	// -- Event tags --
 
-	// Tags reported to MyAbility on overlap (see HandleOverlap).
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability", meta = (Categories = "Ability,Event"))
+	// Tags reported to MyGrantedAbility on overlap (see HandleOverlap).
+	UPROPERTY(BlueprintReadWrite, Category = "Ability")
 	FGameplayTagContainer OverlapEventTags;
 
 	// -- Functions --

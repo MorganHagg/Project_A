@@ -1,10 +1,10 @@
-#include "AbilitySystem.h"
-#include "../Ability/AbilitySlot.h"
+#include "AbilityComponent.h"
+#include "../Ability/GrantedAbility.h"
 #include "../Unit/UnitBase.h"
 #include "../DataAsset/UnitDataBase.h"
-#include "../DataAsset/AbilityDataAsset.h"
-#include "../DataAsset/OverTimeEffectDataAsset.h"
-#include "../Effect/OverTimeEffectSlot.h"
+#include "../DataAsset/AbilityData.h"
+#include "../DataAsset/OverTimeEffectData.h"
+#include "../Effect/GrantedOverTimeEffect.h"
 #include "AttributeComponent.h"
 #if WITH_EDITOR
 #include "Kismet/KismetSystemLibrary.h"
@@ -13,17 +13,17 @@
 #include "Misc/UObjectToken.h"
 #endif
 
-UAbilitySystem::UAbilitySystem()
+UAbilityComponent::UAbilityComponent()
 {
 }
 
-void UAbilitySystem::BeginPlay()
+void UAbilityComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	MyOwner = CastChecked<AUnitBase>(GetOwner());
 }
 
-void UAbilitySystem::InstantiateAbilities(const UUnitDataBase* UnitData)
+void UAbilityComponent::InstantiateAbilities(const UUnitDataBase* UnitData)
 {
 	if (!UnitData)
 	{
@@ -34,7 +34,7 @@ void UAbilitySystem::InstantiateAbilities(const UUnitDataBase* UnitData)
 	bool bFoundNamelessAbility = false;
 #endif
 
-	for (UAbilityDataAsset* AbilityData : UnitData->DefaultAbilities)
+	for (UAbilityData* AbilityData : UnitData->DefaultAbilities)
 	{
 		if (!AbilityData)
 		{
@@ -42,27 +42,27 @@ void UAbilitySystem::InstantiateAbilities(const UUnitDataBase* UnitData)
 		}
 
 		// One generic class now - identity/behavior come entirely from the copied DataAsset
-		// values and ProductClass, not from a per-ability subclass.
-		UAbilitySlot* NewAbility = NewObject<UAbilitySlot>(this);
+		// values and AbilityClass, not from a per-ability subclass.
+		UGrantedAbility* NewAbility = NewObject<UGrantedAbility>(this);
 		NewAbility->CoolDown = AbilityData->CoolDown;
 		NewAbility->Cost = AbilityData->Cost;
 		NewAbility->bActivateOnRelease = AbilityData->bActivateOnRelease;
 		NewAbility->MaxChargeTime = AbilityData->MaxChargeTime;
-		NewAbility->ProductClass = AbilityData->ProductClass;
-		if (NewAbility->ProductClass)
+		NewAbility->AbilityClass = AbilityData->AbilityClass;
+		if (NewAbility->AbilityClass)
 		{
 			// Identity comes from AbilityName on the Ability class's defaults - the same source
-			// AAbility::BeginPlay uses, so a slot and the Abilities it spawns share one tag.
-			const FName AbilityName = NewAbility->ProductClass->GetDefaultObject<AAbility>()->AbilityName;
+			// AAbility::BeginPlay uses, so a granted ability and the Abilities it spawns share one tag.
+			const FName AbilityName = NewAbility->AbilityClass->GetDefaultObject<AAbility>()->AbilityName;
 #if WITH_EDITOR
 			// In the editor a nameless ability ends PIE with a Message Log error instead of reaching
 			// AAbility::BeginPlay's checkf on first cast, which would crash the editor and lose
 			// unsaved work. Packaged builds still hit the checkf.
 			if (GIsEditor && AbilityName == FName("NO_NAME_ABILITY"))
 			{
-				const UObject* NamelessSource = UBlueprint::GetBlueprintFromClass(NewAbility->ProductClass);
+				const UObject* NamelessSource = UBlueprint::GetBlueprintFromClass(NewAbility->AbilityClass);
 				FMessageLog("PIE").Error()
-					->AddToken(FUObjectToken::Create(NamelessSource ? NamelessSource : NewAbility->ProductClass.Get()))
+					->AddToken(FUObjectToken::Create(NamelessSource ? NamelessSource : NewAbility->AbilityClass.Get()))
 					->AddToken(FTextToken::Create(INVTEXT("has no AbilityName set (still NO_NAME_ABILITY) - every ability must be given a unique name. Referenced by")))
 					->AddToken(FUObjectToken::Create(AbilityData));
 				bFoundNamelessAbility = true;
@@ -71,8 +71,8 @@ void UAbilitySystem::InstantiateAbilities(const UUnitDataBase* UnitData)
 			NewAbility->AbilityTag = AAbility::ComposeAbilityTag(AbilityName, /*bErrorIfNotFound=*/false);
 			if (!NewAbility->AbilityTag.IsValid())
 			{
-				UE_LOG(LogTemp, Error, TEXT("UAbilitySystem::InstantiateAbilities - %s has no registered identity tag for AbilityName '%s' (run Abilities.SyncTags)."),
-					*NewAbility->ProductClass->GetName(), *AbilityName.ToString());
+				UE_LOG(LogTemp, Error, TEXT("UAbilityComponent::InstantiateAbilities - %s has no registered identity tag for AbilityName '%s' (run Abilities.SyncTags)."),
+					*NewAbility->AbilityClass->GetName(), *AbilityName.ToString());
 			}
 		}
 		NewAbility->SetupAbility(MyOwner);
@@ -88,7 +88,7 @@ void UAbilitySystem::InstantiateAbilities(const UUnitDataBase* UnitData)
 #endif
 }
 
-UAbilitySlot* UAbilitySystem::InitiateAbility(int32 Slot)
+UGrantedAbility* UAbilityComponent::InitiateAbility(int32 Slot)
 {
 	if (IsOwnerDead())
 	{
@@ -112,7 +112,7 @@ UAbilitySlot* UAbilitySystem::InitiateAbility(int32 Slot)
 	return nullptr;
 }
 
-void UAbilitySystem::SetActiveAbility(UAbilitySlot* NewActiveAbility)
+void UAbilityComponent::SetActiveAbility(UGrantedAbility* NewActiveAbility)
 {
 	if (IsOwnerDead())
 	{
@@ -126,10 +126,10 @@ void UAbilitySystem::SetActiveAbility(UAbilitySlot* NewActiveAbility)
 	}
 	else
 		UE_LOG(LogTemp, Error, TEXT(
-			"AbilitySystem::ActivateAbility doesn't have valid *NewActiveAbility."));
+			"UAbilityComponent::ActivateAbility doesn't have valid *NewActiveAbility."));
 }
 
-void UAbilitySystem::EndActiveAbility()
+void UAbilityComponent::EndActiveAbility()
 {
 	if (ActiveAbility)
 	{
@@ -138,7 +138,7 @@ void UAbilitySystem::EndActiveAbility()
 	}
 }
 
-void UAbilitySystem::ReleaseActiveAbility()
+void UAbilityComponent::ReleaseActiveAbility()
 {
 	if (ActiveAbility)
 	{
@@ -147,69 +147,69 @@ void UAbilitySystem::ReleaseActiveAbility()
 	}
 }
 
-bool UAbilitySystem::IsOwnerDead() const
+bool UAbilityComponent::IsOwnerDead() const
 {
 	return MyOwner && MyOwner->AttributeComponent && MyOwner->AttributeComponent->IsDead();
 }
 
-UAbilitySlot* UAbilitySystem::FindSlot(FGameplayTag AbilityTag) const
+UGrantedAbility* UAbilityComponent::FindGrantedAbility(FGameplayTag AbilityTag) const
 {
 	if (!AbilityTag.IsValid())
 	{
-		UE_LOG(LogTemp, Error, TEXT("UAbilitySystem::FindSlot called with an empty tag."));
+		UE_LOG(LogTemp, Error, TEXT("UAbilityComponent::FindGrantedAbility called with an empty tag."));
 		return nullptr;
 	}
 
-	for (UAbilitySlot* Slot : GrantedAbilities)
+	for (UGrantedAbility* GrantedAbility : GrantedAbilities)
 	{
-		if (Slot && Slot->AbilityTag == AbilityTag)
+		if (GrantedAbility && GrantedAbility->AbilityTag == AbilityTag)
 		{
-			return Slot;
+			return GrantedAbility;
 		}
 	}
 
-	UE_LOG(LogTemp, Error, TEXT("UAbilitySystem::FindSlot - %s has no ability tagged %s."),
+	UE_LOG(LogTemp, Error, TEXT("UAbilityComponent::FindGrantedAbility - %s has no ability tagged %s."),
 		*GetNameSafe(GetOwner()), *AbilityTag.ToString());
 	return nullptr;
 }
 
-void UAbilitySystem::InstantiateOverTimeEffects(const UUnitDataBase* UnitData)
+void UAbilityComponent::InstantiateOverTimeEffects(const UUnitDataBase* UnitData)
 {
 	if (!UnitData)
 	{
 		return;
 	}
 
-	for (const UOverTimeEffectDataAsset* EffectData : UnitData->DefaultOverTimeEffects)
+	for (const UOverTimeEffectData* EffectData : UnitData->DefaultOverTimeEffects)
 	{
 		if (!EffectData)
 		{
 			continue;
 		}
 
-		UOverTimeEffectSlot* NewSlot = NewObject<UOverTimeEffectSlot>(this);
-		NewSlot->SetupSlot(EffectData, MyOwner);
-		GrantedOverTimeEffects.Add(NewSlot);
+		UGrantedOverTimeEffect* NewGrantedEffect = NewObject<UGrantedOverTimeEffect>(this);
+		NewGrantedEffect->SetupEffect(EffectData, MyOwner);
+		GrantedOverTimeEffects.Add(NewGrantedEffect);
 	}
 }
 
-UOverTimeEffectSlot* UAbilitySystem::FindEffectSlot(FGameplayTag EffectTag) const
+UGrantedOverTimeEffect* UAbilityComponent::FindGrantedOverTimeEffect(FGameplayTag EffectTag) const
 {
 	if (!EffectTag.IsValid())
 	{
-		UE_LOG(LogTemp, Error, TEXT("UAbilitySystem::FindEffectSlot called with an empty tag."));
+		UE_LOG(LogTemp, Error, TEXT("UAbilityComponent::FindGrantedOverTimeEffect called with an empty tag."));
 		return nullptr;
 	}
 
-	for (UOverTimeEffectSlot* Slot : GrantedOverTimeEffects)
+	for (UGrantedOverTimeEffect* GrantedEffect : GrantedOverTimeEffects)
 	{
-		if (Slot && Slot->EffectTag == EffectTag)
+		if (GrantedEffect && GrantedEffect->EffectTag == EffectTag)
 		{
-			return Slot;
+			return GrantedEffect;
 		}
 	}
 
-	UE_LOG(LogTemp, Error, TEXT("UAbilitySystem::FindEffectSlot - %s has no over-time effect tagged %s."),
+	UE_LOG(LogTemp, Error, TEXT("UAbilityComponent::FindGrantedOverTimeEffect - %s has no over-time effect tagged %s."),
 		*GetNameSafe(GetOwner()), *EffectTag.ToString());
 	return nullptr;
 }

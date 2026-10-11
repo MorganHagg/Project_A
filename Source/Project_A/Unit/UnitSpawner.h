@@ -3,7 +3,7 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "UnitSpawner.generated.h"
 
-class UAbilitySlot;
+class UGrantedAbility;
 class ACharacter;
 class AUnitBase;
 class APlayerUnit;

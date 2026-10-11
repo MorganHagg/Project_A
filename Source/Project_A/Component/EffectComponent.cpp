@@ -1,21 +1,21 @@
-#include "EffectHandler.h"
+#include "EffectComponent.h"
 #include "../Unit/UnitBase.h"
 #include "../Component/AttributeComponent.h"
-#include "../Effect/OverTimeEffectSlot.h"
+#include "../Effect/GrantedOverTimeEffect.h"
 
-UEffectHandler::UEffectHandler()
+UEffectComponent::UEffectComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 }
 
 
-void UEffectHandler::BeginPlay()
+void UEffectComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	MyTarget = CastChecked<AUnitBase>(GetOwner());
 }
 
-void UEffectHandler::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UEffectComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -30,9 +30,9 @@ void UEffectHandler::TickComponent(float DeltaTime, ELevelTick TickType, FActorC
 	}
 }
 
-FGameplayEffect UEffectHandler::ApplyEffect(const FGameplayEffect& Effect)
+FAttributeEffect UEffectComponent::ApplyEffect(const FAttributeEffect& Effect)
 {
-	FGameplayEffect Applied = Effect;
+	FAttributeEffect Applied = Effect;
 
 	// Also catches a unit killed earlier in the same frame.
 	if (!MyTarget || !MyTarget->AttributeComponent || IsTargetDead())
@@ -52,7 +52,7 @@ FGameplayEffect UEffectHandler::ApplyEffect(const FGameplayEffect& Effect)
 		{
 			if (SignedMagnitude < 0.f)
 			{
-				Applied.Magnitude = MyTarget->ReceiveDamage(-SignedMagnitude, Effect.AbilityType);
+				Applied.Magnitude = MyTarget->ReceiveDamage(-SignedMagnitude, Effect.DamageType);
 			}
 			else if (SignedMagnitude > 0.f)
 			{
@@ -76,34 +76,34 @@ FGameplayEffect UEffectHandler::ApplyEffect(const FGameplayEffect& Effect)
 	return Applied;
 }
 
-void UEffectHandler::AddOverTimeEffect(UOverTimeEffectSlot* Slot)
+void UEffectComponent::AddOverTimeEffect(UGrantedOverTimeEffect* GrantedEffect)
 {
-	if (!Slot || !Slot->EffectClass || !MyTarget || IsTargetDead())
+	if (!GrantedEffect || !GrantedEffect->EffectClass || !MyTarget || IsTargetDead())
 	{
 		return;
 	}
 
-	// Stacks of the same effect - per caster unless the slot shares them across casters.
+	// Stacks of the same effect - per caster unless the granted effect shares them across casters.
 	TArray<UOverTimeEffect*> Matches;
 	for (UOverTimeEffect* Effect : OverTimeEffects)
 	{
-		if (Effect && !Effect->IsResolved() && Effect->GetEffectTag() == Slot->EffectTag &&
-			(!Slot->bMultipleCaster || Effect->GetCaster() == Slot->MyCaster))
+		if (Effect && !Effect->IsResolved() && Effect->GetEffectTag() == GrantedEffect->EffectTag &&
+			(!GrantedEffect->bMultipleCaster || Effect->GetCaster() == GrantedEffect->MyCaster))
 		{
 			Matches.Add(Effect);
 		}
 	}
 
-	if (Slot->StackLimit == 0 && Matches.Num() > 0)
+	if (GrantedEffect->StackLimit == 0 && Matches.Num() > 0)
 	{
 		return;
 	}
 
 	// At the limit, the oldest stacks fully end (hook, stat revert, removal) before the new one
 	// applies, so their stat changes are gone before the new stack makes its own.
-	if (Slot->StackLimit > 0)
+	if (GrantedEffect->StackLimit > 0)
 	{
-		for (int32 Index = 0; Index <= Matches.Num() - Slot->StackLimit; ++Index)
+		for (int32 Index = 0; Index <= Matches.Num() - GrantedEffect->StackLimit; ++Index)
 		{
 			ResolveAndRemove(Matches[Index], EOverTimeEffectEnd::Ended);
 		}
@@ -115,12 +115,12 @@ void UEffectHandler::AddOverTimeEffect(UOverTimeEffectSlot* Slot)
 		}
 	}
 
-	UOverTimeEffect* NewEffect = NewObject<UOverTimeEffect>(this, Slot->EffectClass);
+	UOverTimeEffect* NewEffect = NewObject<UOverTimeEffect>(this, GrantedEffect->EffectClass);
 	OverTimeEffects.Add(NewEffect);
-	NewEffect->Begin(Slot, MyTarget);
+	NewEffect->Begin(GrantedEffect, MyTarget);
 }
 
-void UEffectHandler::RemoveOverTimeEffect(UOverTimeEffect* Effect)
+void UEffectComponent::RemoveOverTimeEffect(UOverTimeEffect* Effect)
 {
 	if (Effect && OverTimeEffects.Contains(Effect))
 	{
@@ -128,7 +128,7 @@ void UEffectHandler::RemoveOverTimeEffect(UOverTimeEffect* Effect)
 	}
 }
 
-void UEffectHandler::RemoveOverTimeEffectsByTag(FGameplayTag EffectTag)
+void UEffectComponent::RemoveOverTimeEffectsByTag(FGameplayTag EffectTag)
 {
 	const TArray<UOverTimeEffect*> Effects = OverTimeEffects;
 	for (UOverTimeEffect* Effect : Effects)
@@ -140,7 +140,7 @@ void UEffectHandler::RemoveOverTimeEffectsByTag(FGameplayTag EffectTag)
 	}
 }
 
-float UEffectHandler::ModifyIncomingDamage(float Amount, EAbilityType AbilityType)
+float UEffectComponent::ModifyIncomingDamage(float Amount, EDamageType DamageType)
 {
 	// Iterates a copy - an effect's override can add or cleanse effects.
 	const TArray<UOverTimeEffect*> Effects = OverTimeEffects;
@@ -148,13 +148,13 @@ float UEffectHandler::ModifyIncomingDamage(float Amount, EAbilityType AbilityTyp
 	{
 		if (Effect && !Effect->IsResolved())
 		{
-			Amount = Effect->ModifyIncomingDamage(Amount, AbilityType);
+			Amount = Effect->ModifyIncomingDamage(Amount, DamageType);
 		}
 	}
 	return Amount;
 }
 
-float UEffectHandler::ModifyIncomingHeal(float Amount)
+float UEffectComponent::ModifyIncomingHeal(float Amount)
 {
 	const TArray<UOverTimeEffect*> Effects = OverTimeEffects;
 	for (UOverTimeEffect* Effect : Effects)
@@ -167,7 +167,7 @@ float UEffectHandler::ModifyIncomingHeal(float Amount)
 	return Amount;
 }
 
-void UEffectHandler::HandleUnitDeath()
+void UEffectComponent::HandleUnitDeath()
 {
 	const TArray<UOverTimeEffect*> Effects = OverTimeEffects;
 	for (UOverTimeEffect* Effect : Effects)
@@ -182,13 +182,13 @@ void UEffectHandler::HandleUnitDeath()
 	SetComponentTickEnabled(false);
 }
 
-void UEffectHandler::ResolveAndRemove(UOverTimeEffect* Effect, EOverTimeEffectEnd Reason)
+void UEffectComponent::ResolveAndRemove(UOverTimeEffect* Effect, EOverTimeEffectEnd Reason)
 {
 	Effect->Resolve(Reason);
 	OverTimeEffects.Remove(Effect);
 }
 
-bool UEffectHandler::IsTargetDead() const
+bool UEffectComponent::IsTargetDead() const
 {
 	return MyTarget && MyTarget->AttributeComponent && MyTarget->AttributeComponent->IsDead();
 }

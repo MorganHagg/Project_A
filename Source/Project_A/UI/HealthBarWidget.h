@@ -1,7 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "../Misc/AttributeSet.h"
+#include "../Misc/AttributeType.h"
 #include "HealthBarWidget.generated.h"
 
 class UProgressBar;

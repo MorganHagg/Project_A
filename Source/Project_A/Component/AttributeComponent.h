@@ -1,7 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "../Misc/AttributeSet.h"
+#include "../Misc/AttributeType.h"
 #include "AttributeComponent.generated.h"
 
 class UUnitDataBase;

@@ -5,15 +5,15 @@
 #include "../Interfaces/AbilityLifecycle.h"
 #include "Projectile.generated.h"
 
-class UAbilitySlot;
+class UGrantedAbility;
 class ACharacter;
-class UEffectHandler;
+class UEffectComponent;
 class AUnitBase;
 
 DECLARE_DELEGATE_OneParam(FOnProjectileHit, FVector);
 
-// Abstract: never spawned directly - AbilitySlot::ActivateAbility's generic dispatch always
-// spawns via ProductClass, naming a concrete Blueprint subclass, and marking this Abstract keeps
+// Abstract: never spawned directly - UGrantedAbility::ActivateAbility's generic dispatch always
+// spawns via AbilityClass, naming a concrete Blueprint subclass, and marking this Abstract keeps
 // the base class itself out of that picker (same pattern as AAbility).
 UCLASS(Abstract)
 class PROJECT_A_API AProjectile : public AAbility, public IAbilityLifecycle
@@ -88,7 +88,7 @@ public:
 	using AAbility::Finish;
 
 	// Notifies (reports FinishEventTags, broadcasts OnFinish) before firing OnEnd, then destroys -
-	// same ordering as AAbilityActor::Finish(). Snaps to the given hit location first (the actual
+	// same ordering as APersistentAbility::Finish(). Snaps to the given hit location first (the actual
 	// finish point may be a sweep impact point, different from GetActorLocation()). Does not call
 	// Super::Finish(), since that would destroy before OnEnd could fire.
 	void Finish(FVector HitLocation);
@@ -96,7 +96,7 @@ public:
 	// Default: finishes where it is. Override in Blueprint to keep flying after the hold ends.
 	virtual void OnHoldEnded_Implementation() override;
 
-	UAbilitySlot* GetAbility();
+	UGrantedAbility* GetGrantedAbility();
 
 protected:
 	UPROPERTY()

@@ -1,20 +1,20 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "../Misc/GameplayEffect.h"
-#include "OverTimeEffectDataAsset.generated.h"
+#include "../Misc/AttributeEffect.h"
+#include "OverTimeEffectData.generated.h"
 
 class UOverTimeEffect;
 
-// Config for one UOverTimeEffectSlot - copied onto the slot when a unit is set up (see
-// UAbilitySystem::InstantiateOverTimeEffects), where talents can then change it.
+// Config for one UGrantedOverTimeEffect - copied onto it when a unit is set up (see
+// UAbilityComponent::InstantiateOverTimeEffects), where talents can then change it.
 UCLASS(BlueprintType)
-class PROJECT_A_API UOverTimeEffectDataAsset : public UDataAsset
+class PROJECT_A_API UOverTimeEffectData : public UDataAsset
 {
 	GENERATED_BODY()
 
 public:
-	// Identity: the slot's tag is "Effect.<EffectName>" (registered by Abilities.SyncTags).
+	// Identity: the granted effect's tag is "Effect.<EffectName>" (registered by Abilities.SyncTags).
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FName EffectName = FName("NO_NAME_EFFECT");
 
@@ -38,7 +38,7 @@ public:
 	// What the effect does: applied once on application when Interval is 0, otherwise on every
 	// tick. Stat changes are undone when the effect stops; damage/heal stays. Magnitude 0 = nothing.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	FGameplayEffect Effect;
+	FAttributeEffect Effect;
 
 	// Optional Blueprint subclass for behaviour Effect can't describe. Empty = the generic UOverTimeEffect.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)

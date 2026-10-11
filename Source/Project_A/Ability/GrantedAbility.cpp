@@ -1,17 +1,17 @@
-#include "AbilitySlot.h"
+#include "GrantedAbility.h"
 #include "../Unit/UnitBase.h"
 #include "../Unit/PlayerUnit.h"
 #include "../Component/AttributeComponent.h"
 #include "Ability.h"
 #include "Projectile.h"
-#include "AbilityActor.h"
+#include "PersistentAbility.h"
 
-UAbilitySlot::UAbilitySlot()
+UGrantedAbility::UGrantedAbility()
 {
 
 }
 
-void UAbilitySlot::SetupAbility(AUnitBase* NewCaster)
+void UGrantedAbility::SetupAbility(AUnitBase* NewCaster)
 {
 	MyCaster = NewCaster;
 	World = MyCaster->GetWorld();
@@ -21,9 +21,9 @@ void UAbilitySlot::SetupAbility(AUnitBase* NewCaster)
 	check(World);
 }
 
-void UAbilitySlot::ActivateAbility(AAbility* InModifiedAbility)
+void UGrantedAbility::ActivateAbility(AAbility* InModifiedAbility)
 {
-	// Checked here, not only in UAbilitySystem - AControllerBase::ApplyModify activates slots directly.
+	// Checked here, not only in UAbilityComponent - AControllerBase::ApplyModify activates granted abilities directly.
 	if (IsCasterDead())
 	{
 		return;
@@ -41,13 +41,13 @@ void UAbilitySlot::ActivateAbility(AAbility* InModifiedAbility)
 	SpawnedAbility = SpawnAbility(0.f, InModifiedAbility);
 }
 
-void UAbilitySlot::StartCharging()
+void UGrantedAbility::StartCharging()
 {
 	bIsCharging = true;
 	ChargeStartTime = World->GetTimeSeconds();
 }
 
-void UAbilitySlot::ReleaseAbility()
+void UGrantedAbility::ReleaseAbility()
 {
 	const bool bFire = bActivateOnRelease && bIsCharging;
 	const float ChargeTime = GetChargeTime();
@@ -55,14 +55,14 @@ void UAbilitySlot::ReleaseAbility()
 	EndAbility();
 
 	// Spawned after EndAbility and not tracked as SpawnedAbility - a fired shot is on its own, and
-	// isn't finished by a later end of this slot.
+	// isn't finished by a later end of this granted ability.
 	if (bFire && !IsCasterDead())
 	{
 		SpawnAbility(ChargeTime);
 	}
 }
 
-float UAbilitySlot::GetChargeTime() const
+float UGrantedAbility::GetChargeTime() const
 {
 	if (!bIsCharging || !World)
 	{
@@ -73,36 +73,36 @@ float UAbilitySlot::GetChargeTime() const
 	return MaxChargeTime > 0.f ? FMath::Min(Elapsed, MaxChargeTime) : Elapsed;
 }
 
-AAbility* UAbilitySlot::SpawnAbility(float ChargeTime, AAbility* InModifiedAbility)
+AAbility* UGrantedAbility::SpawnAbility(float ChargeTime, AAbility* InModifiedAbility)
 {
-	if (!ProductClass)
+	if (!AbilityClass)
 	{
 		return nullptr;
 	}
 
-	AAbility* Spawned = World->SpawnActorDeferred<AAbility>(ProductClass, FTransform::Identity);
+	AAbility* Spawned = World->SpawnActorDeferred<AAbility>(AbilityClass, FTransform::Identity);
 	if (!Spawned)
 	{
 		return nullptr;
 	}
 
-	Spawned->SetMyAbility(this);
+	Spawned->SetMyGrantedAbility(this);
 	Spawned->SetMyCaster(MyCaster);
 	Spawned->ChargeTime = ChargeTime;
 	Spawned->ModifiedAbility = InModifiedAbility;
 
 	// Queried on the still-deferred instance - MyCaster is already set, AbilityTag isn't yet
 	// (composed in BeginPlay, below, since only OnActivate/Cast reporting needs it). GetSpawnTransform
-	// is declared separately on AProjectile/AAbilityActor rather than once on AAbility - see the
+	// is declared separately on AProjectile/APersistentAbility rather than once on AAbility - see the
 	// note in Ability.h - so dispatch by concrete type here instead of a single virtual call.
 	FTransform SpawnTransform = FTransform::Identity;
 	if (AProjectile* Projectile = Cast<AProjectile>(Spawned))
 	{
 		SpawnTransform = Projectile->GetSpawnTransform();
 	}
-	else if (AAbilityActor* AbilityActor = Cast<AAbilityActor>(Spawned))
+	else if (APersistentAbility* PersistentAbility = Cast<APersistentAbility>(Spawned))
 	{
-		SpawnTransform = AbilityActor->GetSpawnTransform();
+		SpawnTransform = PersistentAbility->GetSpawnTransform();
 	}
 
 	Spawned->FinishSpawning(SpawnTransform);
@@ -110,7 +110,7 @@ AAbility* UAbilitySlot::SpawnAbility(float ChargeTime, AAbility* InModifiedAbili
 }
 
 
-void UAbilitySlot::EndAbility()
+void UGrantedAbility::EndAbility()
 {
 	if (bHasEnded) return;
 	bHasEnded = true;
@@ -119,7 +119,7 @@ void UAbilitySlot::EndAbility()
 	bIsCharging = false;
 
 	// Reset either way - an Ability that keeps living (e.g. a finished-growing wall) is no longer this
-	// slot's to end.
+	// granted ability's to end.
 	AAbility* Ability = SpawnedAbility.Get();
 	SpawnedAbility.Reset();
 	if (Ability)
@@ -136,17 +136,17 @@ void UAbilitySlot::EndAbility()
 	IAbilityLifecycle::Execute_OnEnd(this, EndLocation);
 }
 
-bool UAbilitySlot::IsCasterDead() const
+bool UGrantedAbility::IsCasterDead() const
 {
 	return MyCaster && MyCaster->AttributeComponent && MyCaster->AttributeComponent->IsDead();
 }
 
-void UAbilitySlot::KillAbility()
+void UGrantedAbility::KillAbility()
 {
 	MyCaster = nullptr;
 }
 
-void UAbilitySlot::ReportAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload)
+void UGrantedAbility::ReportAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload)
 {
 	if (APlayerUnit* PlayerUnit = Cast<APlayerUnit>(MyCaster))
 	{

@@ -2,20 +2,20 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "GameplayTagContainer.h"
-#include "../Misc/GameplayEffect.h"
+#include "../Misc/AttributeEffect.h"
 #include "../Effect/OverTimeEffect.h"
-#include "EffectHandler.generated.h"
+#include "EffectComponent.generated.h"
 
 class AUnitBase;
-class UOverTimeEffectSlot;
+class UGrantedOverTimeEffect;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class PROJECT_A_API UEffectHandler : public UActorComponent
+class PROJECT_A_API UEffectComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
-	UEffectHandler();
+	UEffectComponent();
 
 protected:
 	virtual void BeginPlay() override;
@@ -29,11 +29,11 @@ public:
 
 	// Applies one instant change to MyTarget and returns what was applied: for damage/heal, Magnitude
 	// is the final amount (after mitigation and incoming modifiers). Ignored once dead (Magnitude 0).
-	FGameplayEffect ApplyEffect(const FGameplayEffect& Effect);
+	FAttributeEffect ApplyEffect(const FAttributeEffect& Effect);
 
-	// Applies a new instance of Slot's effect, following Slot's StackLimit / bMultipleCaster.
+	// Applies a new instance of GrantedEffect's effect, following GrantedEffect's StackLimit / bMultipleCaster.
 	// Ignored once dead.
-	void AddOverTimeEffect(UOverTimeEffectSlot* Slot);
+	void AddOverTimeEffect(UGrantedOverTimeEffect* GrantedEffect);
 
 	// Cleanses one effect instance (OnRemoved).
 	UFUNCTION(BlueprintCallable, Category = "Effect")
@@ -45,7 +45,7 @@ public:
 
 	// Passes Amount through every active effect's ModifyIncomingDamage / ModifyIncomingHeal, oldest
 	// first, and returns the result. Called by AUnitBase::ReceiveDamage / ReceiveHeal.
-	float ModifyIncomingDamage(float Amount, EAbilityType AbilityType);
+	float ModifyIncomingDamage(float Amount, EDamageType DamageType);
 	float ModifyIncomingHeal(float Amount);
 
 	// Called by AUnitBase::HandleDeath - ends every active effect (OnUnitDeath) and stops ticking.

@@ -4,13 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "AIController.h"
-#include "AIUnit.generated.h"
+#include "EnemyUnitController.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class PROJECT_A_API AAIUnit : public AAIController
+class PROJECT_A_API AEnemyUnitController : public AAIController
 {
 	GENERATED_BODY()
 	

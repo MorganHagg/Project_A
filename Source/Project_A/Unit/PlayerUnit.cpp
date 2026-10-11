@@ -1,8 +1,8 @@
 ﻿#include "PlayerUnit.h"
-#include "../Component/AbilitySystem.h"
+#include "../Component/AbilityComponent.h"
 #include "../Component/AttributeComponent.h"
-#include "../Component/EffectHandler.h"
-#include "../Misc/AttributeSet.h"
+#include "../Component/EffectComponent.h"
+#include "../Misc/AttributeType.h"
 #include "../Component/TalentComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -23,7 +23,7 @@ void APlayerUnit::SetupUnit(UUnitDataBase* SpawnData)
 	if (UPlayerUnitData* PlayerData = Cast<UPlayerUnitData>(SpawnData))
 	{
 		TalentComponent->AcquiredTalents = PlayerData->Talents;
-		TalentComponent->AbilitySystemComponent = AbilitySystemComponent;
+		TalentComponent->AbilityComponent = AbilityComponent;
 	}
 	
 }
