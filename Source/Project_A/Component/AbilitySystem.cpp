@@ -6,6 +6,12 @@
 #include "../DataAsset/OverTimeEffectDataAsset.h"
 #include "../Effect/OverTimeEffectSlot.h"
 #include "AttributeComponent.h"
+#if WITH_EDITOR
+#include "Kismet/KismetSystemLibrary.h"
+#include "Engine/Blueprint.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#endif
 
 UAbilitySystem::UAbilitySystem()
 {
@@ -23,6 +29,10 @@ void UAbilitySystem::InstantiateAbilities(const UUnitDataBase* UnitData)
 	{
 		return;
 	}
+
+#if WITH_EDITOR
+	bool bFoundNamelessAbility = false;
+#endif
 
 	for (UAbilityDataAsset* AbilityData : UnitData->DefaultAbilities)
 	{
@@ -44,6 +54,20 @@ void UAbilitySystem::InstantiateAbilities(const UUnitDataBase* UnitData)
 			// Identity comes from AbilityName on the Ability class's defaults - the same source
 			// AAbility::BeginPlay uses, so a slot and the Abilities it spawns share one tag.
 			const FName AbilityName = NewAbility->ProductClass->GetDefaultObject<AAbility>()->AbilityName;
+#if WITH_EDITOR
+			// In the editor a nameless ability ends PIE with a Message Log error instead of reaching
+			// AAbility::BeginPlay's checkf on first cast, which would crash the editor and lose
+			// unsaved work. Packaged builds still hit the checkf.
+			if (GIsEditor && AbilityName == FName("NO_NAME_ABILITY"))
+			{
+				const UObject* NamelessSource = UBlueprint::GetBlueprintFromClass(NewAbility->ProductClass);
+				FMessageLog("PIE").Error()
+					->AddToken(FUObjectToken::Create(NamelessSource ? NamelessSource : NewAbility->ProductClass.Get()))
+					->AddToken(FTextToken::Create(INVTEXT("has no AbilityName set (still NO_NAME_ABILITY) - every ability must be given a unique name. Referenced by")))
+					->AddToken(FUObjectToken::Create(AbilityData));
+				bFoundNamelessAbility = true;
+			}
+#endif
 			NewAbility->AbilityTag = AAbility::ComposeAbilityTag(AbilityName, /*bErrorIfNotFound=*/false);
 			if (!NewAbility->AbilityTag.IsValid())
 			{
@@ -54,6 +78,14 @@ void UAbilitySystem::InstantiateAbilities(const UUnitDataBase* UnitData)
 		NewAbility->SetupAbility(MyOwner);
 		GrantedAbilities.Add(NewAbility);
 	}
+
+#if WITH_EDITOR
+	if (bFoundNamelessAbility)
+	{
+		FMessageLog("PIE").Open(EMessageSeverity::Error, /*bForce=*/true);
+		UKismetSystemLibrary::QuitGame(this, nullptr, EQuitPreference::Quit, false);
+	}
+#endif
 }
 
 UAbilitySlot* UAbilitySystem::InitiateAbility(int32 Slot)
