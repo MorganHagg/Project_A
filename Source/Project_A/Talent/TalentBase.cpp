@@ -3,7 +3,6 @@
 #include "Project_A/Unit/PlayerUnit.h"
 #include "Project_A/Component/AbilityComponent.h"
 #include "Project_A/Ability/GrantedAbility.h"
-#include "Project_A/Effect/GrantedOverTimeEffect.h"
 
 void UTalentBase::BindToPlayerUnit(APlayerUnit* PlayerUnit)
 {
@@ -46,22 +45,4 @@ UGrantedAbility* UTalentBase::GetGrantedAbility(FGameplayTag AbilityTag) const
 	}
 
 	return AbilityComponent->FindGrantedAbility(AbilityTag);
-}
-
-UGrantedOverTimeEffect* UTalentBase::GetGrantedOverTimeEffect(FGameplayTag EffectTag) const
-{
-	if (!MyPlayerUnit)
-	{
-		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetGrantedOverTimeEffect called before BindToPlayerUnit."));
-		return nullptr;
-	}
-
-	UAbilityComponent* AbilityComponent = MyPlayerUnit->FindComponentByClass<UAbilityComponent>();
-	if (!AbilityComponent)
-	{
-		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetGrantedOverTimeEffect - %s has no AbilityComponent."), *MyPlayerUnit->GetName());
-		return nullptr;
-	}
-
-	return AbilityComponent->FindGrantedOverTimeEffect(EffectTag);
 }

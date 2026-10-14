@@ -8,7 +8,7 @@
 
 class AUnitBase;
 class UEffectComponent;
-class UGrantedOverTimeEffect;
+class UGrantedAbility;
 
 // How an over-time effect stopped: Ended = its duration ran out (or it was pushed out by a newer
 // stack), Removed = cleansed, UnitDeath = its target died.
@@ -21,12 +21,14 @@ enum class EOverTimeEffectEnd : uint8
 
 // ============================================================================
 // UOverTimeEffect
-// One application of an over-time effect (a burn, a buff) on one target. Owned and ticked by the
-// target's UEffectComponent; configured by the caster's UGrantedOverTimeEffect. Generic by default: it
-// applies the granted effect's Effect once on application (Interval 0) or on every tick (Interval > 0).
-// Optional Blueprint subclasses add behaviour on top through the On* hooks and ApplyEffect. Stat
-// changes made through ApplyEffect are undone automatically however the effect stops - a designer
-// never has to remove them by hand.
+// One application of a timed effect (a burn, a buff) on one target. Owned and ticked by the
+// target's UEffectComponent; created from a timed FAttributeEffect, usually one fetched from the
+// caster's granted ability (AAbility::GetEffect). Generic by default: it applies that effect once on
+// application (Interval 0) or on every tick (Interval > 0). The effect is snapshotted when applied;
+// only its granted ability's magnitude multiplier is read live, on every application. Optional
+// Blueprint subclasses add behaviour on top through the On* hooks and ApplyEffect. Stat changes made
+// through ApplyEffect, and magnitude modifiers made through ModifyAbilityMagnitude, are undone
+// automatically however the effect stops - a designer never has to remove them by hand.
 // ============================================================================
 
 UCLASS(Blueprintable)
@@ -40,8 +42,9 @@ public:
 
 	// -- Context --
 
+	// The granted ability this effect came from (its Source). Null for an effect made inline.
 	UPROPERTY(BlueprintReadOnly, Category = "Effect")
-	UGrantedOverTimeEffect* MyGrantedEffect = nullptr;
+	UGrantedAbility* MyGrantedAbility = nullptr;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Effect")
 	AUnitBase* MyTarget = nullptr;
@@ -55,16 +58,18 @@ public:
 
 	// -- Applying --
 
-	// Applies one instant change to MyTarget. Add/Subtract on Health damages (mitigated by
-	// Effect.DamageType) or heals and stays. Every other combination is a stat change (see
-	// ModifyStat), undone automatically when this effect stops. Returns what was applied - for
-	// damage/heal, the final amount (see UEffectComponent::ApplyEffect).
+	// Applies one change to MyTarget now - Duration and Interval are ignored. Add/Subtract on Health
+	// damages (mitigated by Effect.DamageType) or heals and stays. Every other combination is a stat
+	// change (see ModifyStat), undone automatically when this effect stops. Returns what was applied -
+	// for damage/heal, the final amount (see UEffectComponent::ApplyInstantEffect).
 	UFUNCTION(BlueprintCallable, Category = "Effect")
 	FAttributeEffect ApplyEffect(const FAttributeEffect& Effect);
 
-	// True once a stat change has been made that RevertModifyStat will undo.
-	UPROPERTY(BlueprintReadOnly, Category = "Effect")
-	bool bModifiedStat = false;
+	// Adds Percent (whole numbers, 20 = +20%) to the magnitude of the caster's granted ability tagged
+	// AbilityTag - every application of its effect, including timed effects already running. Undone
+	// automatically when this effect stops. Logs an error if the caster wasn't granted it.
+	UFUNCTION(BlueprintCallable, Category = "Effect")
+	void ModifyAbilityMagnitude(UPARAM(meta = (Categories = "Ability")) FGameplayTag AbilityTag, float Percent);
 
 	// -- Hooks --
 
@@ -99,9 +104,9 @@ public:
 
 	// -- Driven by UEffectComponent --
 
-	// Starts this application: reads Duration/Interval from GrantedEffect, applies its Effect if
-	// Interval is 0, then runs OnApplied.
-	void Begin(UGrantedOverTimeEffect* GrantedEffect, AUnitBase* Target);
+	// Starts this application: snapshots Effect, starts its Duration/Interval, applies it if Interval
+	// is 0, then runs OnApplied. Returns what was applied (Magnitude 0 = nothing yet).
+	FAttributeEffect Begin(const FAttributeEffect& Effect, AUnitBase* Target);
 
 	// Fires the ticks due this frame. Returns true once the duration has run out - the handler
 	// then ends it.
@@ -113,25 +118,27 @@ public:
 	bool IsResolved() const { return bResolved; }
 
 protected:
-	// Applies a stat change and records it in ModifiedStats for RevertModifyStat.
+	// Applies a stat change as a modifier owned by this effect, removed when it resolves.
 	FAttributeEffect ModifyStat(const FAttributeEffect& Effect);
-
-	// Undoes every recorded stat change, newest first.
-	void RevertModifyStat();
 
 private:
 	UEffectComponent* GetHandler() const;
 
-	// Applies MyGrantedEffect's Effect through ApplyEffect and returns what it applied (Magnitude 0 = nothing).
-	// Runs outside the hooks so an override can't skip it.
-	FAttributeEffect ApplyGrantedEffect();
+	// Applies SnapshotEffect, scaled by MyGrantedAbility's current magnitude multiplier, through
+	// ApplyEffect and returns what it applied (Magnitude 0 = nothing). Runs outside the hooks so an
+	// override can't skip it.
+	FAttributeEffect ApplySnapshotEffect();
 
 	// Reports {EffectTag, Event.<EventName>} to the caster's PlayerUnit, for talents. AppliedEffect is
-	// the granted Effect this event applied, if any.
+	// the snapshot effect this event applied, if any.
 	void ReportEvent(const TCHAR* EventName, const FAttributeEffect& AppliedEffect = FAttributeEffect());
 
+	// The effect as it was when applied (see Begin).
 	UPROPERTY()
-	TArray<FAttributeEffect> ModifiedStats;
+	FAttributeEffect SnapshotEffect;
+
+	// Granted abilities this effect added a magnitude modifier to (ModifyAbilityMagnitude), for removal.
+	TArray<TWeakObjectPtr<UGrantedAbility>> ModifiedAbilities;
 
 	// Weak: the caster can die or be destroyed while this effect runs.
 	TWeakObjectPtr<AUnitBase> MyCaster;

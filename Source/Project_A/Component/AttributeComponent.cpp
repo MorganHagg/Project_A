@@ -1,5 +1,6 @@
 #include "AttributeComponent.h"
 #include "../DataAsset/UnitDataBase.h"
+#include "../Misc/AttributeEffect.h"
 #include "../Unit/UnitBase.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -53,7 +54,7 @@ void UAttributeComponent::InstantiateAttributes(const UUnitDataBase* UnitData)
 		}
 
 		// Not UpdateFinalValue - starting values are written directly, without moving Health.
-		const float FinalValue = BaseAttributes.FindRef(Type) * PercentModifiers.FindRef(Type);
+		const float FinalValue = ComputeFinalValue(Type);
 		if (Type == EAttributeType::Speed)
 		{
 			if (UCharacterMovementComponent* MovementComponent = GetMovementComponent())
@@ -111,9 +112,80 @@ void UAttributeComponent::ModifyAttributePercent(EAttributeType Type, float Perc
 	UpdateFinalValue(ModifiedType);
 }
 
+void UAttributeComponent::AddModifier(const UObject* Source, const FAttributeEffect& Effect)
+{
+	FAttributeModifier Modifier;
+	Modifier.Source = Source;
+	Modifier.Attribute = Effect.Attribute;
+
+	switch (Effect.Operation)
+	{
+	case EEffectOperation::Add:					Modifier.Magnitude = Effect.Magnitude;									break;
+	case EEffectOperation::Subtract:			Modifier.Magnitude = -Effect.Magnitude;									break;
+	case EEffectOperation::AddPercentage:		Modifier.Magnitude = Effect.Magnitude;		Modifier.bPercent = true;	break;
+	case EEffectOperation::SubtractPercentage:	Modifier.Magnitude = -Effect.Magnitude;		Modifier.bPercent = true;	break;
+	}
+
+	// A Health percentage scales MaxHealth, as in ModifyAttributePercent.
+	if (Modifier.bPercent && Modifier.Attribute == EAttributeType::Health)
+	{
+		Modifier.Attribute = EAttributeType::MaxHealth;
+	}
+
+	if (!ensureMsgf(Modifier.Attribute != EAttributeType::Health, TEXT("Flat Health changes are damage/heal, not modifiers")))
+	{
+		return;
+	}
+
+	Modifiers.Add(Modifier);
+	UpdateFinalValue(Modifier.Attribute);
+}
+
+void UAttributeComponent::RemoveModifiers(const UObject* Source)
+{
+	TArray<EAttributeType> ChangedAttributes;
+	Modifiers.RemoveAll([Source, &ChangedAttributes](const FAttributeModifier& Modifier)
+	{
+		if (Modifier.Source != Source)
+		{
+			return false;
+		}
+		ChangedAttributes.AddUnique(Modifier.Attribute);
+		return true;
+	});
+
+	for (const EAttributeType Type : ChangedAttributes)
+	{
+		UpdateFinalValue(Type);
+	}
+}
+
+float UAttributeComponent::ComputeFinalValue(EAttributeType Type) const
+{
+	float Flat = BaseAttributes.FindRef(Type);
+	float Multiplier = PercentModifiers.FindRef(Type);
+	for (const FAttributeModifier& Modifier : Modifiers)
+	{
+		if (Modifier.Attribute != Type)
+		{
+			continue;
+		}
+
+		if (Modifier.bPercent)
+		{
+			Multiplier += Modifier.Magnitude / 100.f;
+		}
+		else
+		{
+			Flat += Modifier.Magnitude;
+		}
+	}
+	return Flat * Multiplier;
+}
+
 void UAttributeComponent::UpdateFinalValue(EAttributeType Type)
 {
-	const float FinalValue = BaseAttributes.FindRef(Type) * PercentModifiers.FindRef(Type);
+	const float FinalValue = ComputeFinalValue(Type);
 
 	if (Type == EAttributeType::MaxHealth)
 	{

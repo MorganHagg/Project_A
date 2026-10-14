@@ -7,7 +7,6 @@
 #include "../Unit/EnemyUnit.h"
 #include "../Component/EffectComponent.h"
 #include "../Component/AbilityComponent.h"
-#include "../Effect/GrantedOverTimeEffect.h"
 #include "../Interfaces/AbilityLifecycle.h"
 
 AAbility::AAbility()
@@ -210,18 +209,16 @@ void AAbility::ApplyEffect(AUnitBase* Target, const FAttributeEffect& Effect)
 	}
 }
 
-void AAbility::ApplyOverTimeEffect(FGameplayTag EffectTag, AUnitBase* Target)
+FAttributeEffect AAbility::GetEffect(FGameplayTag FromAbility) const
 {
 	const AUnitBase* Caster = Cast<AUnitBase>(MyCaster);
-	if (!Caster || !Caster->AbilityComponent || !Target)
+	if (!Caster || !Caster->AbilityComponent)
 	{
-		return;
+		return FAttributeEffect();
 	}
 
-	if (UGrantedOverTimeEffect* GrantedEffect = Caster->AbilityComponent->FindGrantedOverTimeEffect(EffectTag))
-	{
-		GrantedEffect->ApplyOverTimeEffect(Target);
-	}
+	UGrantedAbility* GrantedAbility = Caster->AbilityComponent->FindGrantedAbility(FromAbility);
+	return GrantedAbility ? GrantedAbility->GetEffect() : FAttributeEffect();
 }
 
 void AAbility::Finish()

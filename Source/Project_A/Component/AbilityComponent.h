@@ -5,9 +5,34 @@
 #include "AbilityComponent.generated.h"
 
 class UGrantedAbility;
-class UGrantedOverTimeEffect;
+class UAbilityData;
 class AUnitBase;
 class UUnitDataBase;
+
+// The ability inputs a unit has (see AControllerBase).
+UENUM(BlueprintType)
+enum class EAbilityInput : uint8
+{
+    Primary,
+    Secondary
+};
+
+// The granted abilities one input casts - built from the unit data's FAbilityInputSet. Null where
+// the unit data left an entry empty.
+USTRUCT(BlueprintType)
+struct FGrantedInputAbilities
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadOnly)
+    TObjectPtr<UGrantedAbility> Tap;
+
+    UPROPERTY(BlueprintReadOnly)
+    TObjectPtr<UGrantedAbility> Hold;
+
+    UPROPERTY(BlueprintReadOnly)
+    TObjectPtr<UGrantedAbility> Modify;
+};
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJECT_A_API UAbilityComponent : public UActorComponent
@@ -26,13 +51,16 @@ protected:
 public:
     // -- Config --
 
+    // Every granted ability - the input abilities and the extras (procs, passives). Found by tag
+    // with FindGrantedAbility.
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Instanced)
     TArray<UGrantedAbility*> GrantedAbilities;
 
-    // Over-time effects this unit's abilities can apply (see AAbility::ApplyOverTimeEffect). Kept
-    // apart from GrantedAbilities, which is indexed by input slot.
     UPROPERTY(BlueprintReadOnly)
-    TArray<UGrantedOverTimeEffect*> GrantedOverTimeEffects;
+    FGrantedInputAbilities PrimaryAbilities;
+
+    UPROPERTY(BlueprintReadOnly)
+    FGrantedInputAbilities SecondaryAbilities;
 
     // -- State --
 
@@ -41,12 +69,14 @@ public:
 
     // -- Functions --
 
+    // Builds one UGrantedAbility per ability in UnitData: its Primary and Secondary input sets, then
+    // its ExtraAbilities.
     void InstantiateAbilities(const UUnitDataBase* UnitData);
 
-    // Builds one UGrantedOverTimeEffect per entry in UnitData's DefaultOverTimeEffects.
-    void InstantiateOverTimeEffects(const UUnitDataBase* UnitData);
+    const FGrantedInputAbilities& GetInputAbilities(EAbilityInput Input) const;
 
-    UGrantedAbility* InitiateAbility(int32 Slot);
+    // Activates GrantedAbility and returns it, or nullptr if it is null or the owner is dead.
+    UGrantedAbility* InitiateAbility(UGrantedAbility* GrantedAbility);
 
     UFUNCTION(BlueprintCallable)
     void SetActiveAbility(UGrantedAbility* NewActiveAbility);
@@ -64,11 +94,10 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Ability")
     UGrantedAbility* FindGrantedAbility(UPARAM(meta = (Categories = "Ability")) FGameplayTag AbilityTag) const;
 
-    // Returns the granted over-time effect whose EffectTag matches exactly (e.g.
-    // "Effect.Burn"), or nullptr with an error log.
-    UFUNCTION(BlueprintCallable, Category = "Effect")
-    UGrantedOverTimeEffect* FindGrantedOverTimeEffect(UPARAM(meta = (Categories = "Effect")) FGameplayTag EffectTag) const;
-
 private:
+    // Builds one UGrantedAbility from AbilityData and adds it to GrantedAbilities. Returns nullptr for
+    // a null AbilityData. Sets bFoundNamelessAbility if it has no AbilityName (editor only).
+    UGrantedAbility* GrantAbility(UAbilityData* AbilityData, bool& bFoundNamelessAbility);
+
     bool IsOwnerDead() const;
 };

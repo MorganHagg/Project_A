@@ -1,8 +1,8 @@
 // Editor-only dev tool: scans /Game/Abilities for every AAbility Blueprint class (e.g.
 // Projectile_Fireball, AA_Firewall) and registers each one's identity tag (Ability.<Name>), and
-// scans the project for every UOverTimeEffectData and registers its identity tag
-// (Effect.<Name>), so DefaultGameplayTags.ini doesn't have to be hand-edited every time a new
-// ability or over-time effect is authored.
+// scans the project for every Proc/Passive UAbilityData (which have no Ability class) and
+// registers theirs from the data asset's AbilityName, so DefaultGameplayTags.ini doesn't have to be
+// hand-edited every time a new ability is authored.
 // The shared, ability-agnostic event-category tags (Event.Cast/Finish/TargetHit/Overlap/Crit,
 // Event.Applied/Tick/Ended/Removed/UnitDeath - see AAbility::ComposeEventTags and
 // UOverTimeEffect::ReportEvent) are fixed and don't multiply per ability, so they're maintained
@@ -12,7 +12,7 @@
 #if WITH_EDITOR
 
 #include "Ability.h"
-#include "../DataAsset/OverTimeEffectData.h"
+#include "../DataAsset/AbilityData.h"
 #include "HAL/IConsoleManager.h"
 #include "GameplayTagsEditorModule.h"
 #include "UObject/UObjectGlobals.h"
@@ -81,29 +81,29 @@ namespace
 
 		UE_LOG(LogTemp, Log, TEXT("Abilities.SyncTags: scanned /Game/Abilities, synced %d Ability class(es)."), SyncedCount);
 
-		// Over-time effects: EffectName lives on each data asset, wherever it is.
-		TArray<FAssetData> EffectAssetDatas;
-		AssetRegistry.GetAssetsByClass(UOverTimeEffectData::StaticClass()->GetClassPathName(), EffectAssetDatas, /*bSearchSubClasses=*/true);
+		// Proc/Passive abilities: AbilityName lives on each data asset, wherever it is.
+		TArray<FAssetData> AbilityDataAssets;
+		AssetRegistry.GetAssetsByClass(UAbilityData::StaticClass()->GetClassPathName(), AbilityDataAssets, /*bSearchSubClasses=*/true);
 
-		int32 SyncedEffectCount = 0;
-		for (const FAssetData& AssetData : EffectAssetDatas)
+		int32 SyncedDataCount = 0;
+		for (const FAssetData& AssetData : AbilityDataAssets)
 		{
-			const UOverTimeEffectData* EffectData = Cast<UOverTimeEffectData>(AssetData.GetAsset());
-			if (!EffectData)
+			const UAbilityData* AbilityData = Cast<UAbilityData>(AssetData.GetAsset());
+			if (!AbilityData || AbilityData->Kind == EAbilityKind::Active)
 			{
 				continue;
 			}
 
-			SyncOneTag(TEXT("Effect"), EffectData->EffectName, FName("NO_NAME_EFFECT"), EffectData->GetName(), TagsEditor);
-			++SyncedEffectCount;
+			SyncOneTag(TEXT("Ability"), AbilityData->AbilityName, FName("NO_NAME_ABILITY"), AbilityData->GetName(), TagsEditor);
+			++SyncedDataCount;
 		}
 
-		UE_LOG(LogTemp, Log, TEXT("Abilities.SyncTags: synced %d over-time effect data asset(s)."), SyncedEffectCount);
+		UE_LOG(LogTemp, Log, TEXT("Abilities.SyncTags: synced %d Proc/Passive ability data asset(s)."), SyncedDataCount);
 	}
 
 	static FAutoConsoleCommand SyncAbilityTagsCommand(
 		TEXT("Abilities.SyncTags"),
-		TEXT("Registers the Ability.<Name> identity tag of every AAbility Blueprint class in /Game/Abilities, and the Effect.<Name> tag of every over-time effect data asset."),
+		TEXT("Registers the Ability.<Name> identity tag of every AAbility Blueprint class in /Game/Abilities, and of every Proc/Passive ability data asset."),
 		FConsoleCommandWithArgsDelegate::CreateStatic(&SyncAbilityTags));
 }
 

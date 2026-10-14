@@ -165,16 +165,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	void OnHit(AUnitBase* Target, FVector Location);
 
-	// Applies Effect to Target's EffectComponent. Reports nothing itself; when called during OnHit's
-	// OnTargetHit hook, the first such effect is included in the hit's payload, with the amount
+	// Applies Effect to Target's EffectComponent - instantly, or as a timed effect if it has a Duration
+	// or Interval (see UEffectComponent::ApplyEffect). Reports nothing itself; when called during
+	// OnHit's OnTargetHit hook, the first such effect is included in the hit's payload, with the amount
 	// actually dealt/healed (after mitigation and incoming modifiers).
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	void ApplyEffect(AUnitBase* Target, const FAttributeEffect& Effect);
 
-	// Applies the over-time effect tagged EffectTag (e.g. "Effect.Burn") from MyCaster's granted
-	// over-time effects to Target. Logs an error if MyCaster wasn't granted it.
-	UFUNCTION(BlueprintCallable, Category = "Ability")
-	void ApplyOverTimeEffect(UPARAM(meta = (Categories = "Effect")) FGameplayTag EffectTag, AUnitBase* Target);
+	// The Effect of MyCaster's granted ability tagged FromAbility (e.g. "Ability.Ignite"), ready to pass
+	// to ApplyEffect - any of the caster's granted abilities, not only this one. Returns an empty
+	// effect (Magnitude 0) and logs an error if MyCaster wasn't granted it.
+	UFUNCTION(BlueprintPure, Category = "Ability")
+	FAttributeEffect GetEffect(UPARAM(meta = (Categories = "Ability")) FGameplayTag FromAbility) const;
 
 	// Reports FinishEventTags, broadcasts OnFinish, and destroys this actor.
 	UFUNCTION(BlueprintCallable, Category = "Ability")

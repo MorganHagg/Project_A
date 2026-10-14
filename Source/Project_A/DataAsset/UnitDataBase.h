@@ -6,9 +6,25 @@
 #include "UnitDataBase.generated.h"
 
 class UAbilityData;
-class UOverTimeEffectData;
 class USkeletalMesh;
 class UHealthBarWidget;
+
+// The three abilities one input casts: a tap (released before the hold threshold), a hold, and a
+// Modify (the other input pressed while this one is held). Any of them can be left empty.
+USTRUCT(BlueprintType)
+struct FAbilityInputSet
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TObjectPtr<UAbilityData> Tap;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TObjectPtr<UAbilityData> Hold;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TObjectPtr<UAbilityData> Modify;
+};
 
 UCLASS()
 class PROJECT_A_API UUnitDataBase : public UPrimaryDataAsset
@@ -26,11 +42,15 @@ public:
 	TSubclassOf<UAnimInstance> AnimationBlueprint;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TArray<UAbilityData*> DefaultAbilities;
+	FAbilityInputSet Primary;
 
-	// Over-time effects this unit's abilities can apply (by tag, see AAbility::ApplyOverTimeEffect).
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TArray<UOverTimeEffectData*> DefaultOverTimeEffects;
+	FAbilityInputSet Secondary;
+
+	// Granted abilities not bound to an input - procs and passives, e.g. Ignite, whose Effect other
+	// abilities fetch by tag (AAbility::GetEffect).
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TArray<UAbilityData*> ExtraAbilities;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TMap<EAttributeType, float> DefaultAttributes;

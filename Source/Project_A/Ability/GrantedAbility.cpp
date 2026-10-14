@@ -136,6 +136,36 @@ void UGrantedAbility::EndAbility()
 	IAbilityLifecycle::Execute_OnEnd(this, EndLocation);
 }
 
+FAttributeEffect UGrantedAbility::GetEffect()
+{
+	FAttributeEffect Result = Effect;
+	Result.Source = this;
+	return Result;
+}
+
+void UGrantedAbility::AddMagnitudeModifier(UObject* Source, float Percent)
+{
+	MagnitudeModifiers.Add({ Source, Percent });
+}
+
+void UGrantedAbility::RemoveMagnitudeModifiers(UObject* Source)
+{
+	MagnitudeModifiers.RemoveAll([Source](const FMagnitudeModifier& Modifier)
+	{
+		return Modifier.Source == Source;
+	});
+}
+
+float UGrantedAbility::GetMagnitudeMultiplier() const
+{
+	float Multiplier = 1.f;
+	for (const FMagnitudeModifier& Modifier : MagnitudeModifiers)
+	{
+		Multiplier += Modifier.Percent / 100.f;
+	}
+	return Multiplier;
+}
+
 bool UGrantedAbility::IsCasterDead() const
 {
 	return MyCaster && MyCaster->AttributeComponent && MyCaster->AttributeComponent->IsDead();

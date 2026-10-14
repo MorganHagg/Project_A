@@ -1,6 +1,7 @@
 #include "OverTimeEffect.h"
-#include "GrantedOverTimeEffect.h"
+#include "../Ability/GrantedAbility.h"
 #include "../Component/EffectComponent.h"
+#include "../Component/AbilityComponent.h"
 #include "../Unit/UnitBase.h"
 #include "../Unit/PlayerUnit.h"
 
@@ -24,7 +25,7 @@ AUnitBase* UOverTimeEffect::GetCaster() const
 
 FGameplayTag UOverTimeEffect::GetEffectTag() const
 {
-	return MyGrantedEffect ? MyGrantedEffect->EffectTag : FGameplayTag();
+	return MyGrantedAbility ? MyGrantedAbility->AbilityTag : FGameplayTag();
 }
 
 FAttributeEffect UOverTimeEffect::ApplyEffect(const FAttributeEffect& Effect)
@@ -39,9 +40,26 @@ FAttributeEffect UOverTimeEffect::ApplyEffect(const FAttributeEffect& Effect)
 
 	if (UEffectComponent* Handler = GetHandler())
 	{
-		return Handler->ApplyEffect(Effect);
+		return Handler->ApplyInstantEffect(Effect);
 	}
 	return FAttributeEffect();
+}
+
+void UOverTimeEffect::ModifyAbilityMagnitude(FGameplayTag AbilityTag, float Percent)
+{
+	const AUnitBase* Caster = GetCaster();
+	if (!Caster || !Caster->AbilityComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("UOverTimeEffect::ModifyAbilityMagnitude - %s has no caster to find %s on."),
+			*GetName(), *AbilityTag.ToString());
+		return;
+	}
+
+	if (UGrantedAbility* GrantedAbility = Caster->AbilityComponent->FindGrantedAbility(AbilityTag))
+	{
+		GrantedAbility->AddMagnitudeModifier(this, Percent);
+		ModifiedAbilities.AddUnique(GrantedAbility);
+	}
 }
 
 float UOverTimeEffect::ModifyIncomingDamage_Implementation(float Amount, EDamageType DamageType)
@@ -54,19 +72,20 @@ float UOverTimeEffect::ModifyIncomingHeal_Implementation(float Amount)
 	return Amount;
 }
 
-void UOverTimeEffect::Begin(UGrantedOverTimeEffect* GrantedEffect, AUnitBase* Target)
+FAttributeEffect UOverTimeEffect::Begin(const FAttributeEffect& Effect, AUnitBase* Target)
 {
-	MyGrantedEffect = GrantedEffect;
+	SnapshotEffect = Effect;
+	MyGrantedAbility = Effect.Source.Get();
 	MyTarget = Target;
-	MyCaster = GrantedEffect ? GrantedEffect->MyCaster : nullptr;
+	MyCaster = MyGrantedAbility ? MyGrantedAbility->MyCaster : nullptr;
 
-	Ticker.Interval = GrantedEffect ? GrantedEffect->Interval : 0.f;
-	Ticker.Start(GrantedEffect ? GrantedEffect->Duration : 0.f);
+	Ticker.Interval = Effect.Interval;
+	Ticker.Start(Effect.Duration);
 
 	FAttributeEffect AppliedEffect;
 	if (Ticker.Interval <= 0.f)
 	{
-		AppliedEffect = ApplyGrantedEffect();
+		AppliedEffect = ApplySnapshotEffect();
 	}
 
 	// The granted effect's Effect may already have killed the target, which resolves this effect.
@@ -80,6 +99,8 @@ void UOverTimeEffect::Begin(UGrantedOverTimeEffect* GrantedEffect, AUnitBase* Ta
 	{
 		ReportEvent(TEXT("Applied"), AppliedEffect);
 	}
+
+	return AppliedEffect;
 }
 
 bool UOverTimeEffect::Advance(float DeltaTime)
@@ -90,7 +111,7 @@ bool UOverTimeEffect::Advance(float DeltaTime)
 	// A tick can end this effect (e.g. by killing its target) - stop as soon as it does.
 	for (int32 TickIndex = 0; TickIndex < TicksDue && !bResolved; ++TickIndex)
 	{
-		const FAttributeEffect AppliedEffect = ApplyGrantedEffect();
+		const FAttributeEffect AppliedEffect = ApplySnapshotEffect();
 		if (!bResolved)
 		{
 			OnTick();
@@ -129,10 +150,18 @@ void UOverTimeEffect::Resolve(EOverTimeEffectEnd Reason)
 	}
 
 	// After the hook, so it can't be skipped - and so the hook still sees its own stat changes.
-	if (bModifiedStat)
+	if (UEffectComponent* Handler = GetHandler())
 	{
-		RevertModifyStat();
+		Handler->RemoveStatModifiers(this);
 	}
+	for (const TWeakObjectPtr<UGrantedAbility>& ModifiedAbility : ModifiedAbilities)
+	{
+		if (UGrantedAbility* GrantedAbility = ModifiedAbility.Get())
+		{
+			GrantedAbility->RemoveMagnitudeModifiers(this);
+		}
+	}
+	ModifiedAbilities.Empty();
 
 	ReportEvent(EventName);
 }
@@ -145,45 +174,21 @@ FAttributeEffect UOverTimeEffect::ModifyStat(const FAttributeEffect& Effect)
 		return FAttributeEffect();
 	}
 
-	const FAttributeEffect Applied = Handler->ApplyEffect(Effect);
-
-	ModifiedStats.Add(Effect);
-	bModifiedStat = true;
-	return Applied;
+	return Handler->ApplyStatModifier(this, Effect);
 }
 
-void UOverTimeEffect::RevertModifyStat()
+FAttributeEffect UOverTimeEffect::ApplySnapshotEffect()
 {
-	UEffectComponent* Handler = GetHandler();
-	if (Handler)
-	{
-		for (int32 Index = ModifiedStats.Num() - 1; Index >= 0; --Index)
-		{
-			FAttributeEffect Inverse = ModifiedStats[Index];
-			switch (Inverse.Operation)
-			{
-			case EEffectOperation::Add:					Inverse.Operation = EEffectOperation::Subtract;				break;
-			case EEffectOperation::Subtract:			Inverse.Operation = EEffectOperation::Add;					break;
-			case EEffectOperation::AddPercentage:		Inverse.Operation = EEffectOperation::SubtractPercentage;	break;
-			case EEffectOperation::SubtractPercentage:	Inverse.Operation = EEffectOperation::AddPercentage;		break;
-			}
-			Handler->ApplyEffect(Inverse);
-		}
-	}
-
-	ModifiedStats.Empty();
-	bModifiedStat = false;
-}
-
-FAttributeEffect UOverTimeEffect::ApplyGrantedEffect()
-{
-	if (!MyGrantedEffect || MyGrantedEffect->Effect.Magnitude == 0.f)
+	if (SnapshotEffect.Magnitude == 0.f)
 	{
 		return FAttributeEffect();
 	}
 
-	// Copied before applying - the granted effect can be changed by a talent reacting to the result.
-	const FAttributeEffect Effect = MyGrantedEffect->Effect;
+	FAttributeEffect Effect = SnapshotEffect;
+	if (MyGrantedAbility)
+	{
+		Effect.Magnitude *= MyGrantedAbility->GetMagnitudeMultiplier();
+	}
 	return ApplyEffect(Effect);
 }
 

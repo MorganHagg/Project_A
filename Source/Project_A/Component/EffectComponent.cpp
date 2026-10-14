@@ -1,7 +1,7 @@
 #include "EffectComponent.h"
 #include "../Unit/UnitBase.h"
 #include "../Component/AttributeComponent.h"
-#include "../Effect/GrantedOverTimeEffect.h"
+#include "../Ability/GrantedAbility.h"
 
 UEffectComponent::UEffectComponent()
 {
@@ -31,6 +31,21 @@ void UEffectComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 }
 
 FAttributeEffect UEffectComponent::ApplyEffect(const FAttributeEffect& Effect)
+{
+	if (Effect.IsTimed())
+	{
+		return AddOverTimeEffect(Effect);
+	}
+
+	FAttributeEffect Scaled = Effect;
+	if (const UGrantedAbility* Source = Effect.Source.Get())
+	{
+		Scaled.Magnitude *= Source->GetMagnitudeMultiplier();
+	}
+	return ApplyInstantEffect(Scaled);
+}
+
+FAttributeEffect UEffectComponent::ApplyInstantEffect(const FAttributeEffect& Effect)
 {
 	FAttributeEffect Applied = Effect;
 
@@ -76,48 +91,82 @@ FAttributeEffect UEffectComponent::ApplyEffect(const FAttributeEffect& Effect)
 	return Applied;
 }
 
-void UEffectComponent::AddOverTimeEffect(UGrantedOverTimeEffect* GrantedEffect)
+FAttributeEffect UEffectComponent::ApplyStatModifier(const UObject* Source, const FAttributeEffect& Effect)
 {
-	if (!GrantedEffect || !GrantedEffect->EffectClass || !MyTarget || IsTargetDead())
+	FAttributeEffect Applied = Effect;
+
+	if (!MyTarget || !MyTarget->AttributeComponent || IsTargetDead())
 	{
-		return;
+		Applied.Magnitude = 0.f;
+		return Applied;
 	}
 
-	// Stacks of the same effect - per caster unless the granted effect shares them across casters.
-	TArray<UOverTimeEffect*> Matches;
-	for (UOverTimeEffect* Effect : OverTimeEffects)
+	MyTarget->AttributeComponent->AddModifier(Source, Effect);
+	return Applied;
+}
+
+void UEffectComponent::RemoveStatModifiers(const UObject* Source)
+{
+	if (MyTarget && MyTarget->AttributeComponent)
 	{
-		if (Effect && !Effect->IsResolved() && Effect->GetEffectTag() == GrantedEffect->EffectTag &&
-			(!GrantedEffect->bMultipleCaster || Effect->GetCaster() == GrantedEffect->MyCaster))
+		MyTarget->AttributeComponent->RemoveModifiers(Source);
+	}
+}
+
+FAttributeEffect UEffectComponent::AddOverTimeEffect(const FAttributeEffect& Effect)
+{
+	FAttributeEffect NothingApplied = Effect;
+	NothingApplied.Magnitude = 0.f;
+
+	if (!MyTarget || IsTargetDead())
+	{
+		return NothingApplied;
+	}
+
+	// An effect made inline has no granted ability behind it: no identity to stack by, so every
+	// application is its own instance of the generic class.
+	const UGrantedAbility* Source = Effect.Source.Get();
+	const int32 StackLimit = Source ? Source->StackLimit : -1;
+	TSubclassOf<UOverTimeEffect> EffectClass = Source && Source->EffectClass ? Source->EffectClass : TSubclassOf<UOverTimeEffect>(UOverTimeEffect::StaticClass());
+
+	if (Source)
+	{
+		// Stacks of the same effect - per caster unless the granted ability shares them across casters.
+		TArray<UOverTimeEffect*> Matches;
+		for (UOverTimeEffect* Existing : OverTimeEffects)
 		{
-			Matches.Add(Effect);
+			if (Existing && !Existing->IsResolved() && Existing->GetEffectTag() == Source->AbilityTag &&
+				(!Source->bMultipleCaster || Existing->GetCaster() == Source->MyCaster))
+			{
+				Matches.Add(Existing);
+			}
+		}
+
+		if (StackLimit == 0 && Matches.Num() > 0)
+		{
+			return NothingApplied;
+		}
+
+		// At the limit, the oldest stacks fully end (hook, stat revert, removal) before the new one
+		// applies, so their stat changes are gone before the new stack makes its own.
+		if (StackLimit > 0)
+		{
+			for (int32 Index = 0; Index <= Matches.Num() - StackLimit; ++Index)
+			{
+				ResolveAndRemove(Matches[Index], EOverTimeEffectEnd::Ended);
+			}
+
+			// An ending hook can kill the target.
+			if (IsTargetDead())
+			{
+				return NothingApplied;
+			}
 		}
 	}
 
-	if (GrantedEffect->StackLimit == 0 && Matches.Num() > 0)
-	{
-		return;
-	}
-
-	// At the limit, the oldest stacks fully end (hook, stat revert, removal) before the new one
-	// applies, so their stat changes are gone before the new stack makes its own.
-	if (GrantedEffect->StackLimit > 0)
-	{
-		for (int32 Index = 0; Index <= Matches.Num() - GrantedEffect->StackLimit; ++Index)
-		{
-			ResolveAndRemove(Matches[Index], EOverTimeEffectEnd::Ended);
-		}
-
-		// An ending hook can kill the target.
-		if (IsTargetDead())
-		{
-			return;
-		}
-	}
-
-	UOverTimeEffect* NewEffect = NewObject<UOverTimeEffect>(this, GrantedEffect->EffectClass);
+	UOverTimeEffect* NewEffect = NewObject<UOverTimeEffect>(this, EffectClass);
 	OverTimeEffects.Add(NewEffect);
-	NewEffect->Begin(GrantedEffect, MyTarget);
+	return NewEffect->Begin(Effect, MyTarget);
 }
 
 void UEffectComponent::RemoveOverTimeEffect(UOverTimeEffect* Effect)

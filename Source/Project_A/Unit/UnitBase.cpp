@@ -43,7 +43,6 @@ void AUnitBase::SetupUnit(UUnitDataBase* SpawnData)
 	UnitData = SpawnData;
 
 	AbilityComponent->InstantiateAbilities(SpawnData);
-	AbilityComponent->InstantiateOverTimeEffects(SpawnData);
 	AttributeComponent->InstantiateAttributes(SpawnData);
 
 	GetMesh()->SetSkeletalMesh(SpawnData->Mesh);

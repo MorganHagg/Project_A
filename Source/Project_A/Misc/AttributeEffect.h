@@ -25,12 +25,17 @@ enum class EEffectOperation : uint8
 	SubtractPercentage
 };
 
-// One instant change to one attribute. Anything lasting over time is a UOverTimeEffect, which
-// applies these as it goes.
+class UGrantedAbility;
+
+// One change to one attribute. Duration and Interval both 0 = instant. Otherwise it is timed and
+// applied through a UOverTimeEffect: Interval 0 applies it once for Duration, Interval > 0 on every
+// tick. Stat changes made by a timed effect are undone when it ends; damage/heal stays.
 USTRUCT(BlueprintType)
 struct FAttributeEffect
 {
 	GENERATED_BODY()
+
+	bool IsTimed() const { return Duration > 0.f || Interval > 0.f; }
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EAttributeType Attribute = EAttributeType::Health;
@@ -44,4 +49,19 @@ struct FAttributeEffect
 	// Mitigation for this effect's damage (only used by Subtract on Health).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EDamageType DamageType = EDamageType::Magic;
+
+	// Timed effects only. 0 = permanent - lasts until removed or the unit dies.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Duration = 0.f;
+
+	// Timed effects only. Time between applications, the first one Interval after application.
+	// 0 = applied once, when the effect is applied.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Interval = 0.f;
+
+	// The granted ability this effect came from (set by UGrantedAbility::GetEffect). Gives a timed
+	// effect its identity, stacking rules, effect class and magnitude multiplier. Empty for an effect
+	// made inline: it is applied as-is, and if timed, stacks without limit and reports no events.
+	UPROPERTY()
+	TWeakObjectPtr<UGrantedAbility> Source;
 };
