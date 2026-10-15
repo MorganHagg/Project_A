@@ -1,24 +1,48 @@
 #include "Projectile.h"
 #include "../Unit/UnitBase.h"
-#include "Ability.h"
+#include "GrantedAbility.h"
 #include "Gameframework/Character.h"
-#include "../Component/EffectHandler.h"
 #include "Components/StaticMeshComponent.h"
 
 AProjectile::AProjectile()
 {
 }
 
+FTransform AProjectile::GetSpawnTransform_Implementation()
+{
+	checkf(false, TEXT("%s must override GetSpawnTransform()"), *GetClass()->GetName());
+	return FTransform::Identity;
+}
+
 void AProjectile::BeginPlay()
 {
 	Super::BeginPlay();
+	// Runs until Travel() finishes it - no duration.
+	Ticker.Start(0.f);
 	MeshComponent->OnComponentBeginOverlap.AddDynamic(this, &AProjectile::HandleComponentBeginOverlap);
+
+	// GetActorLocation/GetActorForwardVector already reflect GetSpawnTransform's result by now
+	// (FinishSpawning placed the actor before BeginPlay ran). Travel()/Finish() are otherwise
+	// unchanged - Destination stays a plain mutable field for the rest of the flight, so anything
+	// holding a live reference (e.g. a talent grabbing this projectile off the Cast payload) can
+	// redirect it mid-flight simply by writing a new Destination.
+	Destination = GetActorLocation() + GetActorForwardVector() * MaxDistance;
+
+	ReportCast();
+	IAbilityLifecycle::Execute_OnActivate(this);
 }
 
 void AProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	Travel(DeltaTime);
+
+	bool bFinished = false;
+	const int32 TicksDue = Ticker.Advance(DeltaTime, bFinished);
+	for (int32 TickIndex = 0; TickIndex < TicksDue && !bHasFinished; ++TickIndex)
+	{
+		IAbilityLifecycle::Execute_OnTick(this);
+	}
 }
 
 void AProjectile::Travel(float DeltaTime)
@@ -35,11 +59,6 @@ void AProjectile::Travel(float DeltaTime)
 	}
 }
 
-UAbility* AProjectile::GetAbility()
-{
-	return MyAbility;
-}
-
 void AProjectile::HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -54,21 +73,9 @@ void AProjectile::HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedCom
 		return;
 	}
 
-	if (UEffectHandler* EffectHandler = HitUnit->FindComponentByClass<UEffectHandler>())
-	{
-		EffectHandler->AddEffect(MyEffect);
-	}
-
 	FVector OverlapLocation = bFromSweep ? FVector(SweepResult.ImpactPoint) : GetActorLocation();
 
-	FAbilityEventPayload Payload;
-	Payload.Ability = MyAbility;
-	Payload.AbilityProduct = this;
-	Payload.Target = HitUnit;
-	Payload.Location = OverlapLocation;
-	Payload.AppliedEffect = MyEffect;
-	Payload.Magnitude = MyEffect.Magnitude;
-	ReportAbilityEvent(HitEventTag, Payload);
+	OnHit(HitUnit, OverlapLocation);
 
 	AlreadyHitActors.Add(OtherActor);
 
@@ -82,16 +89,28 @@ void AProjectile::HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedCom
 	Finish(OverlapLocation);
 }
 
-FVector AProjectile::Finish(FVector HitLocation)
+void AProjectile::Finish(FVector HitLocation)
 {
-	// OnFinished must only ever fire once (it resolves Execute_Projectile's latent action) -
-	// Super::Finish()'s guard only protects its own body, not this one, so check bHasFinished
-	// (inherited, protected) here first.
-	if (!bHasFinished)
+	if (bHasFinished)
 	{
-		OnFinished.ExecuteIfBound(HitLocation);
+		return;
 	}
 
 	SetActorLocation(HitLocation, false);
-	return Super::Finish();
+
+	const FAbilityEventPayload Payload = NotifyFinish();
+
+	IAbilityLifecycle::Execute_OnEnd(this, Payload.Location);
+
+	Destroy();
+}
+
+void AProjectile::OnHoldEnded_Implementation()
+{
+	Finish(GetActorLocation());
+}
+
+UGrantedAbility* AProjectile::GetGrantedAbility()
+{
+	return MyGrantedAbility;
 }

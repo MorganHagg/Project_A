@@ -1,8 +1,8 @@
 #include "ControllerBase.h"
 #include "EnhancedInputComponent.h"
-#include "../Ability/Ability.h"
+#include "../Ability/GrantedAbility.h"
 #include "../Unit/PlayerUnit.h"
-#include "../Component/AbilitySystem.h"
+#include "../Component/AbilityComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 
@@ -48,10 +48,9 @@ void AControllerBase::SetupInputComponent()
 
     Input->BindAction(IA_Move, ETriggerEvent::Triggered, this, &AControllerBase::Move);
 
-    // Primary -> slots 0(tap)/1(hold)/2(modify), Secondary -> slots 3/4/5
-    TArray<TPair<UInputAction*, int32>> Bindings = {
-        { IA_Primary, 0 },
-        { IA_Secondary, 3 }
+    TArray<TPair<UInputAction*, EAbilityInput>> Bindings = {
+        { IA_Primary, EAbilityInput::Primary },
+        { IA_Secondary, EAbilityInput::Secondary }
     };
 
     for (const auto& Pair : Bindings)
@@ -65,20 +64,20 @@ void AControllerBase::SetupInputComponent()
     }
 }
 
-bool AControllerBase::ResolveAbilitySlot(const FInputActionInstance& Instance, int32& OutBaseSlot)
+bool AControllerBase::ResolveAbilityInput(const FInputActionInstance& Instance, EAbilityInput& OutInput)
 {
-    if (!PlayerUnit || !PlayerUnit->AbilitySystemComponent)
+    if (!PlayerUnit || !PlayerUnit->AbilityComponent)
         return false;
 
     const UInputAction* Action = Instance.GetSourceAction();
     if (!Action)
         return false;
 
-    const int32* BaseSlot = AbilityInputMap.Find(Action);
-    if (!BaseSlot)
+    const EAbilityInput* Input = AbilityInputMap.Find(Action);
+    if (!Input)
         return false;
 
-    OutBaseSlot = *BaseSlot;
+    OutInput = *Input;
     return true;
 }
 
@@ -120,20 +119,20 @@ void AControllerBase::FaceMouseCursor()
 
 void AControllerBase::OnAbilityInputPressed(const FInputActionInstance& Instance)
 {
-    int32 BaseSlot;
-    if (!ResolveAbilitySlot(Instance, BaseSlot))
+    EAbilityInput Input;
+    if (!ResolveAbilityInput(Instance, Input))
         return;
 
-    if (ActiveHoldBaseSlot != -1)
+    if (ActiveHoldInput.IsSet())
     {
         // A hold is already active: this press modifies it, rather than starting its own tap/hold.
         ApplyModify();
         return;
     }
 
-    for (const auto& Pair : PressedSlots)
+    for (const auto& Pair : PressedInputs)
     {
-        if (Pair.Key != BaseSlot)
+        if (Pair.Key != Input)
         {
             // Another ability is still pending its own hold threshold: force it active now, then modify it.
             ActivateHold(Pair.Key);
@@ -142,80 +141,81 @@ void AControllerBase::OnAbilityInputPressed(const FInputActionInstance& Instance
         }
     }
 
-    FAbilityPressState& State = PressedSlots.Add(BaseSlot);
+    FAbilityPressState& State = PressedInputs.Add(Input);
     State.bHoldThresholdMet = false;
 
-    FTimerDelegate Delegate = FTimerDelegate::CreateUObject(this, &AControllerBase::OnHoldThresholdMet, BaseSlot);
+    FTimerDelegate Delegate = FTimerDelegate::CreateUObject(this, &AControllerBase::OnHoldThresholdMet, Input);
     GetWorldTimerManager().SetTimer(State.HoldTimerHandle, Delegate, HoldThreshold, false);
 }
 
-void AControllerBase::OnHoldThresholdMet(int32 BaseSlot)
+void AControllerBase::OnHoldThresholdMet(EAbilityInput Input)
 {
-    ActivateHold(BaseSlot);
+    ActivateHold(Input);
 }
 
-void AControllerBase::ActivateHold(int32 BaseSlot)
+void AControllerBase::ActivateHold(EAbilityInput Input)
 {
-    if (!PlayerUnit || !PlayerUnit->AbilitySystemComponent)
+    if (!PlayerUnit || !PlayerUnit->AbilityComponent)
         return;
 
-    if (FAbilityPressState* State = PressedSlots.Find(BaseSlot))
+    if (FAbilityPressState* State = PressedInputs.Find(Input))
     {
         GetWorldTimerManager().ClearTimer(State->HoldTimerHandle);
         State->bHoldThresholdMet = true;
     }
 
-    UAbilitySystem* AbilitySystem = PlayerUnit->AbilitySystemComponent;
-    AbilitySystem->SetActiveAbility(AbilitySystem->InitiateAbility(BaseSlot + 1));
-    ActiveHoldBaseSlot = BaseSlot;
+    UAbilityComponent* AbilityComponent = PlayerUnit->AbilityComponent;
+    AbilityComponent->SetActiveAbility(AbilityComponent->InitiateAbility(AbilityComponent->GetInputAbilities(Input).Hold));
+    ActiveHoldInput = Input;
 }
 
 void AControllerBase::ApplyModify()
 {
-    UAbilitySystem* AbilitySystem = PlayerUnit->AbilitySystemComponent;
+    UAbilityComponent* AbilityComponent = PlayerUnit->AbilityComponent;
 
-    if (!AbilitySystem->GrantedAbilities.IsValidIndex(ActiveHoldBaseSlot + 2))
+    UGrantedAbility* ModifyAbility = ActiveHoldInput.IsSet() ? AbilityComponent->GetInputAbilities(ActiveHoldInput.GetValue()).Modify.Get() : nullptr;
+    if (!ModifyAbility)
     {
-        UE_LOG(LogTemp, Error, TEXT("GrantedAbilities has no slot %d"), ActiveHoldBaseSlot + 2);
+        UE_LOG(LogTemp, Error, TEXT("AControllerBase::ApplyModify - the held input has no Modify ability."));
         return;
     }
 
-    if (UAbility* ModifyAbility = AbilitySystem->GrantedAbilities[ActiveHoldBaseSlot + 2])
+    // The Modify ability gets the hold's live Ability (if any) before the hold ends, so it can act
+    // on it (e.g. push a Firewall).
+    AAbility* HeldAbility = AbilityComponent->ActiveAbility ? AbilityComponent->ActiveAbility->GetSpawnedAbility() : nullptr;
+    ModifyAbility->ActivateAbility(HeldAbility);
+    if (ModifyAbility->bModifyEndsAbility)
     {
-        ModifyAbility->ActivateAbility();
-        if (ModifyAbility->bModifyEndsAbility)
-        {
-            AbilitySystem->EndActiveAbility();
-            ActiveHoldBaseSlot = -1;
-        }
+        AbilityComponent->EndActiveAbility();
+        ActiveHoldInput.Reset();
     }
 }
 
 void AControllerBase::OnAbilityInputReleased(const FInputActionInstance& Instance)
 {
-    int32 BaseSlot;
-    if (!ResolveAbilitySlot(Instance, BaseSlot))
+    EAbilityInput Input;
+    if (!ResolveAbilityInput(Instance, Input))
         return;
 
     FAbilityPressState State;
-    if (!PressedSlots.RemoveAndCopyValue(BaseSlot, State))
+    if (!PressedInputs.RemoveAndCopyValue(Input, State))
         return; // Not a tracked press (e.g. it was consumed earlier as a Modify trigger).
 
     GetWorldTimerManager().ClearTimer(State.HoldTimerHandle);
 
-    UAbilitySystem* AbilitySystem = PlayerUnit->AbilitySystemComponent;
+    UAbilityComponent* AbilityComponent = PlayerUnit->AbilityComponent;
 
     if (State.bHoldThresholdMet)
     {
-        if (ActiveHoldBaseSlot == BaseSlot)
+        if (ActiveHoldInput == Input)
         {
-            AbilitySystem->EndActiveAbility();
-            ActiveHoldBaseSlot = -1;
+            AbilityComponent->ReleaseActiveAbility();
+            ActiveHoldInput.Reset();
         }
         // Else: already ended by a Modify tap while held.
     }
     else
     {
-        AbilitySystem->InitiateAbility(BaseSlot);
+        AbilityComponent->InitiateAbility(AbilityComponent->GetInputAbilities(Input).Tap);
     }
 }

@@ -1,31 +1,17 @@
 ﻿#include "PlayerUnit.h"
-#include "../Component/AbilitySystem.h"
+#include "../Component/AbilityComponent.h"
 #include "../Component/AttributeComponent.h"
-#include "../Component/EffectHandler.h"
-#include "../Misc/AttributeSet.h"
-#include "../Component/TalentComponent.h"
+#include "../Component/EffectComponent.h"
+#include "../Misc/AttributeType.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
-#include "../DataAsset/PlayerUnitData.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 APlayerUnit::APlayerUnit()
 {
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	TalentComponent = CreateDefaultSubobject<UTalentComponent>(TEXT("Talent"));
 	AdjustCamera();
-}
-
-void APlayerUnit::SetupUnit(UUnitDataBase* SpawnData)
-{
-	Super::SetupUnit(SpawnData);
-	if (UPlayerUnitData* PlayerData = Cast<UPlayerUnitData>(SpawnData))
-	{
-		TalentComponent->AcquiredTalents = PlayerData->Talents;
-		TalentComponent->AbilitySystemComponent = AbilitySystemComponent;
-	}
-	
 }
 
 void APlayerUnit::AdjustCamera()
@@ -47,35 +33,7 @@ void APlayerUnit::AdjustCamera()
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 640.f, 0.f);
 }
 
-void APlayerUnit::ReceiveDamage(float Amount)
+void APlayerUnit::BroadcastAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload)
 {
-	if (AttributeComponent)
-	{
-		AttributeComponent->ModifyAttribute(EAttributeType::Health, -Amount);
-	}
-	DelegateOnReceiveDamage(Amount);
-}
-
-void APlayerUnit::ReceiveHeal(float Amount)
-{
-	if (AttributeComponent)
-	{
-		AttributeComponent->ModifyAttribute(EAttributeType::Health, Amount);
-	}
-	DelegateOnReceiveHeal(Amount);
-}
-
-void APlayerUnit::DelegateOnReceiveDamage(float Amount)
-{
-	OnReceiveDamage.Broadcast(Amount);
-}
-
-void APlayerUnit::DelegateOnReceiveHeal(float Amount)
-{
-	OnReceiveHeal.Broadcast(Amount);
-}
-
-void APlayerUnit::BroadcastAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload)
-{
-	OnAbilityEvent.Broadcast(EventTag, Payload);
+	OnAbilityEvent.Broadcast(EventTags, Payload);
 }

@@ -3,7 +3,6 @@
 #include "UnitDataBase.h"
 #include "EnemyUnitData.generated.h"
 
-class UAbility;
 class UBehaviorTree;
 class USkeletalMesh;
 class AEnemyUnit;

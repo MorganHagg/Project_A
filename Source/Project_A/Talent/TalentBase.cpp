@@ -1,8 +1,8 @@
 ﻿#include "TalentBase.h"
 
 #include "Project_A/Unit/PlayerUnit.h"
-#include "Project_A/Component/AbilitySystem.h"
-#include "Project_A/Ability/Ability.h"
+#include "Project_A/Component/AbilityComponent.h"
+#include "Project_A/Ability/GrantedAbility.h"
 
 void UTalentBase::BindToPlayerUnit(APlayerUnit* PlayerUnit)
 {
@@ -18,44 +18,31 @@ void UTalentBase::BindToPlayerUnit(APlayerUnit* PlayerUnit)
 	OnSetup();
 }
 
-void UTalentBase::HandleAbilityEvent(FGameplayTag EventTag, FAbilityEventPayload Payload)
+void UTalentBase::HandleAbilityEvent(FGameplayTagContainer EventTags, FAbilityEventPayload Payload)
 {
-	if (EventTag.MatchesTag(ListenTag))
+	// RequiredTags.IsEmpty() is guarded explicitly - FGameplayTagContainer::HasAll() considers an
+	// empty requirement trivially satisfied, which would otherwise make an unconfigured talent
+	// fire on every event instead of staying inert.
+	if (!RequiredTags.IsEmpty() && EventTags.HasAll(RequiredTags))
 	{
 		OnAbilityEvent(Payload);
 	}
 }
 
-UAbility* UTalentBase::GetAbility(TSubclassOf<UAbility> AbilityClass) const
+UGrantedAbility* UTalentBase::GetGrantedAbility(FGameplayTag AbilityTag) const
 {
-	if (!AbilityClass)
-	{
-		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetAbility called with a null AbilityClass."));
-		return nullptr;
-	}
-
 	if (!MyPlayerUnit)
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetAbility called before BindToPlayerUnit."));
+		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetGrantedAbility called before BindToPlayerUnit."));
 		return nullptr;
 	}
 
-	UAbilitySystem* AbilitySystem = MyPlayerUnit->FindComponentByClass<UAbilitySystem>();
-	if (!AbilitySystem)
+	UAbilityComponent* AbilityComponent = MyPlayerUnit->FindComponentByClass<UAbilityComponent>();
+	if (!AbilityComponent)
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetAbility - %s has no AbilitySystem component."), *MyPlayerUnit->GetName());
+		UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetGrantedAbility - %s has no AbilityComponent."), *MyPlayerUnit->GetName());
 		return nullptr;
 	}
 
-	for (UAbility* Ability : AbilitySystem->GrantedAbilities)
-	{
-		if (Ability && Ability->GetClass() == AbilityClass)
-		{
-			return Ability;
-		}
-	}
-
-	UE_LOG(LogTemp, Error, TEXT("UTalentBase::GetAbility - %s does not have an ability of class %s."),
-		*MyPlayerUnit->GetName(), *AbilityClass->GetName());
-	return nullptr;
+	return AbilityComponent->FindGrantedAbility(AbilityTag);
 }

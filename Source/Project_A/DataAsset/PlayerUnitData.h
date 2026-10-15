@@ -3,7 +3,7 @@
 #include "UnitDataBase.h"
 #include "PlayerUnitData.generated.h"
 
-class UTalentData;
+class UTalentBase;
 class APlayerUnit;
 
 UCLASS(BlueprintType)
@@ -12,7 +12,7 @@ class PROJECT_A_API UPlayerUnitData : public UUnitDataBase
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TArray<UTalentData*> Talents;
+	TArray<TSubclassOf<UTalentBase>> Talents;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<APlayerUnit> CustomUnitClass;

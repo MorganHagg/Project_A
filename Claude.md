@@ -272,13 +272,14 @@ Upon request by the user, go to the Changelog, read the Changelog Instructions (
 
 Do not add or edit Change log entries unprompted, and never add one without the user's approval of its content.
 
-## Commit on changelog approval
+## Commit and push on changelog approval
 
-Once the user approves a suggested entry's wording, commit the full working tree as part of posting it to Notion. This is a standing authorization — do not ask again each time this happens.
+Once the user approves a suggested entry's wording, commit the full working tree and push it to the current branch's upstream as part of posting it to Notion. This is a standing authorization — do not ask again each time this happens.
 
 * Stage everything (`git add -A`), including Blueprint/`.uasset` and other non-C++ files the user edited directly, not just what Claude edited. Claude previously withheld commits specifically because Blueprint changes were mixed in with C++ changes; that reluctance no longer applies to this workflow — commit it all.
 * Commit message subject: the changelog entry's title. Body: a brief summary, not a full dump of every bullet — the Notion entry is the detailed record.
-* Only commit at this step: never proactively, never before the changelog wording is approved, and never as a substitute for actually posting the entry to Notion.
+* Only commit and push at this step: never proactively, never before the changelog wording is approved, and never as a substitute for actually posting the entry to Notion.
+* Push with a plain `git push` to the branch's existing upstream. If the push is rejected (e.g. the remote has diverged) or the branch has no upstream, stop and report it rather than resolving it unasked.
 * Standard git hygiene still applies: no force-push, no skipped hooks, and still flag anything that looks like it could expose a secret before committing.
 
 ---

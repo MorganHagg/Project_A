@@ -8,6 +8,7 @@
 #include "../Unit/EnemyUnit.h"
 #include "../Unit/PlayerUnit.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
 
 AUnitBase* UUnitSpawner::SpawnUnitInternal(
     UClass* UnitClass,
@@ -24,6 +25,12 @@ AUnitBase* UUnitSpawner::SpawnUnitInternal(
 
     NewUnit->FinishSpawning(SpawnTransform);
     NewUnit->SetupUnit(SpawnData);
+
+    // SpawnTransform's location is where the unit's feet go, but a Character's location is its
+    // capsule center - lift by the half-height. Read after SetupUnit, which resizes the capsule.
+    const float HalfHeight = NewUnit->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+    NewUnit->SetActorLocation(SpawnTransform.GetLocation() + FVector(0.f, 0.f, HalfHeight),
+        false, nullptr, ETeleportType::TeleportPhysics);
 
     return NewUnit;
 }

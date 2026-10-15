@@ -1,0 +1,84 @@
+#pragma once
+#include "CoreMinimal.h"
+#include "Ability.h"
+#include "../Misc/IntervalTicker.h"
+#include "../Interfaces/AbilityLifecycle.h"
+#include "PersistentAbility.generated.h"
+
+class UGrantedAbility;
+class ACharacter;
+class UEffectComponent;
+class AUnitBase;
+
+UCLASS()
+class PROJECT_A_API APersistentAbility : public AAbility, public IAbilityLifecycle
+{
+	GENERATED_BODY()
+
+public:
+	APersistentAbility();
+
+protected:
+	virtual void BeginPlay() override;
+
+public:
+	virtual void Tick(float DeltaTime) override;
+
+	// -- Tunables --
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float Duration = 0.f;	// 0 = lasts infinite
+
+	// Fires OnTick every Interval over Duration (see FIntervalTicker) - no extra tick at the end.
+	UPROPERTY(EditAnywhere)
+	FIntervalTicker Ticker;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float Magnitude = 0.f;
+
+	// -- Event tags --
+
+	// Tags reported to MyGrantedAbility on overlap (see HandleOverlap).
+	UPROPERTY(BlueprintReadWrite, Category = "Ability")
+	FGameplayTagContainer OverlapEventTags;
+
+	// -- Functions --
+
+	// Where/how this actor places itself when spawned - queried once on the still-deferred
+	// instance (before FinishSpawning/BeginPlay/OnActivate), so a Blueprint override can decide
+	// spawn placement using MyCaster, already set by then. Must be overridden per concrete
+	// Blueprint (AA_Firewall, etc.) - the native default crashes immediately, naming the offending
+	// class, rather than silently spawning at the origin. Named GetSpawnTransform, not
+	// GetTransform, to avoid shadowing the existing AActor::GetTransform(). Declared here rather
+	// than on AAbility - see the note in Ability.h.
+	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
+	FTransform GetSpawnTransform();
+
+	// Notifies (reports FinishEventTags, broadcasts OnFinish) before firing OnEnd, so talents/
+	// OnFinish listeners reacting to the finish can still take effect before OnEnd runs - then
+	// destroys the actor. Does not call Super::Finish(), since that would destroy before OnEnd
+	// could fire; duplicates only the guard check, not the notify/destroy logic.
+	virtual void Finish() override;
+
+	// Default: finishes. Override in Blueprint to keep living after the hold ends.
+	virtual void OnHoldEnded_Implementation() override;
+
+	// Bound to MeshComponent->OnComponentBeginOverlap. Sorts OtherActor into the payload: a unit
+	// goes into Target, another Ability (e.g. a Projectile passing through) goes into
+	// OverlappedAbility - then reports OverlapEventTags and fires OnOverlap.
+	UFUNCTION()
+	void HandleOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	// Fired at the end of every HandleOverlap, regardless of whether the overlap became a hit -
+	// always fires on overlap. Distinct from OnHit: this is a Blueprint-only hook (no native
+	// default logic beyond what HandleOverlap already does) for custom per-instance overlap
+	// behavior, e.g. Firewall's own visual/gameplay reaction to something passing through it.
+	UFUNCTION(BlueprintImplementableEvent, Category = "Ability")
+	void OnOverlap(AUnitBase* Target, AAbility* OverlappedAbility, FVector Location);
+
+	// All AUnitBase actors currently overlapping MeshComponent. bIsHelpful selects which side:
+	// true -> APlayerUnit only, false (default) -> AEnemyUnit only.
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	TArray<AUnitBase*> GetOverlappingUnits(bool bIsHelpful = false);
+};

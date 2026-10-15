@@ -35,6 +35,8 @@
 *.xcodeproj
 *.xcworkspace
 *.sln
+*.slnx
+*.DotSettings.user
 *.suo
 *.opensdf
 *.sdf
@@ -72,3 +74,8 @@ Plugins/**/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+# Local IDE / personal files
+.idea/
+ClaudeTask.txt
+claude.bat

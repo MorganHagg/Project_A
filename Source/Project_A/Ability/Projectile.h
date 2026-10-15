@@ -1,19 +1,22 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "AbilityProduct.h"
+#include "Ability.h"
+#include "../Misc/IntervalTicker.h"
+#include "../Interfaces/AbilityLifecycle.h"
 #include "Projectile.generated.h"
 
-class UAbility;
+class UGrantedAbility;
 class ACharacter;
-class UEffectHandler;
+class UEffectComponent;
 class AUnitBase;
 
-// Delegates used internally by UAbility::Execute_Projectile's latent action - unrelated to talent delegation.
 DECLARE_DELEGATE_OneParam(FOnProjectileHit, FVector);
-DECLARE_DELEGATE_OneParam(FOnProjectileFinished, FVector);
 
-UCLASS()
-class PROJECT_A_API AProjectile : public AAbilityProduct
+// Abstract: never spawned directly - UGrantedAbility::ActivateAbility's generic dispatch always
+// spawns via AbilityClass, naming a concrete Blueprint subclass, and marking this Abstract keeps
+// the base class itself out of that picker (same pattern as AAbility).
+UCLASS(Abstract)
+class PROJECT_A_API AProjectile : public AAbility, public IAbilityLifecycle
 {
 	GENERATED_BODY()
 
@@ -26,7 +29,13 @@ protected:
 public:
 	virtual void Tick(float DeltaTime) override;
 
-	void Travel(float DeltaTime);
+	// -- Tunables --
+
+	// Gates OnTick (IAbilityLifecycle), not Travel - movement stays frame-accurate every Tick.
+	// Interval = 0 never fires OnTick. No Duration equivalent: a projectile's end is
+	// already fully determined by distance to Destination inside Travel(), not a timer.
+	UPROPERTY(EditAnywhere)
+	FIntervalTicker Ticker;
 
 	// If true, the projectile finishes as soon as it hits something (and
 	// reports the hit location). If false, it only finishes by reaching
@@ -40,31 +49,54 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 	int32 PenetrationCount = 0;
 
-	UAbility* GetAbility();
+	// How far this projectile travels (from its spawn point, in the direction GetSpawnTransform's
+	// rotation faced) before finishing on its own, if nothing stops it first.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
+	float MaxDistance = 2000.f;
 
-	// Unhide AAbilityProduct::Finish() - Finish(FVector) below has a different signature and
-	// would otherwise shadow it.
-	using AAbilityProduct::Finish;
+	// -- Flight state --
 
 	FVector Destination;
-	float Speed;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
+	float Speed = 900.f;
 	int TaskID;
 
+	// -- Delegates --
+
 	FOnProjectileHit OnPenetrateHit;   // fired per penetrating hit — apply effects
-	FOnProjectileFinished OnFinished;  // fired exactly once — resolves the latent action
 
-	// Tag reported to MyAbility on hit (set by UAbility::Execute_Projectile). Finish uses the
-	// inherited FinishEventTag.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
-	FGameplayTag HitEventTag;
+	// -- Functions --
 
-	// Snaps to the given hit location (the actual finish point may be a sweep impact point,
-	// different from GetActorLocation()), then defers to the shared AAbilityProduct::Finish().
-	FVector Finish(FVector HitLocation);
+	// Where/how this projectile places itself when spawned - queried once on the still-deferred
+	// instance (before FinishSpawning/BeginPlay/OnActivate), so a Blueprint override can decide
+	// spawn placement (e.g. "5m in front of the caster") using MyCaster, already set by then. Must
+	// be overridden per concrete Blueprint (Projectile_Fireball, etc.) - the native default crashes
+	// immediately, naming the offending class, rather than silently spawning at the origin. Named
+	// GetSpawnTransform, not GetTransform, to avoid shadowing the existing AActor::GetTransform().
+	// Declared here rather than on AAbility - see the note in Ability.h.
+	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
+	FTransform GetSpawnTransform();
+
+	void Travel(float DeltaTime);
 
 	UFUNCTION()
 	void HandleComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	// Unhide AAbility::Finish() - Finish(FVector) below has a different signature and
+	// would otherwise shadow it.
+	using AAbility::Finish;
+
+	// Notifies (reports FinishEventTags, broadcasts OnFinish) before firing OnEnd, then destroys -
+	// same ordering as APersistentAbility::Finish(). Snaps to the given hit location first (the actual
+	// finish point may be a sweep impact point, different from GetActorLocation()). Does not call
+	// Super::Finish(), since that would destroy before OnEnd could fire.
+	void Finish(FVector HitLocation);
+
+	// Default: finishes where it is. Override in Blueprint to keep flying after the hold ends.
+	virtual void OnHoldEnded_Implementation() override;
+
+	UGrantedAbility* GetGrantedAbility();
 
 protected:
 	UPROPERTY()
