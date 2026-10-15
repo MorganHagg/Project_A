@@ -25,7 +25,8 @@ enum class EOverTimeEffectEnd : uint8
 // target's UEffectComponent; created from a timed FAttributeEffect, usually one fetched from the
 // caster's granted ability (AAbility::GetEffect). Generic by default: it applies that effect once on
 // application (Interval 0) or on every tick (Interval > 0). The effect is snapshotted when applied;
-// only its granted ability's magnitude multiplier is read live, on every application. Optional
+// its granted ability's magnitude multiplier and Coefficient, and the caster's stats (scaling, crit
+// chance), are read live by UEffectComponent on every application - each tick rolls its own crit. Optional
 // Blueprint subclasses add behaviour on top through the On* hooks and ApplyEffect. Stat changes made
 // through ApplyEffect, and magnitude modifiers made through ModifyAbilityMagnitude, are undone
 // automatically however the effect stops - a designer never has to remove them by hand.
@@ -59,9 +60,9 @@ public:
 	// -- Applying --
 
 	// Applies one change to MyTarget now - Duration and Interval are ignored. Add/Subtract on Health
-	// damages (mitigated by Effect.DamageType) or heals and stays. Every other combination is a stat
-	// change (see ModifyStat), undone automatically when this effect stops. Returns what was applied -
-	// for damage/heal, the final amount (see UEffectComponent::ApplyInstantEffect).
+	// damages (scaled, crit and mitigated - see UEffectComponent::ApplyInstantEffect) or heals and stays.
+	// Every other combination is a stat change (see ModifyStat), undone automatically when this effect
+	// stops. Returns what was applied - for damage/heal, the final amount and whether it crit.
 	UFUNCTION(BlueprintCallable, Category = "Effect")
 	FAttributeEffect ApplyEffect(const FAttributeEffect& Effect);
 
@@ -93,7 +94,7 @@ public:
 	// -- Incoming damage/heal --
 
 	// Called before MyTarget takes damage (already mitigated by DamageType); return the amount it
-	// should take instead. Default: unchanged. The result is clamped at 0 by AUnitBase.
+	// should take instead. Default: unchanged. The result is clamped at 0 by UEffectComponent.
 	UFUNCTION(BlueprintNativeEvent, Category = "Effect")
 	float ModifyIncomingDamage(float Amount, EDamageType DamageType);
 
@@ -124,9 +125,8 @@ protected:
 private:
 	UEffectComponent* GetHandler() const;
 
-	// Applies SnapshotEffect, scaled by MyGrantedAbility's current magnitude multiplier, through
-	// ApplyEffect and returns what it applied (Magnitude 0 = nothing). Runs outside the hooks so an
-	// override can't skip it.
+	// Applies SnapshotEffect through ApplyEffect and returns what it applied (Magnitude 0 = nothing).
+	// Runs outside the hooks so an override can't skip it.
 	FAttributeEffect ApplySnapshotEffect();
 
 	// Reports {EffectTag, Event.<EventName>} to the caster's PlayerUnit, for talents. AppliedEffect is

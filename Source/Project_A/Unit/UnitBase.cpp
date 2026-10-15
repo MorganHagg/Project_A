@@ -91,22 +91,14 @@ void AUnitBase::HandleDeath()
 	HealthBarComponent->SetVisibility(false);
 }
 
-float AUnitBase::ReceiveDamage(float Amount, EDamageType DamageType)
+float AUnitBase::ReceiveDamage(float Amount)
 {
 	if (!AttributeComponent || AttributeComponent->IsDead())
 	{
 		return 0.f;
 	}
 
-	// Rounded to whole damage so Health stays whole - otherwise mitigation leaves fractional
-	// remainders (e.g. 0.4 Health) that look like 0 on the health bar but aren't dead.
-	float FinalAmount = MitigateDamage(Amount, DamageType);
-	if (EffectComponent)
-	{
-		FinalAmount = EffectComponent->ModifyIncomingDamage(FinalAmount, DamageType);
-	}
-	FinalAmount = FMath::RoundToFloat(FMath::Max(FinalAmount, 0.f));
-
+	const float FinalAmount = FMath::Max(Amount, 0.f);
 	AttributeComponent->ModifyAttribute(EAttributeType::Health, -FinalAmount);
 	OnReceiveDamage.Broadcast(FinalAmount);
 	return FinalAmount;
@@ -119,34 +111,8 @@ float AUnitBase::ReceiveHeal(float Amount)
 		return 0.f;
 	}
 
-	float FinalAmount = Amount;
-	if (EffectComponent)
-	{
-		FinalAmount = EffectComponent->ModifyIncomingHeal(FinalAmount);
-	}
-	FinalAmount = FMath::Max(FinalAmount, 0.f);
-
+	const float FinalAmount = FMath::Max(Amount, 0.f);
 	AttributeComponent->ModifyAttribute(EAttributeType::Health, FinalAmount);
 	OnReceiveHeal.Broadcast(FinalAmount);
 	return FinalAmount;
-}
-
-float AUnitBase::MitigateDamage(float Damage, EDamageType DamageType) const
-{
-	float Mitigation;
-	switch (DamageType)
-	{
-	case EDamageType::Magic:
-		Mitigation = AttributeComponent->GetAttribute(EAttributeType::MagicResist);
-		break;
-	case EDamageType::Physical:
-		Mitigation = AttributeComponent->GetAttribute(EAttributeType::Armour);
-		break;
-	case EDamageType::TrueDamage:
-	default:
-		return Damage;
-	}
-
-	const float MitigationPercent = Mitigation / (Mitigation + MitigationConstant);
-	return Damage * (1.f - MitigationPercent);
 }

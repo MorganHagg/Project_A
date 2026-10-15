@@ -58,7 +58,8 @@ public:
 	UUnitDataBase* UnitData;
 
 	// -- Damage / healing --
-	// Every Health change from damage or healing goes through these, for every unit type.
+	// Every Health change from damage or healing goes through these, for every unit type. Amounts are
+	// final - scaling, crit, mitigation and incoming modifiers are calculated by UEffectComponent first.
 
 	// Broadcast with the damage actually taken (after mitigation).
 	UPROPERTY(BlueprintAssignable, Category = "Unit")
@@ -67,22 +68,13 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Unit")
 	FOnUnitReceiveHeal OnReceiveHeal;
 
-	// Mitigates Amount by DamageType (see MitigateDamage), lets active over-time effects change it
-	// (UOverTimeEffect::ModifyIncomingDamage), clamps it at 0, subtracts it from Health, and
-	// broadcasts OnReceiveDamage. Returns the damage taken (0 once dead).
+	// Clamps Amount at 0, subtracts it from Health, and broadcasts OnReceiveDamage. Returns the damage
+	// taken (0 once dead).
 	UFUNCTION(BlueprintCallable, Category = "Unit")
-	float ReceiveDamage(float Amount, EDamageType DamageType);
+	float ReceiveDamage(float Amount);
 
-	// Lets active over-time effects change Amount (UOverTimeEffect::ModifyIncomingHeal), clamps it at
-	// 0, adds it to Health, and broadcasts OnReceiveHeal. Returns the amount healed (0 once dead).
+	// Clamps Amount at 0, adds it to Health, and broadcasts OnReceiveHeal. Returns the amount healed
+	// (0 once dead).
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	float ReceiveHeal(float Amount);
-
-private:
-	// Returns Damage reduced by this unit's mitigation stat for DamageType (MagicResist for Magic,
-	// Armour for Physical, none for True), using MitigationPercent = Mit / (Mit + MitigationConstant).
-	float MitigateDamage(float Damage, EDamageType DamageType) const;
-
-	// K in the mitigation formula - the stat value that gives 50% reduction.
-	static constexpr float MitigationConstant = 400.f;
 };

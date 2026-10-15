@@ -26,19 +26,20 @@ public:
 	UPROPERTY()
 	AUnitBase* MyTarget;
 
-	// Applies Effect to MyTarget and returns what was applied. Instant: applied now, Magnitude scaled by
-	// its Source's magnitude multiplier; for damage/heal the returned Magnitude is the final amount
-	// (after mitigation and incoming modifiers). Timed: a new UOverTimeEffect, following its Source's
-	// StackLimit / bMultipleCaster; returns what it applied on application (Magnitude 0 if it ticks
-	// instead, or was ignored). Ignored once dead (Magnitude 0).
+	// Applies Effect to MyTarget and returns what was applied. Instant: see ApplyInstantEffect. Timed: a
+	// new UOverTimeEffect, following its Source's StackLimit / bMultipleCaster; returns what it applied
+	// on application (Magnitude 0 if it ticks instead, or was ignored). Ignored once dead (Magnitude 0).
 	FAttributeEffect ApplyEffect(const FAttributeEffect& Effect);
 
-	// Applies Effect to MyTarget now, as given - ignores Duration, Interval and Source. Used by
-	// ApplyEffect and by UOverTimeEffect for each of its applications.
+	// Applies Effect to MyTarget now - ignores Duration and Interval. Used by ApplyEffect and by
+	// UOverTimeEffect for each of its applications. Magnitude is scaled by its Source's magnitude
+	// multiplier; damage also gets stat scaling, crit and mitigation (see ApplyDamage). For damage/heal
+	// the returned Magnitude is the final amount and bCrit is set if it crit.
 	FAttributeEffect ApplyInstantEffect(const FAttributeEffect& Effect);
 
-	// Applies a stat change owned by Source, kept until RemoveStatModifiers(Source). Returns Effect,
-	// or Magnitude 0 if it was ignored because MyTarget is dead.
+	// Applies a stat change owned by Source, kept until RemoveStatModifiers(Source). Magnitude is scaled
+	// by Effect.Source's magnitude multiplier. Returns what was applied, or Magnitude 0 if it was
+	// ignored because MyTarget is dead.
 	FAttributeEffect ApplyStatModifier(const UObject* Source, const FAttributeEffect& Effect);
 
 	// Removes every stat change Source applied through ApplyStatModifier.
@@ -52,11 +53,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Effect")
 	void RemoveOverTimeEffectsByTag(UPARAM(meta = (Categories = "Ability")) FGameplayTag EffectTag);
 
-	// Passes Amount through every active effect's ModifyIncomingDamage / ModifyIncomingHeal, oldest
-	// first, and returns the result. Called by AUnitBase::ReceiveDamage / ReceiveHeal.
-	float ModifyIncomingDamage(float Amount, EDamageType DamageType);
-	float ModifyIncomingHeal(float Amount);
-
 	// Called by AUnitBase::HandleDeath - ends every active effect (OnUnitDeath) and stops ticking.
 	void HandleUnitDeath();
 
@@ -65,6 +61,38 @@ public:
 	TArray<UOverTimeEffect*> OverTimeEffects;
 
 private:
+	// Damage pipeline: CalculateOutgoingDamage (caster side), then MitigateDamage (MyTarget's side),
+	// then AUnitBase::ReceiveDamage. Effect.Magnitude is the unscaled damage.
+	FAttributeEffect ApplyDamage(const FAttributeEffect& Effect);
+
+	// Heal: magnitude multiplier, then ModifyIncomingHeal, then AUnitBase::ReceiveHeal. Heals don't
+	// scale with stats and can't crit.
+	FAttributeEffect ApplyHeal(const FAttributeEffect& Effect);
+
+	// (Magnitude + Source's Coefficient x caster's stat) x Source's magnitude multiplier, then the crit
+	// roll (caster's Crit as a percent chance, x CritMultiplier). The stat is Intellect for Magic,
+	// Strength for Physical, none for True. Read live from Source and its caster; with no Source there's
+	// no scaling or multiplier, and with no valid caster no stat scaling or crit.
+	float CalculateOutgoingDamage(const FAttributeEffect& Effect, bool& bOutCrit) const;
+
+	// Reduces Damage by MyTarget's mitigation stat for DamageType (MagicResist for Magic, Armour for
+	// Physical, none for True) using Mit / (Mit + MitigationConstant), then ModifyIncomingDamage, then
+	// clamps at 0 and rounds to whole damage.
+	float MitigateDamage(float Damage, EDamageType DamageType);
+
+	// Passes Amount through every active effect's ModifyIncomingDamage / ModifyIncomingHeal, oldest
+	// first, and returns the result.
+	float ModifyIncomingDamage(float Amount, EDamageType DamageType);
+	float ModifyIncomingHeal(float Amount);
+
+	// Effect.Source's magnitude multiplier, or 1 with no Source.
+	static float GetMagnitudeMultiplier(const FAttributeEffect& Effect);
+
+	// K in the mitigation formula - the stat value that gives 50% reduction.
+	static constexpr float MitigationConstant = 400.f;
+
+	static constexpr float CritMultiplier = 2.f;
+
 	// The timed half of ApplyEffect: applies a new UOverTimeEffect for Effect.
 	FAttributeEffect AddOverTimeEffect(const FAttributeEffect& Effect);
 

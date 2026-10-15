@@ -188,7 +188,14 @@ void AAbility::OnHit(AUnitBase* Target, FVector Location)
 		HitEventTags = ComposeEventTags(TEXT("TargetHit"));
 	}
 
-	ReportAbilityEvent(HitEventTags, Payload);
+	// Added to a copy - HitEventTags is reused for every hit.
+	FGameplayTagContainer ReportedTags = HitEventTags;
+	if (Payload.AppliedEffect.bCrit)
+	{
+		ReportedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Event.Crit")));
+	}
+
+	ReportAbilityEvent(ReportedTags, Payload);
 	OnHitDelegate.Broadcast(Payload);
 }
 

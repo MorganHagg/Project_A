@@ -4,7 +4,9 @@
 #include "AttributeEffect.generated.h"
 
 // Selects which of the target's stats mitigates an effect's damage (see
-// AUnitBase::MitigateDamage): Magic -> MagicResist, Physical -> Armour, True -> none.
+// UEffectComponent::MitigateDamage): Magic -> MagicResist, Physical -> Armour, True -> none. Also
+// selects the caster's scaling stat (see UEffectComponent::CalculateOutgoingDamage): Magic ->
+// Intellect, Physical -> Strength, True -> none.
 // TrueDamage rather than True - UHT rejects enum entries named true/false in any case.
 UENUM(BlueprintType)
 enum class EDamageType : uint8
@@ -64,4 +66,8 @@ struct FAttributeEffect
 	// made inline: it is applied as-is, and if timed, stacks without limit and reports no events.
 	UPROPERTY()
 	TWeakObjectPtr<UGrantedAbility> Source;
+
+	// Output only: set by UEffectComponent on the applied effect it returns when this damage crit.
+	UPROPERTY(BlueprintReadOnly)
+	bool bCrit = false;
 };

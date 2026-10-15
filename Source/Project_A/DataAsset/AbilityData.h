@@ -59,6 +59,11 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FAttributeEffect Effect;
 
+	// Damage only: how much of the caster's stat is added to Effect's damage - Intellect for Magic,
+	// Strength for Physical, none for True (see UEffectComponent::CalculateOutgoingDamage).
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (ClampMin = "0", EditCondition = "Kind != EAbilityKind::Passive", EditConditionHides))
+	float Coefficient = 1.f;
+
 	// Timed Effect only. 0 = a new application is ignored while one is present. N = up to N stacks;
 	// at the limit the oldest fully ends before the new one is applied (so 1 = refresh). -1 = unlimited.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (EditCondition = "Kind != EAbilityKind::Passive", EditConditionHides))

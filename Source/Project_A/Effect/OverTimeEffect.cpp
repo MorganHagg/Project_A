@@ -184,12 +184,7 @@ FAttributeEffect UOverTimeEffect::ApplySnapshotEffect()
 		return FAttributeEffect();
 	}
 
-	FAttributeEffect Effect = SnapshotEffect;
-	if (MyGrantedAbility)
-	{
-		Effect.Magnitude *= MyGrantedAbility->GetMagnitudeMultiplier();
-	}
-	return ApplyEffect(Effect);
+	return ApplyEffect(SnapshotEffect);
 }
 
 UEffectComponent* UOverTimeEffect::GetHandler() const
@@ -216,6 +211,10 @@ void UOverTimeEffect::ReportEvent(const TCHAR* EventName, const FAttributeEffect
 	if (EventTag.IsValid())
 	{
 		EventTags.AddTag(EventTag);
+	}
+	if (AppliedEffect.bCrit)
+	{
+		EventTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Event.Crit")));
 	}
 
 	FAbilityEventPayload Payload;

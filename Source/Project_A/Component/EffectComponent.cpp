@@ -37,17 +37,13 @@ FAttributeEffect UEffectComponent::ApplyEffect(const FAttributeEffect& Effect)
 		return AddOverTimeEffect(Effect);
 	}
 
-	FAttributeEffect Scaled = Effect;
-	if (const UGrantedAbility* Source = Effect.Source.Get())
-	{
-		Scaled.Magnitude *= Source->GetMagnitudeMultiplier();
-	}
-	return ApplyInstantEffect(Scaled);
+	return ApplyInstantEffect(Effect);
 }
 
 FAttributeEffect UEffectComponent::ApplyInstantEffect(const FAttributeEffect& Effect)
 {
 	FAttributeEffect Applied = Effect;
+	Applied.bCrit = false;
 
 	// Also catches a unit killed earlier in the same frame.
 	if (!MyTarget || !MyTarget->AttributeComponent || IsTargetDead())
@@ -65,35 +61,125 @@ FAttributeEffect UEffectComponent::ApplyInstantEffect(const FAttributeEffect& Ef
 
 		if (Effect.Attribute == EAttributeType::Health)
 		{
+			Applied.Magnitude = FMath::Abs(SignedMagnitude);
 			if (SignedMagnitude < 0.f)
 			{
-				Applied.Magnitude = MyTarget->ReceiveDamage(-SignedMagnitude, Effect.DamageType);
+				return ApplyDamage(Applied);
 			}
-			else if (SignedMagnitude > 0.f)
+			if (SignedMagnitude > 0.f)
 			{
-				Applied.Magnitude = MyTarget->ReceiveHeal(SignedMagnitude);
+				return ApplyHeal(Applied);
 			}
 			return Applied;
 		}
 
-		MyTarget->AttributeComponent->ModifyAttribute(Effect.Attribute, SignedMagnitude);
+		Applied.Magnitude *= GetMagnitudeMultiplier(Effect);
+		MyTarget->AttributeComponent->ModifyAttribute(Effect.Attribute, Effect.Operation == EEffectOperation::Subtract ? -Applied.Magnitude : Applied.Magnitude);
 		return Applied;
 	}
 	// Not damage - unmitigated, and doesn't fire OnReceiveDamage/OnReceiveHeal.
 	case EEffectOperation::AddPercentage:
-		MyTarget->AttributeComponent->ModifyAttributePercent(Effect.Attribute, Effect.Magnitude);
+		Applied.Magnitude *= GetMagnitudeMultiplier(Effect);
+		MyTarget->AttributeComponent->ModifyAttributePercent(Effect.Attribute, Applied.Magnitude);
 		return Applied;
 	case EEffectOperation::SubtractPercentage:
-		MyTarget->AttributeComponent->ModifyAttributePercent(Effect.Attribute, -Effect.Magnitude);
+		Applied.Magnitude *= GetMagnitudeMultiplier(Effect);
+		MyTarget->AttributeComponent->ModifyAttributePercent(Effect.Attribute, -Applied.Magnitude);
 		return Applied;
 	}
 
 	return Applied;
 }
 
+FAttributeEffect UEffectComponent::ApplyDamage(const FAttributeEffect& Effect)
+{
+	FAttributeEffect Applied = Effect;
+	const float OutgoingDamage = CalculateOutgoingDamage(Effect, Applied.bCrit);
+	Applied.Magnitude = MyTarget->ReceiveDamage(MitigateDamage(OutgoingDamage, Effect.DamageType));
+	return Applied;
+}
+
+FAttributeEffect UEffectComponent::ApplyHeal(const FAttributeEffect& Effect)
+{
+	FAttributeEffect Applied = Effect;
+	const float Heal = Effect.Magnitude * GetMagnitudeMultiplier(Effect);
+	Applied.Magnitude = MyTarget->ReceiveHeal(ModifyIncomingHeal(Heal));
+	return Applied;
+}
+
+float UEffectComponent::CalculateOutgoingDamage(const FAttributeEffect& Effect, bool& bOutCrit) const
+{
+	bOutCrit = false;
+
+	const UGrantedAbility* Source = Effect.Source.Get();
+	if (!Source)
+	{
+		return Effect.Magnitude;
+	}
+
+	const AUnitBase* Caster = Source->MyCaster;
+	const UAttributeComponent* CasterAttributes = IsValid(Caster) ? Caster->AttributeComponent : nullptr;
+
+	float Damage = Effect.Magnitude;
+	if (CasterAttributes)
+	{
+		switch (Effect.DamageType)
+		{
+		case EDamageType::Magic:
+			Damage += Source->Coefficient * CasterAttributes->GetAttribute(EAttributeType::Intellect);
+			break;
+		case EDamageType::Physical:
+			Damage += Source->Coefficient * CasterAttributes->GetAttribute(EAttributeType::Strength);
+			break;
+		case EDamageType::TrueDamage:
+			break;
+		}
+	}
+
+	Damage *= Source->GetMagnitudeMultiplier();
+
+	if (CasterAttributes && FMath::FRandRange(0.f, 100.f) < CasterAttributes->GetAttribute(EAttributeType::Crit))
+	{
+		bOutCrit = true;
+		Damage *= CritMultiplier;
+	}
+
+	return Damage;
+}
+
+float UEffectComponent::MitigateDamage(float Damage, EDamageType DamageType)
+{
+	float Mitigation = 0.f;
+	switch (DamageType)
+	{
+	case EDamageType::Magic:
+		Mitigation = MyTarget->AttributeComponent->GetAttribute(EAttributeType::MagicResist);
+		break;
+	case EDamageType::Physical:
+		Mitigation = MyTarget->AttributeComponent->GetAttribute(EAttributeType::Armour);
+		break;
+	case EDamageType::TrueDamage:
+		break;
+	}
+
+	float FinalDamage = Damage * (1.f - Mitigation / (Mitigation + MitigationConstant));
+	FinalDamage = ModifyIncomingDamage(FinalDamage, DamageType);
+
+	// Rounded to whole damage so Health stays whole - otherwise mitigation leaves fractional
+	// remainders (e.g. 0.4 Health) that look like 0 on the health bar but aren't dead.
+	return FMath::RoundToFloat(FMath::Max(FinalDamage, 0.f));
+}
+
+float UEffectComponent::GetMagnitudeMultiplier(const FAttributeEffect& Effect)
+{
+	const UGrantedAbility* Source = Effect.Source.Get();
+	return Source ? Source->GetMagnitudeMultiplier() : 1.f;
+}
+
 FAttributeEffect UEffectComponent::ApplyStatModifier(const UObject* Source, const FAttributeEffect& Effect)
 {
 	FAttributeEffect Applied = Effect;
+	Applied.bCrit = false;
 
 	if (!MyTarget || !MyTarget->AttributeComponent || IsTargetDead())
 	{
@@ -101,7 +187,8 @@ FAttributeEffect UEffectComponent::ApplyStatModifier(const UObject* Source, cons
 		return Applied;
 	}
 
-	MyTarget->AttributeComponent->AddModifier(Source, Effect);
+	Applied.Magnitude *= GetMagnitudeMultiplier(Effect);
+	MyTarget->AttributeComponent->AddModifier(Source, Applied);
 	return Applied;
 }
 

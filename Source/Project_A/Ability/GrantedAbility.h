@@ -75,6 +75,9 @@ public:
 	FAttributeEffect Effect;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Effect")
+	float Coefficient = 1.f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Effect")
 	int32 StackLimit = 1;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Effect")
@@ -84,8 +87,8 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Effect")
 	TSubclassOf<UOverTimeEffect> EffectClass;
 
-	// Effect, ready to apply: Source set to this granted ability. This is where scaling from the
-	// caster's stats will go - by the time ApplyEffect runs, the caster's side is already calculated.
+	// Effect, ready to apply: Source set to this granted ability. Unscaled - stat scaling, the magnitude
+	// multiplier and crit are applied by UEffectComponent on each application, from Source.
 	UFUNCTION(BlueprintPure, Category = "Effect")
 	FAttributeEffect GetEffect();
 

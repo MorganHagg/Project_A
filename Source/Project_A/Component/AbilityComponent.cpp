@@ -68,6 +68,7 @@ UGrantedAbility* UAbilityComponent::GrantAbility(UAbilityData* AbilityData, bool
 	NewAbility->MaxChargeTime = AbilityData->MaxChargeTime;
 	NewAbility->AbilityClass = AbilityData->Kind == EAbilityKind::Active ? AbilityData->AbilityClass : nullptr;
 	NewAbility->Effect = AbilityData->Effect;
+	NewAbility->Coefficient = AbilityData->Coefficient;
 	NewAbility->StackLimit = AbilityData->StackLimit;
 	NewAbility->bMultipleCaster = AbilityData->bMultipleCaster;
 	NewAbility->EffectClass = AbilityData->EffectClass ? AbilityData->EffectClass : TSubclassOf<UOverTimeEffect>(UOverTimeEffect::StaticClass());
