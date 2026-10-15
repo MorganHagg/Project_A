@@ -81,8 +81,10 @@ public:
 
 	// Seconds the hold charged (capped at the granted ability's MaxChargeTime). Spawned on release
 	// (bActivateOnRelease): set before BeginPlay, so OnActivate can read it. Spawned on press: set when
-	// the hold ends, before OnHoldEnded - while held, read the live value from
-	// MyGrantedAbility->GetChargeTime(). 0 for abilities not spawned by a hold.
+	// the hold ends, before OnHoldEnded. While held, read the live value from
+	// MyGrantedAbility->GetChargeTime() - but only while MyGrantedAbility->GetSpawnedAbility() == this;
+	// otherwise it's a later hold's charge (e.g. an older Firewall would grow with a new one).
+	// 0 for abilities not spawned by a hold.
 	UPROPERTY(BlueprintReadOnly, Category = "Ability")
 	float ChargeTime = 0.f;
 

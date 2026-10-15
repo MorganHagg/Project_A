@@ -3,29 +3,15 @@
 #include "../Component/AttributeComponent.h"
 #include "../Component/EffectComponent.h"
 #include "../Misc/AttributeType.h"
-#include "../Component/TalentComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
-#include "../DataAsset/PlayerUnitData.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 APlayerUnit::APlayerUnit()
 {
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	TalentComponent = CreateDefaultSubobject<UTalentComponent>(TEXT("Talent"));
 	AdjustCamera();
-}
-
-void APlayerUnit::SetupUnit(UUnitDataBase* SpawnData)
-{
-	Super::SetupUnit(SpawnData);
-	if (UPlayerUnitData* PlayerData = Cast<UPlayerUnitData>(SpawnData))
-	{
-		TalentComponent->AcquiredTalents = PlayerData->Talents;
-		TalentComponent->AbilityComponent = AbilityComponent;
-	}
-	
 }
 
 void APlayerUnit::AdjustCamera()

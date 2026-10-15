@@ -7,7 +7,6 @@
 
 class USpringArmComponent;
 class UCameraComponent;
-class UTalentComponent;
 
 // Sole delegation point for talents. Abilities report tagged events here (see
 // UGrantedAbility::ReportAbilityEvent); every listening talent receives every event
@@ -27,12 +26,6 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UCameraComponent> Camera;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	UTalentComponent* TalentComponent;
-
-	virtual void SetupUnit(UUnitDataBase* SpawnData) override;
-
 
 	void AdjustCamera();
 
