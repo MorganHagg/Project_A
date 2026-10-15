@@ -7,6 +7,7 @@
 #include "EffectComponent.generated.h"
 
 class AUnitBase;
+class UGrantedAbility;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJECT_A_API UEffectComponent : public UActorComponent
@@ -44,6 +45,11 @@ public:
 
 	// Removes every stat change Source applied through ApplyStatModifier.
 	void RemoveStatModifiers(const UObject* Source);
+
+	// Applies Passive's Effect to MyTarget as a permanent over-time effect of its EffectClass - Duration
+	// is ignored, so it lasts until removed or MyTarget dies. Applied once on application, or on every
+	// tick with an Interval. Reports Event.Applied.
+	void ApplyPassive(UGrantedAbility* Passive);
 
 	// Cleanses one effect instance (OnRemoved).
 	UFUNCTION(BlueprintCallable, Category = "Effect")

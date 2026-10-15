@@ -6,7 +6,9 @@
 class UBehaviorTree;
 class AAIController;
 
-UCLASS()
+// HideDropdown: not offered in class pickers (e.g. UEnemyUnitData::CustomUnitClass, where empty already
+// means this class). Not Abstract - UUnitSpawner spawns it directly. Not inherited by subclasses.
+UCLASS(HideDropdown)
 class PROJECT_A_API AEnemyUnit : public AUnitBase
 {
 	GENERATED_BODY()

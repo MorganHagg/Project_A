@@ -9,7 +9,8 @@ class UOverTimeEffect;
 
 // What kind of granted ability a UAbilityData describes. Decides which fields are shown here.
 // Active: cast from an input, spawns AbilityClass. Proc: never cast; its Effect is fetched by other
-// abilities (AAbility::GetEffect), e.g. Ignite. Passive: just exists - name and Effect only.
+// abilities (AAbility::GetEffect), e.g. Ignite. Passive: its Effect is applied to its own unit at setup
+// and lasts until the unit dies (see UEffectComponent::ApplyPassive) - Duration is hidden.
 UENUM(BlueprintType)
 enum class EAbilityKind : uint8
 {
@@ -55,7 +56,8 @@ public:
 	TSubclassOf<AAbility> AbilityClass;
 
 	// This ability's effect, fetched with AAbility::GetEffect and applied with ApplyEffect. Instant
-	// when Duration and Interval are 0, timed otherwise. Passive: Duration and Interval are unused.
+	// when Duration and Interval are 0, timed otherwise. Passive: always permanent (Duration hidden);
+	// Interval > 0 applies it on every tick.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FAttributeEffect Effect;
 
@@ -73,8 +75,17 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (EditCondition = "Kind != EAbilityKind::Passive", EditConditionHides))
 	bool bMultipleCaster = true;
 
-	// Timed Effect only. Optional Blueprint subclass for behaviour Effect can't describe. Empty = the
-	// generic UOverTimeEffect.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (EditCondition = "Kind != EAbilityKind::Passive", EditConditionHides))
+	// Timed Effect and Passive. Optional Blueprint subclass for behaviour Effect can't describe. Empty =
+	// the generic UOverTimeEffect.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<UOverTimeEffect> EffectClass;
+
+#if WITH_EDITOR
+	virtual void PostLoad() override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+
+private:
+	// Hides Effect's Duration for a Passive (see FAttributeEffect::bHideDuration).
+	void SyncEffectDisplay();
+#endif
 };

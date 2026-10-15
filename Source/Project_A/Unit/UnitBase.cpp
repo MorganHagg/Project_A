@@ -44,6 +44,7 @@ void AUnitBase::SetupUnit(UUnitDataBase* SpawnData)
 
 	AbilityComponent->InstantiateAbilities(SpawnData);
 	AttributeComponent->InstantiateAttributes(SpawnData);
+	AbilityComponent->ApplyPassives();
 
 	GetMesh()->SetSkeletalMesh(SpawnData->Mesh);
 	if (SpawnData->AnimationBlueprint)

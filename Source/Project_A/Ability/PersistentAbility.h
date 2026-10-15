@@ -10,7 +10,8 @@ class ACharacter;
 class UEffectComponent;
 class AUnitBase;
 
-UCLASS()
+// Abstract: only concrete Blueprints (which must override GetSpawnTransform) can be picked or spawned.
+UCLASS(Abstract)
 class PROJECT_A_API APersistentAbility : public AAbility, public IAbilityLifecycle
 {
 	GENERATED_BODY()

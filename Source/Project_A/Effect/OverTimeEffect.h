@@ -30,9 +30,11 @@ enum class EOverTimeEffectEnd : uint8
 // Blueprint subclasses add behaviour on top through the On* hooks and ApplyEffect. Stat changes made
 // through ApplyEffect, and magnitude modifiers made through ModifyAbilityMagnitude, are undone
 // automatically however the effect stops - a designer never has to remove them by hand.
+// HideDropdown: not offered in class pickers (e.g. UAbilityData::EffectClass) - leave EffectClass empty
+// for the generic effect. Not inherited, so Blueprint subclasses still show.
 // ============================================================================
 
-UCLASS(Blueprintable)
+UCLASS(Blueprintable, HideDropdown)
 class PROJECT_A_API UOverTimeEffect : public UObject
 {
 	GENERATED_BODY()

@@ -53,7 +53,7 @@ struct FAttributeEffect
 	EDamageType DamageType = EDamageType::Magic;
 
 	// Timed effects only. 0 = permanent - lasts until removed or the unit dies.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (EditCondition = "!bHideDuration", EditConditionHides))
 	float Duration = 0.f;
 
 	// Timed effects only. Time between applications, the first one Interval after application.
@@ -70,4 +70,12 @@ struct FAttributeEffect
 	// Output only: set by UEffectComponent on the applied effect it returns when this damage crit.
 	UPROPERTY(BlueprintReadOnly)
 	bool bCrit = false;
+
+#if WITH_EDITORONLY_DATA
+	// Editor display only: hides Duration where its owner makes it meaningless (a Passive's Effect is
+	// always permanent). An EditCondition can only read fields of this struct, so the owner sets this -
+	// see UAbilityData::SyncEffectDisplay.
+	UPROPERTY()
+	bool bHideDuration = false;
+#endif
 };

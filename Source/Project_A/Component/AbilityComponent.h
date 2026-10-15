@@ -73,6 +73,10 @@ public:
     // its ExtraAbilities.
     void InstantiateAbilities(const UUnitDataBase* UnitData);
 
+    // Applies every Passive granted ability to the owner (UEffectComponent::ApplyPassive). Called by
+    // AUnitBase::SetupUnit after attributes are instantiated, so passives modify real starting values.
+    void ApplyPassives();
+
     const FGrantedInputAbilities& GetInputAbilities(EAbilityInput Input) const;
 
     // Activates GrantedAbility and returns it, or nullptr if it is null or the owner is dead.

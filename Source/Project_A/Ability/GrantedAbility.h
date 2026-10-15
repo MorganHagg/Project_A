@@ -5,6 +5,7 @@
 #include "../Interfaces/AbilityLifecycle.h"
 #include "AbilityEventPayload.h"
 #include "Ability.h"
+#include "../DataAsset/AbilityData.h"
 #include "GrantedAbility.generated.h"
 
 // Forward declarations
@@ -68,6 +69,10 @@ public:
 	// to find it (UAbilityComponent::FindGrantedAbility).
 	UPROPERTY(BlueprintReadOnly, Category = "Ability")
 	FGameplayTag AbilityTag;
+
+	// Copied from the UAbilityData. Passive ones are applied at setup (UAbilityComponent::ApplyPassives).
+	UPROPERTY(BlueprintReadOnly, Category = "Ability")
+	EAbilityKind Kind = EAbilityKind::Active;
 
 	// -- Effect (see UAbilityData) --
 

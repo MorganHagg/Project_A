@@ -9,7 +9,8 @@
 class APlayerUnit;
 class UGrantedAbility;
 
-UCLASS(Blueprintable)
+// Abstract: the base talent does nothing (empty RequiredTags never fire) - only subclasses are picked or constructed.
+UCLASS(Abstract, Blueprintable)
 class PROJECT_A_API UTalentBase : public UObject
 {
 	GENERATED_BODY()

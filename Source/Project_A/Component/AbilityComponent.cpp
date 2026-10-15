@@ -5,6 +5,7 @@
 #include "../DataAsset/AbilityData.h"
 #include "../Effect/OverTimeEffect.h"
 #include "AttributeComponent.h"
+#include "EffectComponent.h"
 #if WITH_EDITOR
 #include "Kismet/KismetSystemLibrary.h"
 #include "Engine/Blueprint.h"
@@ -62,6 +63,7 @@ UGrantedAbility* UAbilityComponent::GrantAbility(UAbilityData* AbilityData, bool
 	// One generic class now - identity/behavior come entirely from the copied DataAsset
 	// values and AbilityClass, not from a per-ability subclass.
 	UGrantedAbility* NewAbility = NewObject<UGrantedAbility>(this);
+	NewAbility->Kind = AbilityData->Kind;
 	NewAbility->CoolDown = AbilityData->CoolDown;
 	NewAbility->Cost = AbilityData->Cost;
 	NewAbility->bActivateOnRelease = AbilityData->bActivateOnRelease;
@@ -115,6 +117,22 @@ UGrantedAbility* UAbilityComponent::GrantAbility(UAbilityData* AbilityData, bool
 	NewAbility->SetupAbility(MyOwner);
 	GrantedAbilities.Add(NewAbility);
 	return NewAbility;
+}
+
+void UAbilityComponent::ApplyPassives()
+{
+	if (!MyOwner || !MyOwner->EffectComponent)
+	{
+		return;
+	}
+
+	for (UGrantedAbility* GrantedAbility : GrantedAbilities)
+	{
+		if (GrantedAbility && GrantedAbility->Kind == EAbilityKind::Passive)
+		{
+			MyOwner->EffectComponent->ApplyPassive(GrantedAbility);
+		}
+	}
 }
 
 const FGrantedInputAbilities& UAbilityComponent::GetInputAbilities(EAbilityInput Input) const

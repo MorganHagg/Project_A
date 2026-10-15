@@ -256,6 +256,23 @@ FAttributeEffect UEffectComponent::AddOverTimeEffect(const FAttributeEffect& Eff
 	return NewEffect->Begin(Effect, MyTarget);
 }
 
+void UEffectComponent::ApplyPassive(UGrantedAbility* Passive)
+{
+	if (!Passive || !Passive->EffectClass || !MyTarget || IsTargetDead())
+	{
+		return;
+	}
+
+	// Not through ApplyEffect: with Interval 0 it would count as instant. Begin with Duration 0 runs
+	// forever instead.
+	FAttributeEffect Effect = Passive->GetEffect();
+	Effect.Duration = 0.f;
+
+	UOverTimeEffect* NewEffect = NewObject<UOverTimeEffect>(this, Passive->EffectClass);
+	OverTimeEffects.Add(NewEffect);
+	NewEffect->Begin(Effect, MyTarget);
+}
+
 void UEffectComponent::RemoveOverTimeEffect(UOverTimeEffect* Effect)
 {
 	if (Effect && OverTimeEffects.Contains(Effect))

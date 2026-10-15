@@ -13,7 +13,9 @@ class UCameraComponent;
 // and filters by its own RequiredTags (see UTalentBase::HandleAbilityEvent).
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityEvent, FGameplayTagContainer, EventTags, FAbilityEventPayload, Payload);
 
-UCLASS()
+// HideDropdown: not offered in class pickers (e.g. UPlayerUnitData::CustomUnitClass, where empty already
+// means this class). Not Abstract - UUnitSpawner spawns it directly. Not inherited by subclasses.
+UCLASS(HideDropdown)
 class PROJECT_A_API APlayerUnit : public AUnitBase
 {
 	GENERATED_BODY()
