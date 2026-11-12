@@ -37,6 +37,14 @@ void AAbility::BeginPlay()
 	{
 		FinishEventTags = ComposeEventTags(TEXT("Finish"));
 	}
+
+	// Writes the ability's visuals (including Blueprint-added Niagara components) into the custom
+	// depth buffer, which M_CharacterOutline reads to outline them.
+	TInlineComponentArray<UPrimitiveComponent*> Primitives(this);
+	for (UPrimitiveComponent* Primitive : Primitives)
+	{
+		Primitive->SetRenderCustomDepth(true);
+	}
 }
 
 void AAbility::ReportCast()

@@ -25,6 +25,9 @@ AUnitBase::AUnitBase()
 	HealthBarComponent->SetDrawAtDesiredSize(true);
 	HealthBarComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	HealthBarComponent->SetGenerateOverlapEvents(false);
+
+	// Writes the unit into the custom depth buffer, which M_CharacterOutline reads to outline units only.
+	GetMesh()->bRenderCustomDepth = true;
 }
 
 void AUnitBase::BeginPlay()
