@@ -29,7 +29,8 @@ void APlayerUnit::AdjustCamera()
 	Camera->bUsePawnControlRotation = false;
 
 	bUseControllerRotationYaw = false;
-	GetCharacterMovement()->bOrientRotationToMovement = true;
+	// Facing is set from the mouse cursor by the controller; movement direction is shown by the anim blend space.
+	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 640.f, 0.f);
 }
 
